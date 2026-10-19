@@ -23,6 +23,9 @@ Luego abrí `http://localhost:8080`.
 - Seleccionar un empleado para inspeccionar su modelo, fórmula, entradas, salida y confianza.
 - Observar estados de trabajo, pensamientos ambientales y ciclo visual según la hora local.
 - Usar `+`, `−`, `0` y `Escape` para controlar rápidamente la cámara.
+- Configurar cada empleado como nodo matemático, IA externa o híbrido.
+- Ajustar su peso en el ensemble, endpoint y estado de conexión; la configuración se conserva localmente.
+- Simular la traza completa desde la normalización de datos hasta la auditoría.
 
 ## Arquitectura de decisión
 

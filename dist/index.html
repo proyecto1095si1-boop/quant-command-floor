@@ -70,8 +70,16 @@
         <code id="modelFormula">S = Σ(wᵢ · dᵢ · cᵢ)</code>
         <div class="io-grid"><div><span>ENTRADAS</span><b id="modelInputs">signals[n]</b></div><div><span>SALIDA</span><b id="modelOutput">score ∈ [-1,1]</b></div></div>
         <div class="confidence"><span>CONFIANZA</span><div><i id="confidenceBar"></i></div><b id="confidenceValue">94%</b></div>
+        <div class="brain-config">
+          <label>TIPO DE NODO<select id="brainType"><option value="math">Matemático</option><option value="ai">IA externa</option><option value="hybrid">Híbrido</option></select></label>
+          <label>PESO EN ENSEMBLE <span id="weightValue">1.0×</span><input id="agentWeight" type="range" min="0" max="2" step="0.1" value="1"></label>
+          <label>ENDPOINT / MODELO<input id="agentEndpoint" placeholder="https://… o model://local"></label>
+          <button id="connectAgent" class="connect-agent"><i></i><span>CONECTAR NODO</span></button>
+          <small id="connectionState">Configuración local · sin credenciales</small>
+        </div>
       </div>
       <div class="signal-card"><span>ÚLTIMA SEÑAL</span><b id="signal">Datos sincronizados</b><small>hace 14 segundos</small></div>
+      <div class="trace-card"><div><span>TRAZA DE DECISIÓN</span><button id="runTrace">SIMULAR</button></div><ol id="traceList"></ol></div>
     </aside>
   </main>
   <script src="app.js"></script>
