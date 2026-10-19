@@ -160,3 +160,12 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 2. Contrato de eventos + ledger paper persistente.
 3. Data adapters simulados y replay determinista.
 
+## Incremento avanzado — Gobierno estadístico de estrategias ✅
+
+- Purged K-Fold con zona de purga y embargo configurables.
+- Probabilistic y Deflated Sharpe Ratio para corregir no normalidad y múltiples ensayos.
+- Probability of Backtest Overfitting con combinaciones simétricas IS/OOS.
+- Sensibilidad de parámetros, maximum drawdown y Sharpe fuera de muestra.
+- Registro challenger/champion, gates parametrizables y promoción con aprobación humana obligatoria.
+- API, persistencia auditable y panel interactivo de Research integrados.
+
