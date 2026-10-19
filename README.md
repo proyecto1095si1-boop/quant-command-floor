@@ -26,6 +26,9 @@ Luego abrí `http://localhost:8080`.
 - Configurar cada empleado como nodo matemático, IA externa o híbrido.
 - Ajustar su peso en el ensemble, endpoint y estado de conexión; la configuración se conserva localmente.
 - Simular la traza completa desde la normalización de datos hasta la auditoría.
+- Operar el Command Center con pausa global, escenarios de estrés y Kill Switch.
+
+El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
 
 ## Arquitectura de decisión
 

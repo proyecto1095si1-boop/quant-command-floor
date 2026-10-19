@@ -38,6 +38,12 @@
           <div class="controls"><button id="minus" aria-label="Alejar">−</button><button id="reset">CENTRAR</button><button id="plus" aria-label="Acercar">+</button></div>
         </div>
       </div>
+      <div class="command-center">
+        <div class="engine-status"><i id="engineDot"></i><span>MOTOR</span><b id="engineState">RUNNING</b></div>
+        <label>ESCENARIO<select id="scenario"><option value="normal">Mercado normal</option><option value="bull">Bull breakout</option><option value="crash">Flash crash</option><option value="depeg">Stablecoin depeg</option><option value="outage">Exchange outage</option></select></label>
+        <button id="engineToggle">Ⅱ PAUSAR</button><button id="killSwitch" class="kill">⚠ KILL SWITCH</button>
+        <div class="engine-metrics"><span>EVENTOS <b id="eventCount">002,048</b></span><span>LATENCIA <b id="latency">42ms</b></span><span>RISK GATE <b id="riskGate">OPEN</b></span></div>
+      </div>
       <div id="viewport" class="viewport">
         <div id="floor" class="floor" aria-label="Mapa interactivo del piso">
           <div class="grid-label gx">01&nbsp;&nbsp;02&nbsp;&nbsp;03&nbsp;&nbsp;04&nbsp;&nbsp;05&nbsp;&nbsp;06&nbsp;&nbsp;07&nbsp;&nbsp;08</div>
