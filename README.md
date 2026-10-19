@@ -30,6 +30,7 @@ Luego abrí `http://localhost:8080`.
 
 El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
 La frontera de seguridad y los requisitos previos a capital real están en [`docs/SECURITY.md`](docs/SECURITY.md).
+El contrato listo para conectar localhost o un gateway está en [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 ## Runtime multiagente
 
@@ -39,7 +40,12 @@ La frontera de seguridad y los requisitos previos a capital real están en [`doc
 node tests/runtime.test.js
 node tests/data-research.test.js
 node tests/operations.test.js
+node tests/platform-config.test.js
 ```
+
+## Conectar backend o localhost
+
+Abrí **Conectores** en la barra del mapa y completá el host, las rutas, el proveedor y el modelo. HTTP/WS solo se aceptan para `localhost`; fuera de local se exige HTTPS/WSS. Las credenciales no se almacenan en el frontend: el backend debe resolverlas desde variables de entorno (por ejemplo `LLM_API_KEY` y `EXCHANGE_API_KEY`) y exponer únicamente `/v1/health`, `/v1/agents/execute` y `/v1/stream`.
 
 ## Arquitectura de decisión
 
