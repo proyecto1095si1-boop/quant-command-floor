@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#071015" />
+  <title>Quant Command Floor</title>
+  <meta name="description" content="Mapa operativo 2D del trading floor multi-agente." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">QF</span><div><strong>QUANT COMMAND FLOOR</strong><small>OPERATIONS MAP / LIVE</small></div></div>
+    <div class="market"><span class="dot"></span><b>MARKET OPEN</b><span>BTC <i>+2.41%</i></span><span>SPY <i>+0.68%</i></span><span>CCL <em>1,476.20</em></span></div>
+    <div class="clock"><span id="time">00:00:00</span><small>UTC</small></div>
+  </header>
+
+  <main>
+    <aside class="sidebar">
+      <div class="eyebrow">DIRECTORIO</div>
+      <h1>El piso,<br><span>en vivo.</span></h1>
+      <p class="intro">Nueve áreas. Un solo sistema de decisión.</p>
+      <label class="search"><span>⌕</span><input id="search" placeholder="Buscar agente o área…" autocomplete="off"></label>
+      <nav id="nav"></nav>
+      <div class="legend"><span><i class="status active"></i>Activo</span><span><i class="status thinking"></i>Procesando</span><span><i class="status alert"></i>Alerta</span></div>
+    </aside>
+
+    <section class="workspace">
+      <div class="map-toolbar">
+        <div><span class="live-pill">● LIVE</span><b>PLANTA 01</b><small>HQ / TRADING & INTELLIGENCE</small></div>
+        <div class="controls"><button id="minus" aria-label="Alejar">−</button><button id="reset">CENTRAR</button><button id="plus" aria-label="Acercar">+</button></div>
+      </div>
+      <div id="viewport" class="viewport">
+        <div id="floor" class="floor" aria-label="Mapa interactivo del piso">
+          <div class="grid-label gx">01&nbsp;&nbsp;02&nbsp;&nbsp;03&nbsp;&nbsp;04&nbsp;&nbsp;05&nbsp;&nbsp;06&nbsp;&nbsp;07&nbsp;&nbsp;08</div>
+          <div class="grid-label gy">A<br>B<br>C<br>D<br>E<br>F</div>
+          <div class="corridor c1"><span>INTELLIGENCE CORRIDOR</span></div>
+          <div class="corridor c2"><span>EXECUTION LANE</span></div>
+          <div class="flow-line"></div>
+          <div id="rooms"></div>
+          <div class="watercooler"><div>▰</div><span>BREAK</span></div>
+          <div class="plant p1">♣</div><div class="plant p2">♣</div>
+        </div>
+      </div>
+      <div class="map-footer"><span>ARRASTRÁ PARA MOVER · SCROLL PARA ZOOM</span><span id="zoomLabel">100%</span></div>
+    </section>
+
+    <aside id="detail" class="detail">
+      <button class="close" id="close">×</button>
+      <div class="detail-index" id="detailIndex">01</div>
+      <div class="eyebrow" id="detailType">INTAKE</div>
+      <h2 id="detailName">Pipeline de intake</h2>
+      <p id="detailDesc"></p>
+      <div class="metric"><span>ESTADO</span><b><i class="status active"></i> OPERATIVO</b></div>
+      <div class="metric"><span>AGENTES</span><b id="agentCount">08</b></div>
+      <h3>EQUIPO</h3>
+      <div id="agentList" class="agent-list"></div>
+      <div class="signal-card"><span>ÚLTIMA SEÑAL</span><b id="signal">Datos sincronizados</b><small>hace 14 segundos</small></div>
+    </aside>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
