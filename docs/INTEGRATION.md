@@ -65,6 +65,8 @@ MARKET_DATA_ENABLED=true
 MARKET_PRODUCTS=BTC-USD,ETH-USD
 MARKET_POLL_MS=5000
 DATA_DIR=./var/data
+MARKET_WS_ENABLED=false
+DATA_RETENTION_DAYS=30
 ```
 
 Endpoints de observación:
@@ -74,3 +76,5 @@ Endpoints de observación:
 - `GET /v1/data/replay?stream=trades.BTC-USD&limit=1000`: replay verificado.
 
 Los eventos se persisten como JSONL particionado por fecha. Cada fila guarda SHA-256 del payload; el replay se detiene ante corrupción. Los libros se ordenan por precio, calculan spread, spread en bps e imbalance. Las velas se agregan simultáneamente a 1m, 5m, 15m y 1h.
+
+En un host con salida WebSocket, `MARKET_WS_ENABLED=true` activa `ticker`, `matches`, `level2` y `heartbeat` de Coinbase con reconexión exponencial y jitter. El polling REST permanece como mecanismo de snapshot, recuperación y fallback. Los archivos anteriores al día activo se comprimen con gzip y la retención elimina particiones que exceden `DATA_RETENTION_DAYS`.

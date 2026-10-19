@@ -40,6 +40,7 @@ Abrí `http://localhost:8080`, entrá a **Conectores**, probá health y guardá.
 El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
 La frontera de seguridad y los requisitos previos a capital real están en [`docs/SECURITY.md`](docs/SECURITY.md).
 El contrato listo para conectar localhost o un gateway está en [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+La operación, recuperación y alertas del Data Plane están en [`docs/DATA_RUNBOOK.md`](docs/DATA_RUNBOOK.md).
 
 ## Runtime multiagente
 
