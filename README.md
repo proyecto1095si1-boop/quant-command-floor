@@ -36,6 +36,7 @@ El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
 
 ```bash
 node tests/runtime.test.js
+node tests/data-research.test.js
 ```
 
 ## Arquitectura de decisión

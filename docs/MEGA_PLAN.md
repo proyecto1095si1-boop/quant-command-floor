@@ -35,7 +35,7 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** agentes sustituibles sin acoplar la interfaz a un proveedor.
 
-## Fase 3 — Data plane
+## Fase 3 — Data plane ✅
 
 - WebSockets de exchanges con normalización de trades y order books.
 - Velas multi-timeframe, funding, open interest y volatilidad.
@@ -45,7 +45,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** datos confiables con salud y procedencia visibles.
 
-## Fase 4 — Research y backtesting
+**Implementado:** normalización, frescura, detección de huecos/outliers, divergencia multi-fuente, snapshot y replay determinista. Los conectores reales de exchange quedan para la integración backend.
+
+## Fase 4 — Research y backtesting ✅
 
 - Catálogo versionado de estrategias y features.
 - Backtests vectorizados con fees, slippage y latencia.
@@ -54,6 +56,8 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Comparación champion/challenger y degradación automática.
 
 **Salida:** pipeline research → validación → paper con puertas formales.
+
+**Implementado:** catálogo versionado, backtest con fees/slippage, equity curve, Sharpe, drawdown, walk-forward y Monte Carlo reproducible.
 
 ## Fase 5 — Riesgo y cartera
 
