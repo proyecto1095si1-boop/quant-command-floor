@@ -21,10 +21,16 @@ Luego abrí `http://localhost:8080`.
 - Consultar estado, integrantes y última señal en el panel lateral.
 - Activar o desactivar la capa **Red IA** para seguir las rutas de datos.
 - Seleccionar un empleado para inspeccionar su modelo, fórmula, entradas, salida y confianza.
+- Observar estados de trabajo, pensamientos ambientales y ciclo visual según la hora local.
+- Usar `+`, `−`, `0` y `Escape` para controlar rápidamente la cámara.
 
 ## Arquitectura de decisión
 
 La visualización representa el recorrido `intake → mesas → debate → riesgo → ejecución → cartera → auditoría`. El laboratorio de backtesting realimenta las mesas y SRE supervisa ejecución. Las líneas rojas indican controles con capacidad de veto y las amarillas, ciclos de aprendizaje.
+
+## Créditos
+
+Los personajes pixel provienen del set MIT distribuido con `ATK-zk/company-pixel-office`. Consultá `THIRD_PARTY_NOTICES.md` y `third_party/LICENSE-pixel-agents-MIT`.
 
 ## Estructura
 
