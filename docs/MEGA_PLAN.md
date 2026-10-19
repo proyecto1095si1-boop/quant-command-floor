@@ -169,3 +169,11 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Registro challenger/champion, gates parametrizables y promoción con aprobación humana obligatoria.
 - API, persistencia auditable y panel interactivo de Research integrados.
 
+## Punto 6 — Oficina avanzada de riesgo ✅
+
+- Position sizing por stop/ATR, mandato, volatility targeting EWMA y Kelly fraccional.
+- VaR histórico, CVaR, drawdown high-water, correlación, concentración y exposición bruta.
+- Stress tests de crash, shock de liquidez y caída del venue sobre exposición post-trade.
+- Veto explicable, halt/resume soberano y restauración del estado desde checkpoints.
+- API de estado/preview y cabina visual con límites y último dictamen.
+
