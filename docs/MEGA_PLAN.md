@@ -85,6 +85,14 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Implementado:** broker paper idempotente, fills con fees/slippage, TWAP, posiciones, ledger y conciliación.
 
+## Punto 2 — Mesas de cripto majors ✅
+
+- Plantilla única para BTC, ETH, SOL y BNB.
+- Technical, Volume, Whale, Liquidity, Market Structure y Order Block independientes.
+- Signal Hub ponderado por confianza, penalización por desacuerdo y salida LONG/SHORT/FLAT/NO_TRADE.
+- Datos Coinbase reales, controles de calidad heredados y límites máximos por activo.
+- API, consola visual, evidencias por nodo y pruebas funcionales/de carga.
+
 ## Fase 7 — DeFi, derivados y tesorería ✅
 
 - Simulación de funding arbitrage, ciclos DEX y APY neto.

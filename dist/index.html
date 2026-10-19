@@ -34,7 +34,7 @@
         <div><span class="live-pill">● LIVE</span><b>PLANTA 01</b><small>HQ / TRADING & INTELLIGENCE</small></div>
         <div class="toolbar-actions">
           <div class="filters" aria-label="Filtrar estado"><button class="filter active" data-filter="all">TODOS</button><button class="filter" data-filter="active">ACTIVOS</button><button class="filter" data-filter="thinking">PROCESANDO</button><button class="filter" data-filter="alert">ALERTAS</button></div>
-          <button id="platformOpen" class="network-toggle">⚙ CONECTORES</button><button id="networkToggle" class="network-toggle active" aria-pressed="true">⌁ RED IA</button>
+          <button id="desksOpen" class="network-toggle">◫ MESAS</button><button id="platformOpen" class="network-toggle">⚙ CONECTORES</button><button id="networkToggle" class="network-toggle active" aria-pressed="true">⌁ RED IA</button>
           <div class="controls"><button id="minus" aria-label="Alejar">−</button><button id="reset">CENTRAR</button><button id="plus" aria-label="Acercar">+</button></div>
         </div>
       </div>
@@ -112,6 +112,7 @@
       <div class="data-plane-panel"><div><b>DATA PLANE REAL</b><button id="refreshData">ACTUALIZAR</button></div><div class="data-plane-grid"><span>FUENTE<b id="dataSource">—</b></span><span>ESTADO<b id="dataStatus">DISABLED</b></span><span>BTC-USD<b id="dataPrice">—</b></span><span>SPREAD<b id="dataSpread">—</b></span><span>IMBALANCE<b id="dataImbalance">—</b></span><span>PERSISTIDOS<b id="dataEvents">0</b></span></div><small id="dataDetail">Esperando conexión con /v1/data/health</small></div>
     </section>
   </div>
+  <div id="desksModal" class="platform-modal desks-modal" aria-hidden="true"><section role="dialog" aria-modal="true" aria-labelledby="desksTitle"><button id="desksClose" class="platform-close" aria-label="Cerrar">×</button><div class="eyebrow">PUNTO 2 · CRYPTO MAJORS</div><h2 id="desksTitle">Mesas por activo</h2><p>Una plantilla cuantitativa, cuatro mandatos independientes y veto automático ante datos insuficientes.</p><div id="deskTabs" class="desk-tabs"></div><div id="deskSummary" class="desk-summary"><div><span>ACCIÓN</span><b id="deskAction">—</b></div><div><span>SEÑAL</span><b id="deskSignal">—</b></div><div><span>CONFIANZA</span><b id="deskConfidence">—</b></div><div><span>ACUERDO</span><b id="deskAgreement">—</b></div></div><div id="deskAgents" class="desk-agents"></div><div class="desk-policy"><span id="deskPolicy">Seleccioná una mesa para ejecutar el análisis.</span><button id="runDesk">EJECUTAR MESA</button></div></section></div>
   <script src="platform-config.js"></script>
   <script src="runtime.js"></script>
   <script src="data-plane.js"></script>

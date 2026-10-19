@@ -15,5 +15,6 @@ class MarketDataService{
   health(){const source=this.connector.health(),secondary=this.secondary?.health()||null,quality=this.quality.snapshot(),stream=this.stream?.health()||{status:'disabled'},cycleAge=this.metrics.lastCycleAt?Date.now()-this.metrics.lastCycleAt:Infinity,maxDivergence=Math.max(0,...this.divergence.values()),healthy=this.running&&source.status!=='down'&&cycleAge<this.pollMs*3&&maxDivergence<=this.divergenceLimitBps&&quality.status==='healthy';return{status:healthy?'healthy':this.running?'degraded':'stopped',running:this.running,products:this.products,cycleAgeMs:cycleAge,maxDivergenceBps:maxDivergence,divergenceLimitBps:this.divergenceLimitBps,source,secondary,stream,quality,metrics:{...this.metrics}}}
   replay(stream,options){return this.store.replay(stream,options)}
   storage(){return this.store.inventory()}
+  async analysisContext(product){const [candles,persisted]=await Promise.all([this.connector.candles(product,{granularity:300}),this.store.tail(`trades.${product}`,1000)]),trades=persisted.length>=20?persisted:await this.connector.trades(product,200);return{candles,trades,book:this.books.get(product)?.snapshot(100)||null,quality:this.quality.snapshot(),ticker:this.tickers.get(product)||null}}
 }
 module.exports={MarketDataService};
