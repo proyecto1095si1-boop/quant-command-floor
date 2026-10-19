@@ -13,25 +13,29 @@
 </head>
 <body>
   <header class="topbar">
+    <button class="mobile-menu" id="menu" aria-label="Abrir directorio" aria-expanded="false">☰</button>
     <div class="brand"><span class="brand-mark">QF</span><div><strong>QUANT COMMAND FLOOR</strong><small>OPERATIONS MAP / LIVE</small></div></div>
     <div class="market"><span class="dot"></span><b>MARKET OPEN</b><span>BTC <i>+2.41%</i></span><span>SPY <i>+0.68%</i></span><span>CCL <em>1,476.20</em></span></div>
     <div class="clock"><span id="time">00:00:00</span><small>UTC</small></div>
   </header>
 
   <main>
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="eyebrow">DIRECTORIO</div>
       <h1>El piso,<br><span>en vivo.</span></h1>
       <p class="intro">Nueve áreas. Un solo sistema de decisión.</p>
       <label class="search"><span>⌕</span><input id="search" placeholder="Buscar agente o área…" autocomplete="off"></label>
       <nav id="nav"></nav>
       <div class="legend"><span><i class="status active"></i>Activo</span><span><i class="status thinking"></i>Procesando</span><span><i class="status alert"></i>Alerta</span></div>
-    </aside>
+    </aside><button class="sidebar-scrim" id="scrim" aria-label="Cerrar directorio"></button>
 
     <section class="workspace">
       <div class="map-toolbar">
         <div><span class="live-pill">● LIVE</span><b>PLANTA 01</b><small>HQ / TRADING & INTELLIGENCE</small></div>
-        <div class="controls"><button id="minus" aria-label="Alejar">−</button><button id="reset">CENTRAR</button><button id="plus" aria-label="Acercar">+</button></div>
+        <div class="toolbar-actions">
+          <div class="filters" aria-label="Filtrar estado"><button class="filter active" data-filter="all">TODOS</button><button class="filter" data-filter="active">ACTIVOS</button><button class="filter" data-filter="thinking">PROCESANDO</button><button class="filter" data-filter="alert">ALERTAS</button></div>
+          <div class="controls"><button id="minus" aria-label="Alejar">−</button><button id="reset">CENTRAR</button><button id="plus" aria-label="Acercar">+</button></div>
+        </div>
       </div>
       <div id="viewport" class="viewport">
         <div id="floor" class="floor" aria-label="Mapa interactivo del piso">
