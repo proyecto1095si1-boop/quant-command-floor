@@ -47,6 +47,8 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Implementado:** normalización, frescura, detección de huecos/outliers, divergencia multi-fuente, snapshot y replay determinista. Los conectores reales de exchange quedan para la integración backend.
 
+**Incremento real:** conector público Coinbase con timeout, reintentos y backoff; snapshots L2, ticker, trades incrementales, velas 1m/5m/15m/1h, persistencia JSONL con SHA-256, replay y endpoints de observación. Aún faltan redundancia de proveedor, WebSocket externo de producción y almacenamiento columnar antes de cerrar completamente esta fase.
+
 ## Fase 4 — Research y backtesting ✅
 
 - Catálogo versionado de estrategias y features.

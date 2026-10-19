@@ -109,6 +109,7 @@
       <div class="platform-actions"><button id="platformTest">PROBAR HEALTH</button><button id="platformSave" class="primary">GUARDAR CONFIGURACIÓN</button></div>
       <div id="platformStatus" class="platform-status"><i></i><span>Sin comprobar</span></div>
       <div class="platform-math"><b>INFRA MATH</b><span>EWMA α=0.20 · Robust z = 0.6745(x−median)/MAD · circuit breaker 3 fallas / 30s</span></div>
+      <div class="data-plane-panel"><div><b>DATA PLANE REAL</b><button id="refreshData">ACTUALIZAR</button></div><div class="data-plane-grid"><span>FUENTE<b id="dataSource">—</b></span><span>ESTADO<b id="dataStatus">DISABLED</b></span><span>BTC-USD<b id="dataPrice">—</b></span><span>SPREAD<b id="dataSpread">—</b></span><span>IMBALANCE<b id="dataImbalance">—</b></span><span>PERSISTIDOS<b id="dataEvents">0</b></span></div><small id="dataDetail">Esperando conexión con /v1/data/health</small></div>
     </section>
   </div>
   <script src="platform-config.js"></script>

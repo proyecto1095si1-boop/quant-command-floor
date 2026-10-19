@@ -11,6 +11,8 @@ cp .env.example .env
 npm start
 ```
 
+El comando activa `--use-env-proxy` de Node para respetar proxies HTTPS administrados sin desactivar la validación TLS.
+
 En otra terminal serví la interfaz:
 
 ```bash

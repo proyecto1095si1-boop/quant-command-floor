@@ -55,3 +55,22 @@ Restricciones: `signal ∈ [-1,1]`, `confidence ∈ [0,1]`, máximo 20 evidencia
 - Reintentos: máximo 2 antes de contabilizar el fallo final. En producción se debe añadir backoff exponencial con jitter.
 
 El stream `WS /v1/stream` queda reservado para eventos normalizados de mercado y salud; no debe transportar secretos.
+
+## Data Plane real
+
+Coinbase Exchange es la fuente pública primaria porque Binance puede responder `451` según la región. Variables:
+
+```env
+MARKET_DATA_ENABLED=true
+MARKET_PRODUCTS=BTC-USD,ETH-USD
+MARKET_POLL_MS=5000
+DATA_DIR=./var/data
+```
+
+Endpoints de observación:
+
+- `GET /v1/data/health`: frescura, errores, latencia y ciclos.
+- `GET /v1/data/snapshot/BTC-USD`: ticker, libro L2 y velas abiertas.
+- `GET /v1/data/replay?stream=trades.BTC-USD&limit=1000`: replay verificado.
+
+Los eventos se persisten como JSONL particionado por fecha. Cada fila guarda SHA-256 del payload; el replay se detiene ante corrupción. Los libros se ordenan por precio, calculan spread, spread en bps e imbalance. Las velas se agregan simultáneamente a 1m, 5m, 15m y 1h.
