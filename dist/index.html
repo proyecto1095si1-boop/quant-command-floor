@@ -82,6 +82,7 @@
           <label>PESO EN ENSEMBLE <span id="weightValue">1.0×</span><input id="agentWeight" type="range" min="0" max="2" step="0.1" value="1"></label>
           <label>ENDPOINT / MODELO<input id="agentEndpoint" placeholder="https://… o model://local"></label>
           <button id="connectAgent" class="connect-agent"><i></i><span>CONECTAR NODO</span></button>
+          <button id="executeAgent" class="execute-agent">▶ EJECUTAR AGENTE</button>
           <small id="connectionState">Configuración local · sin credenciales</small>
         </div>
       </div>
@@ -89,6 +90,7 @@
       <div class="trace-card"><div><span>TRAZA DE DECISIÓN</span><button id="runTrace">SIMULAR</button></div><ol id="traceList"></ol></div>
     </aside>
   </main>
+  <script src="runtime.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

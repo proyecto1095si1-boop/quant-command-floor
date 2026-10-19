@@ -13,7 +13,7 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 5. Todo conector externo aplica timeout, rate limit y circuit breaker.
 6. Una IA propone; los motores deterministas limitan y verifican.
 
-## Fase 1 — Núcleo operativo
+## Fase 1 — Núcleo operativo ✅
 
 - Modelo canónico de las nueve áreas y 27 agentes.
 - Command Center con pausa, escenarios y Kill Switch.
@@ -23,13 +23,15 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** simulador coherente, navegable y seguro sin dependencias externas.
 
-## Fase 2 — Runtime multiagente
+## Fase 2 — Runtime multiagente 🚧
 
 - Contrato uniforme `AgentInput → AgentResult` con evidencia y confianza.
 - Adaptadores para nodos matemáticos, modelos locales y APIs IA.
 - Orquestador con DAG, dependencias, reintentos y presupuestos de tiempo.
 - Registro de versiones de prompt, modelo, parámetros y datasets.
 - Sandbox de Code Generator; nunca ejecutar código generado directamente.
+
+**Implementado:** contrato de resultado, EventBus acotado, registro versionado, adaptadores matemático/IA/híbrido, timeout, reintentos y ejecución DAG. Pendiente: backend seguro para proveedores reales y sandbox de código.
 
 **Salida:** agentes sustituibles sin acoplar la interfaz a un proveedor.
 

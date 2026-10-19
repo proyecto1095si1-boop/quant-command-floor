@@ -30,6 +30,14 @@ Luego abrí `http://localhost:8080`.
 
 El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
 
+## Runtime multiagente
+
+`dist/runtime.js` implementa el bus de eventos, máquina de estados, registro versionado, adaptadores de nodos, timeout/reintentos y ejecución DAG. Se valida sin dependencias con:
+
+```bash
+node tests/runtime.test.js
+```
+
 ## Arquitectura de decisión
 
 La visualización representa el recorrido `Intel + Mining + Infra → Trading → Risk → AI Board → Tesorería`. DeFi y Derivados entran por el control de riesgo; Mining realimenta Trading con estrategias validadas. Las líneas rojas indican controles con capacidad de veto y las amarillas, ciclos de aprendizaje.
