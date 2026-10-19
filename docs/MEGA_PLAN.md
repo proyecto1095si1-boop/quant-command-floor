@@ -102,6 +102,14 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Checkpoints recuperables y cadena SHA-256 verificada antes de reanudar.
 - Halt/resume, bloqueo de concurrencia por activo, API y Command Center visual.
 
+## Punto 4 — Dashboard y observabilidad ✅
+
+- Equity curve, retorno, drawdown, VaR/CVaR, exposición, fees y desglose por activo.
+- Correlaciones horarias de BTC, ETH, SOL y BNB.
+- Latencias p50/p95/p99, salud de proveedores, almacenamiento y auditoría.
+- Alertas graduadas, historial filtrable, inspector de runs y exportación CSV.
+- Dashboard visual alimentado exclusivamente por datos persistidos y estado real.
+
 ## Fase 7 — DeFi, derivados y tesorería ✅
 
 - Simulación de funding arbitrage, ciclos DEX y APY neto.
