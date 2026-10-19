@@ -1,6 +1,6 @@
 # Quant Command Floor
 
-Mapa operativo 2D e interactivo de un trading floor multi-agente. Representa nueve áreas conectadas: intake de señales, mesas por activo, debate, riesgo, ejecución, cartera, auditoría, backtesting y SRE.
+Mapa operativo 2D e interactivo de un hedge fund cripto multi-agente. Representa nueve áreas conectadas: Mining & Testing, Trading Floor, Intel & Data, Risk Management, DeFi Yield & Arbitrage, AI Board, Infraestructura, Tesorería y Derivados.
 
 ## Ejecutar localmente
 
@@ -29,7 +29,7 @@ Luego abrí `http://localhost:8080`.
 
 ## Arquitectura de decisión
 
-La visualización representa el recorrido `intake → mesas → debate → riesgo → ejecución → cartera → auditoría`. El laboratorio de backtesting realimenta las mesas y SRE supervisa ejecución. Las líneas rojas indican controles con capacidad de veto y las amarillas, ciclos de aprendizaje.
+La visualización representa el recorrido `Intel + Mining + Infra → Trading → Risk → AI Board → Tesorería`. DeFi y Derivados entran por el control de riesgo; Mining realimenta Trading con estrategias validadas. Las líneas rojas indican controles con capacidad de veto y las amarillas, ciclos de aprendizaje.
 
 ## Créditos
 
