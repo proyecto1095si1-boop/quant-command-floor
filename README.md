@@ -4,13 +4,20 @@ Mapa operativo 2D e interactivo de un hedge fund cripto multi-agente. Representa
 
 ## Ejecutar localmente
 
-El proyecto es estático y no requiere instalación:
+No requiere instalar paquetes. En una terminal iniciá el gateway:
 
 ```bash
-python3 -m http.server 8080 --directory dist
+cp .env.example .env
+npm start
 ```
 
-Luego abrí `http://localhost:8080`.
+En otra terminal serví la interfaz:
+
+```bash
+npm run serve:ui
+```
+
+Abrí `http://localhost:8080`, entrá a **Conectores**, probá health y guardá. El gateway escucha en `http://localhost:8787` y el stream en `ws://localhost:8787/v1/stream`.
 
 ## Interacciones
 
@@ -37,10 +44,7 @@ El contrato listo para conectar localhost o un gateway está en [`docs/INTEGRATI
 `dist/runtime.js` implementa el bus de eventos, máquina de estados, registro versionado, adaptadores de nodos, timeout/reintentos y ejecución DAG. Se valida sin dependencias con:
 
 ```bash
-node tests/runtime.test.js
-node tests/data-research.test.js
-node tests/operations.test.js
-node tests/platform-config.test.js
+npm test
 ```
 
 ## Conectar backend o localhost

@@ -118,6 +118,15 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Implementado:** validación de endpoints por allowlist, sanitización de configuración, token bucket y fronteras paper-only. Pendiente: identidad, secretos backend, CI/CD y revisión de seguridad antes de producción.
 
+## Incremento backend local — Etapas 0 y 1 ✅
+
+- Gateway Node sin dependencias con health check, CORS estricto y límite de payload.
+- Contrato uniforme de ejecución y política `paper_only` obligatoria.
+- WebSocket de eventos para que el mapa reciba resultados en vivo.
+- Motores locales para Feed Manager, API Optimizer, Anomaly Detector, Social Sentiment, On-Chain y Macro News.
+- Adaptador opcional OpenAI-compatible para Sentiment y Macro; credenciales únicamente en variables del servidor.
+- EWMA, token bucket, Bayes, z-score clásico y z-score robusto con MAD implementados y testeados.
+
 ## Próximos tres incrementos
 
 1. Command Center y máquina de estados global.

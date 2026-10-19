@@ -1,0 +1,12 @@
+{
+  "name": "quant-command-floor",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Pixel multi-agent crypto hedge fund command floor",
+  "scripts": {
+    "start": "node server/index.js",
+    "serve:ui": "python3 -m http.server 8080 --directory dist",
+    "test": "node tests/runtime.test.js && node tests/data-research.test.js && node tests/operations.test.js && node tests/platform-config.test.js && node tests/gateway.test.js && node tests/llm-client.test.js && node tests/env.test.js"
+  },
+  "engines": {"node": ">=20"}
+}
