@@ -177,3 +177,11 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Veto explicable, halt/resume soberano y restauración del estado desde checkpoints.
 - API de estado/preview y cabina visual con límites y último dictamen.
 
+## Punto 7 — Portfolio Management ✅
+
+- Blend configurable de risk parity y media-varianza regularizada long-only.
+- Proyección iterativa con topes por activo y reserva objetivo de efectivo.
+- Covarianza, volatilidad anual, contribuciones de riesgo y diversification ratio.
+- Rebalanceo por banda del 2% y turnover máximo del 20% por ciclo.
+- Planes paper con aprobación humana obligatoria, persistencia, API y mesa visual.
+

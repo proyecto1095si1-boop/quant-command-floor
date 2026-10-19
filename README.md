@@ -46,6 +46,7 @@ El pipeline, sizing, veto y recuperación están en [`docs/PIPELINE.md`](docs/PI
 Las métricas, alertas y trazabilidad están en [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md).
 La validación purgada, DSR, PBO y promoción champion/challenger están en [`docs/RESEARCH_GOVERNANCE.md`](docs/RESEARCH_GOVERNANCE.md).
 El sizing, VaR/CVaR, stress testing y veto independiente están en [`docs/RISK_MANAGEMENT.md`](docs/RISK_MANAGEMENT.md).
+La asignación, risk parity y reglas de rebalanceo están en [`docs/PORTFOLIO_MANAGEMENT.md`](docs/PORTFOLIO_MANAGEMENT.md).
 
 ## Runtime multiagente
 
