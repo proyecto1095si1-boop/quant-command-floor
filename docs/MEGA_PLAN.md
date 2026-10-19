@@ -93,6 +93,15 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Datos Coinbase reales, controles de calidad heredados y límites máximos por activo.
 - API, consola visual, evidencias por nodo y pruebas funcionales/de carga.
 
+## Punto 3 — Pipeline operativo ✅
+
+- Data Plane → Mesa → Signal Hub → Proposal → Risk Veto → Paper Ledger → Reconcile → Audit.
+- Sizing por riesgo monetario, ATR y mandato máximo por activo.
+- Límites de drawdown, VaR, exposición, correlación, liquidez y confianza.
+- Ledger multi-activo con fees, slippage, impacto, PnL e idempotencia.
+- Checkpoints recuperables y cadena SHA-256 verificada antes de reanudar.
+- Halt/resume, bloqueo de concurrencia por activo, API y Command Center visual.
+
 ## Fase 7 — DeFi, derivados y tesorería ✅
 
 - Simulación de funding arbitrage, ciclos DEX y APY neto.

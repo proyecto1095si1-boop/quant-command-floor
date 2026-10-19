@@ -42,6 +42,7 @@ La frontera de seguridad y los requisitos previos a capital real están en [`doc
 El contrato listo para conectar localhost o un gateway está en [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 La operación, recuperación y alertas del Data Plane están en [`docs/DATA_RUNBOOK.md`](docs/DATA_RUNBOOK.md).
 Las fórmulas y límites de las mesas majors están en [`docs/ASSET_DESKS.md`](docs/ASSET_DESKS.md).
+El pipeline, sizing, veto y recuperación están en [`docs/PIPELINE.md`](docs/PIPELINE.md).
 
 ## Runtime multiagente
 
