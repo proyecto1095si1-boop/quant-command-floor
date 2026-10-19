@@ -29,6 +29,7 @@ Luego abrí `http://localhost:8080`.
 - Operar el Command Center con pausa global, escenarios de estrés y Kill Switch.
 
 El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
+La frontera de seguridad y los requisitos previos a capital real están en [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ## Runtime multiagente
 
@@ -37,6 +38,7 @@ El roadmap técnico completo está en [`docs/MEGA_PLAN.md`](docs/MEGA_PLAN.md).
 ```bash
 node tests/runtime.test.js
 node tests/data-research.test.js
+node tests/operations.test.js
 ```
 
 ## Arquitectura de decisión

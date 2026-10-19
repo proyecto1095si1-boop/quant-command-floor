@@ -42,7 +42,7 @@
         <div class="engine-status"><i id="engineDot"></i><span>MOTOR</span><b id="engineState">RUNNING</b></div>
         <label>ESCENARIO<select id="scenario"><option value="normal">Mercado normal</option><option value="bull">Bull breakout</option><option value="crash">Flash crash</option><option value="depeg">Stablecoin depeg</option><option value="outage">Exchange outage</option></select></label>
         <button id="engineToggle">Ⅱ PAUSAR</button><button id="killSwitch" class="kill">⚠ KILL SWITCH</button>
-        <div class="engine-metrics"><span>EVENTOS <b id="eventCount">002,048</b></span><span>LATENCIA <b id="latency">42ms</b></span><span>FEEDS <b id="feedHealth">HEALTHY</b></span><span>RISK GATE <b id="riskGate">OPEN</b></span></div>
+        <div class="engine-metrics"><span>EVENTOS <b id="eventCount">002,048</b></span><span>EQUITY <b id="equity">$100K</b></span><span>FEEDS <b id="feedHealth">HEALTHY</b></span><span>RISK GATE <b id="riskGate">OPEN</b></span></div>
       </div>
       <div id="viewport" class="viewport">
         <div id="floor" class="floor" aria-label="Mapa interactivo del piso">
@@ -89,11 +89,15 @@
       <div class="signal-card"><span>ÚLTIMA SEÑAL</span><b id="signal">Datos sincronizados</b><small>hace 14 segundos</small></div>
       <div class="trace-card"><div><span>TRAZA DE DECISIÓN</span><button id="runTrace">SIMULAR</button></div><ol id="traceList"></ol></div>
       <div class="research-card"><div><span>RESEARCH PIPELINE</span><button id="runResearch">EJECUTAR</button></div><div class="research-grid"><span>RETURN<b id="btReturn">—</b></span><span>SHARPE<b id="btSharpe">—</b></span><span>MAX DD<b id="btDrawdown">—</b></span><span>WALK-FWD<b id="btWalk">—</b></span></div><small id="researchStatus">Candidate · esperando validación</small></div>
+      <div class="ops-card"><div><span>RISK · PAPER · AUDIT</span><button id="runPaperCycle">CICLO PAPER</button></div><div class="ops-grid"><span>DECISIÓN<b id="opsDecision">—</b></span><span>FILLS<b id="opsFills">0</b></span><span>FEES<b id="opsFees">$0</b></span><span>AUDIT<b id="opsAudit">EMPTY</b></span></div><button id="verifyAudit" class="verify-audit">VERIFICAR CADENA</button><small id="opsStatus">Paper only · sin órdenes reales</small></div>
     </aside>
   </main>
   <script src="runtime.js"></script>
   <script src="data-plane.js"></script>
   <script src="research.js"></script>
+  <script src="operations.js"></script>
+  <script src="advanced.js"></script>
+  <script src="audit-security.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

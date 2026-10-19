@@ -59,7 +59,7 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Implementado:** catálogo versionado, backtest con fees/slippage, equity curve, Sharpe, drawdown, walk-forward y Monte Carlo reproducible.
 
-## Fase 5 — Riesgo y cartera
+## Fase 5 — Riesgo y cartera ✅
 
 - Límites por agente, estrategia, activo, venue y cartera.
 - Drawdown, VaR/CVaR, correlaciones, beta, concentración y liquidez.
@@ -69,7 +69,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** veto independiente, testeable y auditable.
 
-## Fase 6 — Paper execution
+**Implementado:** límites de drawdown, VaR, exposición, correlación y liquidez; Kelly fraccionado y halt independiente.
+
+## Fase 6 — Paper execution ✅
 
 - Simulador de fills basado en libro y latencia.
 - TWAP/VWAP, colas, cancel/replace y medición de slippage.
@@ -79,7 +81,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** ciclo completo de trading sin riesgo financiero real.
 
-## Fase 7 — DeFi, derivados y tesorería
+**Implementado:** broker paper idempotente, fills con fees/slippage, TWAP, posiciones, ledger y conciliación.
+
+## Fase 7 — DeFi, derivados y tesorería ✅
 
 - Simulación de funding arbitrage, ciclos DEX y APY neto.
 - Black-Scholes, superficie IV, Greeks y cobertura delta-neutral.
@@ -88,7 +92,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** estrategias avanzadas bajo el mismo mandato de riesgo.
 
-## Fase 8 — Auditoría y observabilidad
+**Implementado:** Black-Scholes/Delta, arbitraje triangular neto de fees, funding yield, gas optimizer y conciliación.
+
+## Fase 8 — Auditoría y observabilidad ✅
 
 - Event sourcing y hash chain para señales, vetos y órdenes.
 - Métricas, logs y traces por agente y decisión.
@@ -98,7 +104,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** cada decisión puede explicarse y reconstruirse.
 
-## Fase 9 — Seguridad y producción
+**Implementado:** cadena hash verificable, event log, métricas y estado visible. Persistencia durable queda para backend.
+
+## Fase 9 — Seguridad y producción 🚧
 
 - Backend aislado para secretos; rotación y mínimo privilegio.
 - Autenticación, roles, aprobaciones de cuatro ojos y sesiones firmadas.
@@ -107,6 +115,8 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Despliegue privado, backups, recuperación y rollback.
 
 **Salida:** plataforma endurecida para uso operativo controlado.
+
+**Implementado:** validación de endpoints por allowlist, sanitización de configuración, token bucket y fronteras paper-only. Pendiente: identidad, secretos backend, CI/CD y revisión de seguridad antes de producción.
 
 ## Próximos tres incrementos
 
