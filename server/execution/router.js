@@ -38,6 +38,9 @@ function schedule(
       state: notional > 0 ? "queued" : "skipped",
       algorithm,
       participationRate,
+      orderType: parent.orderType || "market",
+      limitPrice: parent.limitPrice,
+      stopPrice: parent.stopPrice,
     });
   }
   return {

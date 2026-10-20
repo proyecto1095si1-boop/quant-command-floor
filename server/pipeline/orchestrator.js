@@ -156,13 +156,14 @@ class TradingPipeline {
           ...(context.book?.asks || []),
         ].reduce((a, x) => a + x.price * x.size, 0),
         execution = this.ledger.execute(proposal, {
+          ...(context.book || {}),
           mid: price,
           spreadBps: riskContext.spreadBps,
           depthNotional,
         });
       run.execution = execution;
       this.stage(run, "execution", execution.status, execution);
-      if (execution.status !== "filled") {
+      if (!["filled", "partial"].includes(execution.status)) {
         run.status = "rejected";
         return await this.finish(run);
       }

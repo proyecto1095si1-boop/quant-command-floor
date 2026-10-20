@@ -49,6 +49,9 @@ class ExecutionService {
     algorithm,
     prices = {},
     volumeProfiles = {},
+    orderType = "market",
+    limitPrices = {},
+    stopPrices = {},
     idempotencyKey,
   } = {}) {
     if (typeof approvedBy !== "string" || approvedBy.trim().length < 3)
@@ -93,6 +96,13 @@ class ExecutionService {
           approvedBy: approvedBy.trim(),
           createdAt: new Date().toISOString(),
           paper: true,
+          orderType,
+          limitPrice: Number(
+            limitPrices[allocation.asset] || limitPrices[allocation.product],
+          ),
+          stopPrice: Number(
+            stopPrices[allocation.asset] || stopPrices[allocation.product],
+          ),
         },
         route = schedule(
           { ...parent, marketVolumes: volumeProfiles[allocation.asset] },
@@ -123,10 +133,16 @@ class ExecutionService {
     this.publish({ type: "execution.queued", result });
     return result;
   }
-  async drain({ spreadBps = 8, depthNotional = 250000 } = {}) {
+  async drain({ spreadBps = 8, depthNotional = 250000, books = {} } = {}) {
     const results = [];
     for (const child of this.children.filter((x) => x.state === "queued")) {
       const parent = this.parents.find((x) => x.id === child.parentId),
+        book =
+          books[parent.symbol] ||
+          books[parent.asset] ||
+          this.pipeline.dataService?.books?.get(parent.symbol)?.snapshot(100) ||
+          null,
+        effectiveSpreadBps = Number(book?.spreadBps ?? spreadBps),
         portfolio = this.pipeline.ledger.snapshot(this.pipeline.marks()),
         spec = this.pipeline.desks.assets[parent.asset],
         proposal = {
@@ -137,6 +153,9 @@ class ExecutionService {
           notional: child.notional,
           confidence: 1,
           maxWeight: spec.maxWeight,
+          type: child.orderType,
+          limitPrice: child.limitPrice,
+          stopPrice: child.stopPrice,
         },
         position = portfolio.positions[child.symbol],
         review = this.pipeline.risk.evaluate(proposal, {
@@ -144,7 +163,7 @@ class ExecutionService {
           grossExposure: portfolio.grossExposure,
           assetExposure: Math.abs(position?.marketValue || 0),
           dataStatus: "healthy",
-          spreadBps,
+          spreadBps: effectiveSpreadBps,
           exposures: Object.fromEntries(
             Object.entries(portfolio.positions).map(([k, v]) => [
               k,
@@ -161,14 +180,17 @@ class ExecutionService {
         continue;
       }
       const execution = this.pipeline.ledger.execute(proposal, {
-        mid: parent.price,
-        spreadBps,
+        ...(book || {}),
+        mid: book?.mid || parent.price,
+        spreadBps: effectiveSpreadBps,
         depthNotional,
       });
-      child.state = execution.status;
+      child.state = ["resting", "pending"].includes(execution.status)
+        ? "queued"
+        : execution.status;
       child.execution = execution;
       child.executedAt = new Date().toISOString();
-      if (execution.status === "filled") {
+      if (["filled", "partial"].includes(execution.status)) {
         this.metrics.fills++;
         this.metrics.notional += execution.fill.notional;
         this.metrics.fees += execution.fill.fee;
@@ -180,7 +202,7 @@ class ExecutionService {
       if (children.length && !children.some((x) => x.state === "queued"))
         parent.state = children.every((x) => x.state === "filled")
           ? "filled"
-          : children.some((x) => x.state === "filled")
+          : children.some((x) => ["filled", "partial"].includes(x.state))
             ? "partial"
             : "rejected";
     }
@@ -188,6 +210,7 @@ class ExecutionService {
       at: new Date().toISOString(),
       processed: results.length,
       filled: results.filter((x) => x.state === "filled").length,
+      partial: results.filter((x) => x.state === "partial").length,
       rejected: results.filter((x) => x.state === "rejected").length,
       portfolio: this.pipeline.ledger.snapshot(this.pipeline.marks()),
       paperOnly: true,
