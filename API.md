@@ -362,6 +362,13 @@ Los valores deben ser distintos.
 | GET | `/v1/security/status` | Público | Perfil de seguridad sin exponer secretos |
 | GET | `/v1/stream` | Autenticación pendiente en upgrade | WebSocket de eventos |
 
+### Régimen de mercado
+
+| Método | Ruta | Rol |
+|---|---|---|
+| GET | `/v1/regime/status` | viewer |
+| POST | `/v1/regime/{asset}/analyze` | operator |
+
 Nota: antes de producción pública debe agregarse autenticación explícita al handshake WebSocket mediante cookie segura o subprotocol token; no pasar tokens en query strings.
 
 ### Data Plane
