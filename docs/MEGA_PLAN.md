@@ -185,3 +185,11 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Rebalanceo por banda del 2% y turnover máximo del 20% por ciclo.
 - Planes paper con aprobación humana obligatoria, persistencia, API y mesa visual.
 
+## Punto 8 — Execution Management ✅
+
+- Aprobación humana, idempotencia y órdenes parent/child con máquina de estados.
+- TWAP uniforme y VWAP por perfil de volumen, seis slices e intervalo configurable.
+- Participation cap del 10% y residual explícito para no forzar liquidez.
+- Revalidación independiente de Risk Gate antes de cada child order.
+- Slippage/impacto, fees, conciliación, persistencia, API y panel visual paper-only.
+
