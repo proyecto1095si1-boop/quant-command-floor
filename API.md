@@ -445,6 +445,19 @@ fuera de shocks, liquidez, venues inaccesibles y haircuts de contraparte.
 
 Todas las órdenes son paper. `submit` necesita un plan existente y aprobación humana.
 
+### Gobierno de modelos
+
+| Método | Ruta | Rol |
+|---|---|---|
+| GET | `/v1/governance/status` | viewer |
+| GET | `/v1/governance/models` | viewer |
+| POST | `/v1/governance/register` | admin |
+| POST | `/v1/governance/evaluate` | admin |
+| POST | `/v1/governance/promote` | admin + dos aprobadores |
+
+El registro acepta configuraciones y hashes, no código ejecutable ni secretos.
+Las promociones requieren evaluación cuantitativa elegible.
+
 ### Dashboard
 
 | Método | Ruta | Rol |

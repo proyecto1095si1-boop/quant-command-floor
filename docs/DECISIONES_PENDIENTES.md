@@ -24,3 +24,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Implicación actual:** los escenarios se calculan, persisten y muestran, pero
   no cambian la decisión pre-trade.
 
+## Métrica primaria por modelo
+
+- **Estado:** pendiente por familia de modelo.
+- **Decisión necesaria:** definir fórmula, dirección, dataset de validación,
+  horizonte y tolerancia del `score` para riesgo, ejecución y cada agente IA.
+- **Acción bloqueada:** promoción autónoma o recalibración automática.
+- **Implicación actual:** T18 valida rango, drift y no inferioridad, pero el
+  comité humano sigue siendo responsable de la semántica del score.
+
