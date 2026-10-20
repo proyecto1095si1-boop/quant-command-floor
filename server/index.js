@@ -11,6 +11,7 @@ const { SreService } = require("./sre/service.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
+const { AiEvaluationService } = require("./governance/ai-evaluation.js");
 const gateway = createGateway(),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
@@ -52,6 +53,10 @@ const regime = new RegimeService({
     governance,
     record: (stream, event) => data.record(stream, event),
   }),
+  aiEvaluation = new AiEvaluationService({
+    governance,
+    record: (stream, event) => data.record(stream, event),
+  }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,
     pipeline,
@@ -71,6 +76,7 @@ gateway.setSre(sre);
 gateway.setRegime(regime);
 gateway.setGovernance(governance);
 gateway.setExperiments(experiments);
+gateway.setAiEvaluation(aiEvaluation);
 gateway.listen().then(async (address) => {
   console.log(
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
@@ -93,6 +99,16 @@ gateway.listen().then(async (address) => {
       console.log(
         `Model experiments recovered: ${experimentRecovery.experiments}`,
       );
+    const [aiDatasets, aiRuns] = await Promise.all([
+      data.store.tail("governance.ai-datasets", 1000),
+      data.store.tail("governance.ai-evaluations", 10000),
+    ]);
+    const aiRecovery = aiEvaluation.recover({
+      datasets: aiDatasets,
+      runs: aiRuns,
+    });
+    if (aiRecovery.datasets)
+      console.log(`AI evaluation recovered: ${aiRecovery.datasets} datasets`);
   } catch (e) {
     console.error(`Model governance recovery blocked: ${e.message}`);
   }
