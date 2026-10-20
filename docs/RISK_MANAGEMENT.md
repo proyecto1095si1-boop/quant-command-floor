@@ -55,6 +55,13 @@ sin inferir la frecuencia aplicada.
 
 VaR toma el percentil 95 de pérdidas históricas; CVaR promedia la cola igual o peor que VaR. El stress engine aplica shocks de mercado de −20%, liquidez de −8% y venue de −12% a la exposición bruta posterior a la orden.
 
+La mesa de cartera complementa estos gates pre-trade con FHS y EVT/POT al 99%,
+Expected Shortfall y validaciones Kupiec/Christoffersen. Se mantienen como una
+capa diagnóstica separada: sus resultados no reemplazan el cálculo por activo
+del Risk Gate ni relajan ningún veto. Antes de usarlos como límite automático
+debe gobernarse la frecuencia, ventana, muestra mínima y respuesta operativa a
+zonas amarilla/roja.
+
 El gate factorial agrupa instrumentos por el factor declarado por Asset Desk y
 se revalida antes de cada child order. Una orden que eleva el factor por encima
 de 45% del equity es vetada; una reducción monotónica puede pasar aunque el
