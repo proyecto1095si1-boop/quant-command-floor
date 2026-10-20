@@ -411,6 +411,14 @@ Activos implementados: `BTC`, `ETH`, `SOL` y `BNB`.
 |---|---|---|
 | GET | `/v1/risk/status` | viewer |
 | POST | `/v1/risk/preview` | risk |
+| GET | `/v1/risk/scenarios` | viewer |
+| GET | `/v1/risk/stress/status` | viewer |
+| POST | `/v1/risk/stress` | risk |
+| POST | `/v1/risk/reverse-stress` | risk |
+
+El stress engine es paper-only. Evalúa un `portfolioPlanId` existente; los
+overrides se indexan por identificador de escenario y no pueden contener campos
+fuera de shocks, liquidez, venues inaccesibles y haircuts de contraparte.
 
 ### Research
 

@@ -14,3 +14,13 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Decisión necesaria:** seleccionar una de las opciones y, si la licencia es
   propietaria, proporcionar el texto legal aprobado.
 
+## Gobierno de límites de stress
+
+- **Estado:** pendiente de calibración y aprobación del propietario/riesgo.
+- **Decisión necesaria:** seleccionar fuentes, ventanas, escenarios vinculantes,
+  pérdida máxima, completeness mínima y respuesta a un breach.
+- **Acción bloqueada:** convertir el diagnóstico T17 en veto automático del
+  Risk Gate o autorización de ejecución.
+- **Implicación actual:** los escenarios se calculan, persisten y muestran, pero
+  no cambian la decisión pre-trade.
+
