@@ -140,7 +140,8 @@ function createGateway(options = {}) {
     execution = options.execution || null,
     sre = options.sre || null,
     regime = options.regime || null,
-    governance = options.governance || null;
+    governance = options.governance || null,
+    experiments = options.experiments || null;
   const publish = (event) => {
     const frame = wsFrame(JSON.stringify(event));
     for (const socket of clients) {
@@ -495,6 +496,88 @@ function createGateway(options = {}) {
         return json(res, e.status || 422, { error: e.message }, headers);
       }
     }
+    if (req.method === "GET" && req.url === "/v1/governance/experiments")
+      return json(
+        res,
+        experiments ? 200 : 503,
+        experiments ? experiments.list() : { error: "experiments-disabled" },
+        headers,
+      );
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/experiments/start"
+    ) {
+      if (!experiments)
+        return json(res, 503, { error: "experiments-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await experiments.start(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/experiments/assign"
+    ) {
+      if (!experiments)
+        return json(res, 503, { error: "experiments-disabled" }, headers);
+      try {
+        const input = await body(req);
+        return json(
+          res,
+          200,
+          experiments.assign(input.experimentId, input.requestId),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/experiments/observe"
+    ) {
+      if (!experiments)
+        return json(res, 503, { error: "experiments-disabled" }, headers);
+      try {
+        const input = await body(req);
+        return json(
+          res,
+          200,
+          await experiments.observe(input.experimentId, input),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/experiments/stop"
+    ) {
+      if (!experiments)
+        return json(res, 503, { error: "experiments-disabled" }, headers);
+      try {
+        const input = await body(req);
+        return json(
+          res,
+          200,
+          await experiments.stop(
+            input.experimentId,
+            req.auth.sub,
+            input.reason,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/execution/status")
       return json(
         res,
@@ -789,6 +872,9 @@ function createGateway(options = {}) {
     },
     setGovernance(value) {
       governance = value;
+    },
+    setExperiments(value) {
+      experiments = value;
     },
     listen(port = Number(process.env.PORT || 8787), host = "127.0.0.1") {
       return new Promise((resolve) =>
