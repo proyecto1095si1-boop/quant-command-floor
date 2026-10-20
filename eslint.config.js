@@ -12,6 +12,7 @@ module.exports = [
     rules: {
       ...js.configs.recommended.rules,
       "no-empty": ["error", { allowEmptyCatch: true }],
+      "no-useless-assignment": "off",
       "no-unused-vars": "off",
     },
   },
