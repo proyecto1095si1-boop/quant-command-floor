@@ -16,6 +16,8 @@ const assert = require("node:assert/strict"),
   assert.equal(claims.role, "risk");
   assert.equal(s.authorize(claims, "operator"), true);
   assert.throws(() => s.authorize(claims, "admin"), /forbidden/);
+  assert.equal(s.requiredRole("GET", "/v1/governance/models"), "viewer");
+  assert.equal(s.requiredRole("POST", "/v1/governance/evaluate"), "admin");
   assert.throws(() => s.authenticate(token + "x"), /invalid-token/);
   assert.equal(s.consume("ip").allowed, true);
   assert.equal(s.consume("ip").allowed, true);

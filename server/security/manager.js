@@ -78,7 +78,12 @@ class SecurityManager {
       url.startsWith("/v1/risk/")
     )
       return "risk";
-    if (url.includes("/promote") || url.startsWith("/v1/sre/")) return "admin";
+    if (
+      url.includes("/promote") ||
+      url.startsWith("/v1/sre/") ||
+      url.startsWith("/v1/governance/")
+    )
+      return "admin";
     return "operator";
   }
   authorize(claims, required) {

@@ -114,6 +114,7 @@ function fourEyes(req) {
     throw Object.assign(new Error("independent-second-approval-required"), {
       status: 403,
     });
+  return { primary: a, secondary: b };
 }
 function createGateway(options = {}) {
   const startedAt = Date.now(),
@@ -138,7 +139,8 @@ function createGateway(options = {}) {
     portfolio = options.portfolio || null,
     execution = options.execution || null,
     sre = options.sre || null,
-    regime = options.regime || null;
+    regime = options.regime || null,
+    governance = options.governance || null;
   const publish = (event) => {
     const frame = wsFrame(JSON.stringify(event));
     for (const socket of clients) {
@@ -426,6 +428,67 @@ function createGateway(options = {}) {
           res,
           200,
           await portfolio.reverseStress(await body(req)),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (req.method === "GET" && req.url === "/v1/governance/status")
+      return json(
+        res,
+        governance ? 200 : 503,
+        governance ? governance.status() : { error: "governance-disabled" },
+        headers,
+      );
+    if (req.method === "GET" && req.url === "/v1/governance/models")
+      return json(
+        res,
+        governance ? 200 : 503,
+        governance ? governance.list() : { error: "governance-disabled" },
+        headers,
+      );
+    if (req.method === "POST" && req.url === "/v1/governance/register") {
+      if (!governance)
+        return json(res, 503, { error: "governance-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await governance.register(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (req.method === "POST" && req.url === "/v1/governance/evaluate") {
+      if (!governance)
+        return json(res, 503, { error: "governance-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await governance.evaluate(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (req.method === "POST" && req.url === "/v1/governance/promote") {
+      if (!governance)
+        return json(res, 503, { error: "governance-disabled" }, headers);
+      try {
+        const approvals = fourEyes(req) || {
+            primary: req.auth.sub,
+            secondary: String(req.headers["x-second-approver"] || ""),
+          },
+          input = await body(req);
+        return json(
+          res,
+          200,
+          await governance.promote(input, approvals),
           headers,
         );
       } catch (e) {
@@ -723,6 +786,9 @@ function createGateway(options = {}) {
     },
     setRegime(value) {
       regime = value;
+    },
+    setGovernance(value) {
+      governance = value;
     },
     listen(port = Number(process.env.PORT || 8787), host = "127.0.0.1") {
       return new Promise((resolve) =>

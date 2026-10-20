@@ -9,6 +9,7 @@ const { PortfolioService } = require("./portfolio/service.js");
 const { ExecutionService } = require("./execution/service.js");
 const { SreService } = require("./sre/service.js");
 const { RegimeService } = require("./regime/service.js");
+const { ModelGovernanceService } = require("./governance/service.js");
 const gateway = createGateway(),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
@@ -43,6 +44,9 @@ const regime = new RegimeService({
     record: (stream, event) => data.record(stream, event),
     publish: gateway.publish,
   }),
+  governance = new ModelGovernanceService({
+    record: (stream, event) => data.record(stream, event),
+  }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,
     pipeline,
@@ -60,10 +64,23 @@ gateway.setPortfolio(portfolio);
 gateway.setExecution(execution);
 gateway.setSre(sre);
 gateway.setRegime(regime);
+gateway.setGovernance(governance);
 gateway.listen().then(async (address) => {
   console.log(
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
   );
+  try {
+    const [models, evaluations, promotions] = await Promise.all([
+      data.store.tail("governance.models", 1000),
+      data.store.tail("governance.evaluations", 1000),
+      data.store.tail("governance.promotions", 1000),
+    ]);
+    const recovered = governance.recover({ models, evaluations, promotions });
+    if (recovered.models)
+      console.log(`Model governance recovered: ${recovered.models} models`);
+  } catch (e) {
+    console.error(`Model governance recovery blocked: ${e.message}`);
+  }
   try {
     const recovered = await pipeline.recover();
     if (recovered.recovered)
