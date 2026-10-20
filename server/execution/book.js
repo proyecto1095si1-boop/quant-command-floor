@@ -1,5 +1,13 @@
 "use strict";
 
+const {
+  FACTOR,
+  divideRounded,
+  fromAtoms,
+  multiplyAtoms,
+  toAtoms,
+} = require("../math/fixed-decimal.js");
+
 function levelValue(level, name, index) {
   if (Array.isArray(level)) return Number(level[index]);
   return Number(level?.[name]);
@@ -7,6 +15,7 @@ function levelValue(level, name, index) {
 
 function walkBook(levels, qty, limit = null, used = new Map()) {
   const requestedQty = Math.max(0, Number(qty) || 0),
+    requestedAtoms = toAtoms(requestedQty),
     rows = (levels || [])
       .map((level, index) => ({
         price: levelValue(level, "price", 0),
@@ -18,11 +27,11 @@ function walkBook(levels, qty, limit = null, used = new Map()) {
     ascending = rows.length < 2 || rows[0].price <= rows.at(-1).price,
     limitPrice = Number(limit),
     hasLimit = Number.isFinite(limitPrice) && limitPrice > 0;
-  let filledQty = 0,
-    notional = 0;
+  let filledAtoms = 0n,
+    notionalAtoms = 0n;
   const fills = [];
   for (const level of rows) {
-    if (filledQty >= requestedQty) break;
+    if (filledAtoms >= requestedAtoms) break;
     const isAsk = level.side
         ? level.side === "ask" || level.side === "sell"
         : ascending,
@@ -31,21 +40,31 @@ function walkBook(levels, qty, limit = null, used = new Map()) {
         (isAsk ? level.price <= limitPrice : level.price >= limitPrice);
     if (!crosses) continue;
     const key = `${isAsk ? "ask" : "bid"}:${level.price}:${level.index}`,
-      available = Math.max(0, level.size - Number(used.get(key) || 0)),
-      take = Math.min(available, requestedQty - filledQty);
-    if (!(take > 0)) continue;
-    used.set(key, Number(used.get(key) || 0) + take);
-    filledQty += take;
-    notional += take * level.price;
+      sizeAtoms = toAtoms(level.size),
+      usedAtoms = toAtoms(used.get(key) || 0),
+      availableAtoms = sizeAtoms > usedAtoms ? sizeAtoms - usedAtoms : 0n,
+      remainingAtoms = requestedAtoms - filledAtoms,
+      takeAtoms =
+        availableAtoms < remainingAtoms ? availableAtoms : remainingAtoms,
+      take = fromAtoms(takeAtoms);
+    if (takeAtoms <= 0n) continue;
+    used.set(key, fromAtoms(usedAtoms + takeAtoms));
+    filledAtoms += takeAtoms;
+    notionalAtoms += multiplyAtoms(takeAtoms, toAtoms(level.price));
     fills.push({ price: level.price, qty: take, key });
   }
+  const filledQty = fromAtoms(filledAtoms),
+    remainingAtoms = requestedAtoms - filledAtoms,
+    notional = fromAtoms(notionalAtoms);
   return {
-    requestedQty,
+    requestedQty: fromAtoms(requestedAtoms),
     filledQty,
-    remainingQty: Math.max(0, requestedQty - filledQty),
+    remainingQty: fromAtoms(remainingAtoms > 0n ? remainingAtoms : 0n),
     notional,
-    averagePrice: filledQty ? notional / filledQty : 0,
-    complete: filledQty >= requestedQty,
+    averagePrice: filledAtoms
+      ? fromAtoms(divideRounded(notionalAtoms * FACTOR, filledAtoms))
+      : 0,
+    complete: filledAtoms >= requestedAtoms,
     fills,
     used,
   };

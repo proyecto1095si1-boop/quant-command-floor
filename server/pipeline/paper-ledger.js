@@ -1,9 +1,14 @@
 "use strict";
 
 const { PAPER_ONLY } = require("../config/trading-mode.js"),
-  { walkBook } = require("../execution/book.js");
-
-const EPSILON = 1e-9;
+  { walkBook } = require("../execution/book.js"),
+  {
+    decimalString,
+    divideRounded,
+    fromAtoms,
+    multiplyAtoms,
+    toAtoms,
+  } = require("../math/fixed-decimal.js");
 
 class PaperLedger {
   constructor({
@@ -17,8 +22,10 @@ class PaperLedger {
     baseSlippageBps = 2,
     impactBps = 8,
   } = {}) {
-    this.initialCash = cash;
-    this.cash = cash;
+    this.initialCashAtoms = toAtoms(cash);
+    this.cashAtoms = this.initialCashAtoms;
+    this.initialCash = fromAtoms(this.initialCashAtoms);
+    this.cash = fromAtoms(this.cashAtoms);
     this.makerFeeRate = makerFeeRate;
     this.takerFeeRate = takerFeeRate;
     this.latencyMs = Math.max(0, Number(latencyMs) || 0);
@@ -27,7 +34,9 @@ class PaperLedger {
     this.baseSlippageBps = baseSlippageBps;
     this.impactBps = impactBps;
     this.positions = new Map();
+    this.atomicPositions = new Map();
     this.fills = [];
+    this.totalFeesAtoms = 0n;
     this.ids = new Set();
     this.snapshotUsage = new Map();
     this.objectUsage = new WeakMap();
@@ -60,13 +69,18 @@ class PaperLedger {
         Number(order.minNotional ?? this.minNotional) || 0,
       ),
       lotSize = Math.max(0, Number(order.lotSize ?? this.lotSize) || 0);
-    if (!(qty > 0)) return "invalid-quantity";
-    if (
-      lotSize > 0 &&
-      Math.abs(qty / lotSize - Math.round(qty / lotSize)) > EPSILON
-    )
-      return "invalid-lot-size";
-    if (referencePrice * qty + EPSILON < minNotional)
+    let qtyAtoms, lotAtoms, referenceAtoms, minimumAtoms;
+    try {
+      qtyAtoms = toAtoms(qty);
+      lotAtoms = toAtoms(lotSize);
+      referenceAtoms = toAtoms(referencePrice);
+      minimumAtoms = toAtoms(minNotional);
+    } catch {
+      return "invalid-decimal";
+    }
+    if (!(qty > 0) || qtyAtoms <= 0n) return "invalid-quantity";
+    if (lotAtoms > 0n && qtyAtoms % lotAtoms !== 0n) return "invalid-lot-size";
+    if (multiplyAtoms(referenceAtoms, qtyAtoms) < minimumAtoms)
       return "below-min-notional";
     return null;
   }
@@ -97,6 +111,8 @@ class PaperLedger {
       referencePrice = limitPrice > 0 ? limitPrice : mid || bestPrice,
       validation = this.validate(order, referencePrice);
     if (validation) return { status: "rejected", reason: validation };
+    if (toAtoms(referencePrice) <= 0n)
+      return { status: "rejected", reason: "invalid-price-precision" };
 
     if (type === "limit") {
       if (!(limitPrice > 0))
@@ -162,34 +178,74 @@ class PaperLedger {
     }
     const liquidityRole = isLimit ? "maker" : "taker",
       feeRate = isLimit ? this.makerFeeRate : this.takerFeeRate,
-      notional = price * qty,
-      fee = notional * feeRate,
+      priceAtoms = toAtoms(price),
+      qtyAtoms = toAtoms(qty),
+      notionalAtoms = multiplyAtoms(priceAtoms, qtyAtoms),
+      feeAtoms = multiplyAtoms(notionalAtoms, toAtoms(feeRate)),
+      notional = fromAtoms(notionalAtoms),
+      fee = fromAtoms(feeAtoms),
+      atomicPos = this.atomicPositions.get(order.symbol) || {
+        qty: 0n,
+        avgPrice: 0n,
+        costBasis: 0n,
+        realizedPnl: 0n,
+      },
       pos = this.positions.get(order.symbol) || {
         qty: 0,
         avgPrice: 0,
         realizedPnl: 0,
       };
-    if (side === "buy" && notional + fee > this.cash)
+    if (side === "buy" && notionalAtoms + feeAtoms > this.cashAtoms)
       return { status: "rejected", reason: "insufficient-cash" };
+
+    qty = fromAtoms(qtyAtoms);
+    price = fromAtoms(priceAtoms);
 
     for (const [key, value] of stagedUsed) used.set(key, value);
     this.ids.add(order.id);
-    let realized = 0;
-    if (sign !== Math.sign(pos.qty) && pos.qty !== 0) {
-      const closing = Math.min(Math.abs(pos.qty), qty);
-      realized = closing * (price - pos.avgPrice) * Math.sign(pos.qty);
-      pos.realizedPnl += realized;
+    const oldAbsolute = atomicPos.qty < 0n ? -atomicPos.qty : atomicPos.qty,
+      signedQtyAtoms = BigInt(sign) * qtyAtoms,
+      newQtyAtoms = atomicPos.qty + signedQtyAtoms;
+    let realizedAtoms = 0n;
+    if (atomicPos.qty === 0n || (atomicPos.qty > 0n ? 1 : -1) === sign) {
+      atomicPos.costBasis += BigInt(sign) * notionalAtoms;
+    } else {
+      const closing = oldAbsolute < qtyAtoms ? oldAbsolute : qtyAtoms,
+        closingNotional = divideRounded(notionalAtoms * closing, qtyAtoms),
+        allocatedCost = divideRounded(
+          atomicPos.costBasis * closing,
+          oldAbsolute,
+        ),
+        oldSign = atomicPos.qty > 0n ? 1n : -1n;
+      realizedAtoms =
+        oldSign > 0n
+          ? closingNotional - allocatedCost
+          : -allocatedCost - closingNotional;
+      atomicPos.realizedPnl += realizedAtoms;
+      atomicPos.costBasis -= allocatedCost;
+      if (qtyAtoms > closing)
+        atomicPos.costBasis = BigInt(sign) * (notionalAtoms - closingNotional);
+      else if (newQtyAtoms === 0n) atomicPos.costBasis = 0n;
     }
-    const newQty = pos.qty + sign * qty;
-    if (pos.qty === 0 || Math.sign(pos.qty) === sign)
-      pos.avgPrice =
-        (Math.abs(pos.qty) * pos.avgPrice + qty * price) /
-        (Math.abs(pos.qty) + qty);
-    else if (newQty === 0) pos.avgPrice = 0;
-    else if (Math.sign(newQty) !== Math.sign(pos.qty)) pos.avgPrice = price;
-    pos.qty = newQty;
-    this.cash -= sign * notional + fee;
+    atomicPos.qty = newQtyAtoms;
+    atomicPos.avgPrice =
+      atomicPos.qty === 0n
+        ? 0n
+        : divideRounded(
+            atomicPos.costBasis < 0n
+              ? -atomicPos.costBasis
+              : atomicPos.costBasis,
+            atomicPos.qty < 0n ? -atomicPos.qty : atomicPos.qty,
+          );
+    this.cashAtoms -= BigInt(sign) * notionalAtoms + feeAtoms;
+    this.totalFeesAtoms += feeAtoms;
+    this.cash = fromAtoms(this.cashAtoms);
+    pos.qty = fromAtoms(atomicPos.qty);
+    pos.avgPrice = fromAtoms(atomicPos.avgPrice);
+    pos.realizedPnl = fromAtoms(atomicPos.realizedPnl);
+    this.atomicPositions.set(order.symbol, atomicPos);
     this.positions.set(order.symbol, pos);
+    const realized = fromAtoms(realizedAtoms);
     const fill = {
       id: order.id,
       symbol: order.symbol,
@@ -210,30 +266,45 @@ class PaperLedger {
       slippageBps,
       liquidity,
       realizedPnl: realized,
+      monetary: {
+        scale: 8,
+        qtyExact: decimalString(qtyAtoms),
+        priceExact: decimalString(priceAtoms),
+        notionalExact: decimalString(notionalAtoms),
+        feeExact: decimalString(feeAtoms),
+        realizedPnlExact: decimalString(realizedAtoms),
+      },
       paper: PAPER_ONLY,
       at: new Date().toISOString(),
     };
     this.fills.push(fill);
+    const requestedQtyAtoms = toAtoms(order.qty);
     return {
-      status: qty + EPSILON < Number(order.qty) ? "partial" : "filled",
+      status: qtyAtoms < requestedQtyAtoms ? "partial" : "filled",
       fill,
-      remainingQty: Math.max(0, Number(order.qty) - qty),
+      remainingQty: fromAtoms(
+        requestedQtyAtoms > qtyAtoms ? requestedQtyAtoms - qtyAtoms : 0n,
+      ),
     };
   }
   snapshot(marks = {}) {
-    let marketValue = 0,
-      unrealizedPnl = 0,
-      grossExposure = 0,
-      realizedPnl = 0;
+    let marketValueAtoms = 0n,
+      unrealizedPnlAtoms = 0n,
+      grossExposureAtoms = 0n,
+      realizedPnlAtoms = 0n;
     const positions = {};
     for (const [symbol, p] of this.positions) {
-      const mark = Number(marks[symbol] || p.avgPrice),
-        value = p.qty * mark,
-        unrealized = (mark - p.avgPrice) * p.qty;
-      marketValue += value;
-      grossExposure += Math.abs(value);
-      unrealizedPnl += unrealized;
-      realizedPnl += p.realizedPnl;
+      const atomic = this.atomicPositions.get(symbol),
+        mark = Number(marks[symbol] || p.avgPrice),
+        markAtoms = toAtoms(mark),
+        valueAtoms = multiplyAtoms(atomic.qty, markAtoms),
+        unrealizedAtoms = valueAtoms - atomic.costBasis,
+        value = fromAtoms(valueAtoms),
+        unrealized = fromAtoms(unrealizedAtoms);
+      marketValueAtoms += valueAtoms;
+      grossExposureAtoms += valueAtoms < 0n ? -valueAtoms : valueAtoms;
+      unrealizedPnlAtoms += unrealizedAtoms;
+      realizedPnlAtoms += atomic.realizedPnl;
       positions[symbol] = {
         ...p,
         mark,
@@ -241,25 +312,58 @@ class PaperLedger {
         unrealizedPnl: unrealized,
       };
     }
-    const fees = this.fills.reduce((a, x) => a + x.fee, 0),
-      equity = this.cash + marketValue;
+    const equityAtoms = this.cashAtoms + marketValueAtoms,
+      expectedEquityAtoms =
+        this.initialCashAtoms +
+        realizedPnlAtoms +
+        unrealizedPnlAtoms -
+        this.totalFeesAtoms,
+      residualAtoms = equityAtoms - expectedEquityAtoms;
     return {
       initialCash: this.initialCash,
       cash: this.cash,
-      equity,
-      marketValue,
-      grossExposure,
-      realizedPnl,
-      unrealizedPnl,
-      fees,
+      equity: fromAtoms(equityAtoms),
+      marketValue: fromAtoms(marketValueAtoms),
+      grossExposure: fromAtoms(grossExposureAtoms),
+      realizedPnl: fromAtoms(realizedPnlAtoms),
+      unrealizedPnl: fromAtoms(unrealizedPnlAtoms),
+      fees: fromAtoms(this.totalFeesAtoms),
       fills: this.fills.length,
       positions,
+      accounting: {
+        scale: 8,
+        balanced: residualAtoms === 0n,
+        residual: fromAtoms(residualAtoms),
+        residualExact: decimalString(residualAtoms),
+        cashExact: decimalString(this.cashAtoms),
+        equityExact: decimalString(equityAtoms),
+        marketValueExact: decimalString(marketValueAtoms),
+        realizedPnlExact: decimalString(realizedPnlAtoms),
+        unrealizedPnlExact: decimalString(unrealizedPnlAtoms),
+        feesExact: decimalString(this.totalFeesAtoms),
+      },
     };
   }
   export() {
     return {
       initialCash: this.initialCash,
       cash: this.cash,
+      monetaryAtoms: {
+        initialCash: String(this.initialCashAtoms),
+        cash: String(this.cashAtoms),
+        totalFees: String(this.totalFeesAtoms),
+        positions: Object.fromEntries(
+          [...this.atomicPositions].map(([symbol, p]) => [
+            symbol,
+            {
+              qty: String(p.qty),
+              avgPrice: String(p.avgPrice),
+              costBasis: String(p.costBasis),
+              realizedPnl: String(p.realizedPnl),
+            },
+          ]),
+        ),
+      },
       makerFeeRate: this.makerFeeRate,
       takerFeeRate: this.takerFeeRate,
       latencyMs: this.latencyMs,
@@ -282,8 +386,17 @@ class PaperLedger {
       !Array.isArray(x.ids)
     )
       throw new Error("invalid-ledger-checkpoint");
-    this.initialCash = x.initialCash;
-    this.cash = x.cash;
+    this.initialCashAtoms = x.monetaryAtoms?.initialCash
+      ? BigInt(x.monetaryAtoms.initialCash)
+      : toAtoms(x.initialCash);
+    this.cashAtoms = x.monetaryAtoms?.cash
+      ? BigInt(x.monetaryAtoms.cash)
+      : toAtoms(x.cash);
+    this.totalFeesAtoms = x.monetaryAtoms?.totalFees
+      ? BigInt(x.monetaryAtoms.totalFees)
+      : (x.fills || []).reduce((sum, fill) => sum + toAtoms(fill.fee), 0n);
+    this.initialCash = fromAtoms(this.initialCashAtoms);
+    this.cash = fromAtoms(this.cashAtoms);
     this.makerFeeRate = x.makerFeeRate ?? x.feeRate ?? 0.001;
     this.takerFeeRate = x.takerFeeRate ?? x.feeRate ?? 0.001;
     this.latencyMs = x.latencyMs || 0;
@@ -291,7 +404,35 @@ class PaperLedger {
     this.lotSize = x.lotSize || 0;
     this.baseSlippageBps = x.baseSlippageBps;
     this.impactBps = x.impactBps;
-    this.positions = new Map(Object.entries(x.positions || {}));
+    this.atomicPositions = new Map(
+      Object.entries(x.positions || {}).map(([symbol, p]) => {
+        const exact = x.monetaryAtoms?.positions?.[symbol];
+        return [
+          symbol,
+          {
+            qty: exact ? BigInt(exact.qty) : toAtoms(p.qty),
+            avgPrice: exact ? BigInt(exact.avgPrice) : toAtoms(p.avgPrice),
+            costBasis: exact?.costBasis
+              ? BigInt(exact.costBasis)
+              : multiplyAtoms(toAtoms(p.qty), toAtoms(p.avgPrice)),
+            realizedPnl: exact
+              ? BigInt(exact.realizedPnl)
+              : toAtoms(p.realizedPnl),
+          },
+        ];
+      }),
+    );
+    this.positions = new Map(
+      [...this.atomicPositions].map(([symbol, exact]) => [
+        symbol,
+        {
+          ...(x.positions?.[symbol] || {}),
+          qty: fromAtoms(exact.qty),
+          avgPrice: fromAtoms(exact.avgPrice),
+          realizedPnl: fromAtoms(exact.realizedPnl),
+        },
+      ]),
+    );
     this.fills = x.fills;
     this.ids = new Set(x.ids);
     this.snapshotUsage = new Map();
