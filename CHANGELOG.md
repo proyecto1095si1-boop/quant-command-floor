@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Gobierno champion/challenger para modelos matemáticos e IA con registro
+  versionado, parámetros sin secretos, PSI, KS, mean shift, evidencia fuera de
+  muestra y promoción auditada por dos aprobadores.
 - Motor paper de stress sistémico con catálogo versionado, shocks factoriales,
   costo de liquidación, dependencia adversa PSD, ridge factorial, reverse
   stress, capital buffer y API auditada.
