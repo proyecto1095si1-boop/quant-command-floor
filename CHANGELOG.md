@@ -9,6 +9,10 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Las herramientas de desarrollo ahora requieren una línea soportada de Node.js
+  (`^20.19.0`, `^22.13.0` o `>=24`) y CI verifica las tres líneas.
+- ESLint, c8, jsdom y el runtime de GitHub Actions fueron actualizados sin
+  agregar dependencias de runtime.
 - Riesgo e investigación anualizan retornos diarios cripto con 365 períodos en
   lugar de 252; riesgo, investigación, cartera y régimen comparten ahora una
   configuración sobrescribible.
