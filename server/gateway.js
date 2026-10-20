@@ -141,7 +141,8 @@ function createGateway(options = {}) {
     sre = options.sre || null,
     regime = options.regime || null,
     governance = options.governance || null,
-    experiments = options.experiments || null;
+    experiments = options.experiments || null,
+    aiEvaluation = options.aiEvaluation || null;
   const publish = (event) => {
     const frame = wsFrame(JSON.stringify(event));
     for (const socket of clients) {
@@ -578,6 +579,49 @@ function createGateway(options = {}) {
         return json(res, e.status || 422, { error: e.message }, headers);
       }
     }
+    if (req.method === "GET" && req.url === "/v1/governance/ai-evaluation")
+      return json(
+        res,
+        aiEvaluation ? 200 : 503,
+        aiEvaluation
+          ? aiEvaluation.status()
+          : { error: "ai-evaluation-disabled" },
+        headers,
+      );
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/ai-evaluation/datasets"
+    ) {
+      if (!aiEvaluation)
+        return json(res, 503, { error: "ai-evaluation-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await aiEvaluation.registerDataset(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/ai-evaluation/run"
+    ) {
+      if (!aiEvaluation)
+        return json(res, 503, { error: "ai-evaluation-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await aiEvaluation.run(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/execution/status")
       return json(
         res,
@@ -875,6 +919,9 @@ function createGateway(options = {}) {
     },
     setExperiments(value) {
       experiments = value;
+    },
+    setAiEvaluation(value) {
+      aiEvaluation = value;
     },
     listen(port = Number(process.env.PORT || 8787), host = "127.0.0.1") {
       return new Promise((resolve) =>

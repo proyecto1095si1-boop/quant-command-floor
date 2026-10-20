@@ -80,6 +80,7 @@ class ModelGovernanceService {
       minCoveragePValue: 0.05,
       minIndependencePValue: 0.05,
       championTolerance: 0,
+      minimumAiCases: 20,
       ...policy,
     };
     this.models = new Map();
@@ -215,6 +216,59 @@ class ModelGovernanceService {
   latestEvaluation(model) {
     const id = model.evaluationIds.at(-1);
     return this.evaluations.find((evaluation) => evaluation.id === id) || null;
+  }
+
+  async acceptExternalEvaluation(input = {}, actor = "system") {
+    this.ensureReady();
+    const model = this.get(input.modelId, input.version);
+    if (model.kind !== "ai")
+      throw Object.assign(
+        new Error("external-ai-evaluation-requires-ai-model"),
+        {
+          status: 422,
+        },
+      );
+    if (
+      input.source !== "ai-adversarial-v1" ||
+      !/^[a-f0-9]{64}$/i.test(String(input.datasetHash || ""))
+    )
+      throw Object.assign(new Error("invalid-external-ai-evaluation"), {
+        status: 422,
+      });
+    const observations = Number(input.observations),
+      score = Number(input.score),
+      checks = Object.fromEntries(
+        Object.entries(input.checks || {}).map(([name, passed]) => [
+          name,
+          passed === true,
+        ]),
+      ),
+      eligible =
+        observations >= this.policy.minimumAiCases &&
+        score >= 0 &&
+        score <= 1 &&
+        Object.keys(checks).length > 0 &&
+        Object.values(checks).every(Boolean),
+      evaluation = {
+        id: crypto.randomUUID(),
+        modelId: model.modelId,
+        version: model.version,
+        at: new Date().toISOString(),
+        evaluatedBy: actor,
+        source: input.source,
+        datasetHash: input.datasetHash,
+        runId: input.runId,
+        metrics: { observations, score },
+        checks: {
+          ...checks,
+          observations: observations >= this.policy.minimumAiCases,
+        },
+        eligible,
+      };
+    this.evaluations.push(evaluation);
+    model.evaluationIds.push(evaluation.id);
+    await this.record("governance.evaluations", evaluation);
+    return structuredClone(evaluation);
   }
 
   champion(modelId) {

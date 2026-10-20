@@ -42,3 +42,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** conectar la selección canary con ejecución o promover
   automáticamente por resultados online.
 
+## Datasets adversariales confiables
+
+- **Estado:** pendiente por empleado IA y jurisdicción.
+- **Decisión necesaria:** propietario, fuente, licencia, idioma, frecuencia de
+  actualización y revisión humana de casos/ground truth.
+- **Acción bloqueada:** considerar la suite T20 evidencia suficiente para uso
+  con capital real.
+
