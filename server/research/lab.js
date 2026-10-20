@@ -1,11 +1,154 @@
-'use strict';
-const crypto=require('node:crypto'),S=require('./statistics.js'),V=require('./validation.js');
-const DEFAULT_POLICY={minObservations:120,minDsr:.95,maxPbo:.35,maxDrawdown:.25,minStability:.55,minOosSharpe:0};
-function seededReturns(seed,edge,n=320){let s=seed;return Array.from({length:n},(_,i)=>{s=Math.imul(1664525,s)+1013904223>>>0;const noise=(s/4294967296-.5)*.032,regime=i%97<18?-edge*.35:edge;return noise+regime})}
-class ResearchLab{
-  constructor({policy={},record=async()=>{}}={}){this.policy={...DEFAULT_POLICY,...policy};this.record=record;this.reports=new Map();this.champion=null;this.promotions=[]}
-  catalog(){return{policy:this.policy,champion:this.champion,reports:[...this.reports.values()].slice(-20).reverse(),promotions:this.promotions.slice(-20).reverse(),methods:['purged-k-fold','deflated-sharpe-ratio','probability-of-backtest-overfitting','parameter-sensitivity','human-approved-promotion']}}
-  async evaluate(input={}){const id=String(input.candidateId||`strategy-${Date.now()}`),periods=Number(input.periods||252),trials=Math.max(2,Math.min(1000,Number(input.trials||20))),matrix=input.returnsMatrix||Array.from({length:Math.min(trials,12)},(_,i)=>seededReturns(41+i,(i===0?.0009:.00035)+(i%3)*.00008)),returns=input.returns||matrix[0],folds=V.purgedKFold(returns.length,{folds:Number(input.folds||5),purge:Number(input.purge||3),embargo:Number(input.embargo||2)}),foldMetrics=folds.map(f=>({fold:f.fold,trainSharpe:S.sharpe(f.train.map(i=>returns[i]),periods),oosSharpe:S.sharpe(f.test.map(i=>returns[i]),periods),train:f.train.length,test:f.test.length})),dsr=S.deflatedSharpeRatio(returns,trials,periods),pbo=V.probabilityBacktestOverfitting(matrix,{slices:Number(input.slices||8),periods}),sens=V.sensitivity(matrix.map((r,i)=>({parameter:i,metric:S.sharpe(r,periods)}))),drawdown=S.maxDrawdown(returns),oosSharpe=S.mean(foldMetrics.map(x=>x.oosSharpe)),policy={...this.policy,...input.policy},checks={observations:returns.length>=policy.minObservations,deflatedSharpe:dsr.probability>=policy.minDsr,pbo:pbo.probability<=policy.maxPbo,maxDrawdown:drawdown<=policy.maxDrawdown,sensitivity:sens.stability>=policy.minStability,oosSharpe:oosSharpe>=policy.minOosSharpe};const report={id,version:String(input.version||'1.0.0'),createdAt:new Date().toISOString(),status:Object.values(checks).every(Boolean)?'eligible':'rejected',observations:returns.length,metrics:{sharpe:dsr.sharpe,deflatedSharpeProbability:dsr.probability,deflatedBenchmark:dsr.benchmark,pbo:pbo.probability,maxDrawdown:drawdown,oosSharpe,stability:sens.stability},checks,folds,foldMetrics,sensitivity:sens,pbo:{combinations:pbo.combinations,medianLogit:pbo.medianLogit},promotion:{requiresHumanApproval:true,state:'not-promoted'}};this.reports.set(id,report);await this.record('research.evaluation',report);return report}
-  async promote(candidateId,approvedBy){const report=this.reports.get(String(candidateId));if(!report)throw Object.assign(new Error('candidate-not-found'),{status:404});if(report.status!=='eligible')throw Object.assign(new Error('candidate-failed-gates'),{status:409});if(typeof approvedBy!=='string'||approvedBy.trim().length<3)throw Object.assign(new Error('human-approval-required'),{status:403});const event={id:crypto.randomUUID(),candidateId:report.id,approvedBy:approvedBy.trim(),at:new Date().toISOString(),previousChampion:this.champion?.id||null};report.promotion={requiresHumanApproval:true,state:'champion',...event};this.champion={id:report.id,version:report.version,promotedAt:event.at,approvedBy:event.approvedBy};this.promotions.push(event);await this.record('research.promotion',event);return{champion:this.champion,event}}
+"use strict";
+const crypto = require("node:crypto"),
+  S = require("./statistics.js"),
+  V = require("./validation.js");
+const DEFAULT_POLICY = {
+  minObservations: 120,
+  minDsr: 0.95,
+  maxPbo: 0.35,
+  maxDrawdown: 0.25,
+  minStability: 0.55,
+  minOosSharpe: 0,
+};
+function seededReturns(seed, edge, n = 320) {
+  let s = seed;
+  return Array.from({ length: n }, (_, i) => {
+    s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+    const noise = (s / 4294967296 - 0.5) * 0.032,
+      regime = i % 97 < 18 ? -edge * 0.35 : edge;
+    return noise + regime;
+  });
 }
-module.exports={ResearchLab,DEFAULT_POLICY,seededReturns};
+class ResearchLab {
+  constructor({ policy = {}, record = async () => {} } = {}) {
+    this.policy = { ...DEFAULT_POLICY, ...policy };
+    this.record = record;
+    this.reports = new Map();
+    this.champion = null;
+    this.promotions = [];
+  }
+  catalog() {
+    return {
+      policy: this.policy,
+      champion: this.champion,
+      reports: [...this.reports.values()].slice(-20).reverse(),
+      promotions: this.promotions.slice(-20).reverse(),
+      methods: [
+        "purged-k-fold",
+        "deflated-sharpe-ratio",
+        "probability-of-backtest-overfitting",
+        "parameter-sensitivity",
+        "human-approved-promotion",
+      ],
+    };
+  }
+  async evaluate(input = {}) {
+    const id = String(input.candidateId || `strategy-${Date.now()}`),
+      periods = Number(input.periods || 252),
+      trials = Math.max(2, Math.min(1000, Number(input.trials || 20))),
+      matrix =
+        input.returnsMatrix ||
+        Array.from({ length: Math.min(trials, 12) }, (_, i) =>
+          seededReturns(
+            41 + i,
+            (i === 0 ? 0.0009 : 0.00035) + (i % 3) * 0.00008,
+          ),
+        ),
+      returns = input.returns || matrix[0],
+      folds = V.purgedKFold(returns.length, {
+        folds: Number(input.folds || 5),
+        purge: Number(input.purge || 3),
+        embargo: Number(input.embargo || 2),
+      }),
+      foldMetrics = folds.map((f) => ({
+        fold: f.fold,
+        trainSharpe: S.sharpe(
+          f.train.map((i) => returns[i]),
+          periods,
+        ),
+        oosSharpe: S.sharpe(
+          f.test.map((i) => returns[i]),
+          periods,
+        ),
+        train: f.train.length,
+        test: f.test.length,
+      })),
+      dsr = S.deflatedSharpeRatio(returns, trials, periods),
+      pbo = V.probabilityBacktestOverfitting(matrix, {
+        slices: Number(input.slices || 8),
+        periods,
+      }),
+      sens = V.sensitivity(
+        matrix.map((r, i) => ({ parameter: i, metric: S.sharpe(r, periods) })),
+      ),
+      drawdown = S.maxDrawdown(returns),
+      oosSharpe = S.mean(foldMetrics.map((x) => x.oosSharpe)),
+      policy = { ...this.policy, ...input.policy },
+      checks = {
+        observations: returns.length >= policy.minObservations,
+        deflatedSharpe: dsr.probability >= policy.minDsr,
+        pbo: pbo.probability <= policy.maxPbo,
+        maxDrawdown: drawdown <= policy.maxDrawdown,
+        sensitivity: sens.stability >= policy.minStability,
+        oosSharpe: oosSharpe >= policy.minOosSharpe,
+      };
+    const report = {
+      id,
+      version: String(input.version || "1.0.0"),
+      createdAt: new Date().toISOString(),
+      status: Object.values(checks).every(Boolean) ? "eligible" : "rejected",
+      observations: returns.length,
+      metrics: {
+        sharpe: dsr.sharpe,
+        deflatedSharpeProbability: dsr.probability,
+        deflatedBenchmark: dsr.benchmark,
+        pbo: pbo.probability,
+        maxDrawdown: drawdown,
+        oosSharpe,
+        stability: sens.stability,
+      },
+      checks,
+      folds,
+      foldMetrics,
+      sensitivity: sens,
+      pbo: { combinations: pbo.combinations, medianLogit: pbo.medianLogit },
+      promotion: { requiresHumanApproval: true, state: "not-promoted" },
+    };
+    this.reports.set(id, report);
+    await this.record("research.evaluation", report);
+    return report;
+  }
+  async promote(candidateId, approvedBy) {
+    const report = this.reports.get(String(candidateId));
+    if (!report)
+      throw Object.assign(new Error("candidate-not-found"), { status: 404 });
+    if (report.status !== "eligible")
+      throw Object.assign(new Error("candidate-failed-gates"), { status: 409 });
+    if (typeof approvedBy !== "string" || approvedBy.trim().length < 3)
+      throw Object.assign(new Error("human-approval-required"), {
+        status: 403,
+      });
+    const event = {
+      id: crypto.randomUUID(),
+      candidateId: report.id,
+      approvedBy: approvedBy.trim(),
+      at: new Date().toISOString(),
+      previousChampion: this.champion?.id || null,
+    };
+    report.promotion = {
+      requiresHumanApproval: true,
+      state: "champion",
+      ...event,
+    };
+    this.champion = {
+      id: report.id,
+      version: report.version,
+      promotedAt: event.at,
+      approvedBy: event.approvedBy,
+    };
+    this.promotions.push(event);
+    await this.record("research.promotion", event);
+    return { champion: this.champion, event };
+  }
+}
+module.exports = { ResearchLab, DEFAULT_POLICY, seededReturns };

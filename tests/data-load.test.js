@@ -1,2 +1,69 @@
-const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{JsonlStore}=require('../server/data/jsonl-store.js'),{OrderBook}=require('../server/data/order-book.js'),{CandleAggregator}=require('../server/data/candles.js');
-(async()=>{const started=Date.now(),book=new OrderBook('BTC-USD',{depth:100});book.load({symbol:'BTC-USD',source:'load',sequence:1,receivedAt:new Date().toISOString(),bids:Array.from({length:100},(_,i)=>({price:100-i*.01,size:1})),asks:Array.from({length:100},(_,i)=>({price:101+i*.01,size:1}))});for(let i=2;i<=10002;i++)assert.equal(book.apply([{side:i%2?'bid':'ask',price:99+(i%200)*.01,size:(i%5)+.1}],{sequence:i}).applied,true);assert.ok(book.snapshot().bids.length<=100);const candles=new CandleAggregator([60,300,900,3600]);for(let i=0;i<10000;i++)candles.add({symbol:'BTC-USD',source:'load',price:100+Math.sin(i/50),size:.01,exchangeAt:new Date(1792440000000+i*100).toISOString(),receivedAt:new Date(1792440000000+i*100).toISOString()});assert.equal(candles.snapshots('BTC-USD').length,4);const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qcf-load-')),store=new JsonlStore(dir),writes=[];for(let i=0;i<2000;i++)writes.push(store.append('load.BTC-USD',{receivedAt:new Date(1792440000000+i).toISOString(),price:i}));await Promise.all(writes);assert.equal((await store.verify('load.BTC-USD')).events,2000);fs.rmSync(dir,{recursive:true});assert.ok(Date.now()-started<15000);console.log(`data load tests: ok (${Date.now()-started}ms)`)})().catch(e=>{console.error(e);process.exit(1)});
+const assert = require("node:assert/strict"),
+  fs = require("node:fs"),
+  os = require("node:os"),
+  path = require("node:path"),
+  { JsonlStore } = require("../server/data/jsonl-store.js"),
+  { OrderBook } = require("../server/data/order-book.js"),
+  { CandleAggregator } = require("../server/data/candles.js");
+(async () => {
+  const started = Date.now(),
+    book = new OrderBook("BTC-USD", { depth: 100 });
+  book.load({
+    symbol: "BTC-USD",
+    source: "load",
+    sequence: 1,
+    receivedAt: new Date().toISOString(),
+    bids: Array.from({ length: 100 }, (_, i) => ({
+      price: 100 - i * 0.01,
+      size: 1,
+    })),
+    asks: Array.from({ length: 100 }, (_, i) => ({
+      price: 101 + i * 0.01,
+      size: 1,
+    })),
+  });
+  for (let i = 2; i <= 10002; i++)
+    assert.equal(
+      book.apply(
+        [
+          {
+            side: i % 2 ? "bid" : "ask",
+            price: 99 + (i % 200) * 0.01,
+            size: (i % 5) + 0.1,
+          },
+        ],
+        { sequence: i },
+      ).applied,
+      true,
+    );
+  assert.ok(book.snapshot().bids.length <= 100);
+  const candles = new CandleAggregator([60, 300, 900, 3600]);
+  for (let i = 0; i < 10000; i++)
+    candles.add({
+      symbol: "BTC-USD",
+      source: "load",
+      price: 100 + Math.sin(i / 50),
+      size: 0.01,
+      exchangeAt: new Date(1792440000000 + i * 100).toISOString(),
+      receivedAt: new Date(1792440000000 + i * 100).toISOString(),
+    });
+  assert.equal(candles.snapshots("BTC-USD").length, 4);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qcf-load-")),
+    store = new JsonlStore(dir),
+    writes = [];
+  for (let i = 0; i < 2000; i++)
+    writes.push(
+      store.append("load.BTC-USD", {
+        receivedAt: new Date(1792440000000 + i).toISOString(),
+        price: i,
+      }),
+    );
+  await Promise.all(writes);
+  assert.equal((await store.verify("load.BTC-USD")).events, 2000);
+  fs.rmSync(dir, { recursive: true });
+  assert.ok(Date.now() - started < 15000);
+  console.log(`data load tests: ok (${Date.now() - started}ms)`);
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

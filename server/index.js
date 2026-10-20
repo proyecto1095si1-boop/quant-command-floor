@@ -1,15 +1,105 @@
-'use strict';
-require('./env.js').loadEnv();
-const {createGateway}=require('./gateway.js');
-const {MarketDataService}=require('./data/service.js');
-const {TradingPipeline}=require('./pipeline/orchestrator.js');
-const {DashboardService}=require('./dashboard/service.js');
-const {ResearchLab}=require('./research/lab.js');
-const {PortfolioService}=require('./portfolio/service.js');
-const {ExecutionService}=require('./execution/service.js');
-const {SreService}=require('./sre/service.js');
-const {RegimeService}=require('./regime/service.js');
-const gateway=createGateway(),products=(process.env.MARKET_PRODUCTS||'BTC-USD,ETH-USD').split(',').map(x=>x.trim()).filter(Boolean),data=new MarketDataService({products,pollMs:Number(process.env.MARKET_POLL_MS||5000),publish:gateway.publish});if(process.env.MARKET_WS_ENABLED==='true')data.enableStream();const regime=new RegimeService({record:(stream,event)=>data.record(stream,event)}),pipeline=new TradingPipeline({dataService:data,regime,publish:gateway.publish}),dashboard=new DashboardService({pipeline,dataService:data}),research=new ResearchLab({record:(stream,event)=>data.record(stream,event)}),portfolio=new PortfolioService({pipeline,dataService:data,record:(stream,event)=>data.record(stream,event)}),execution=new ExecutionService({pipeline,portfolio,record:(stream,event)=>data.record(stream,event),publish:gateway.publish}),sre=new SreService({gatewayMetrics:gateway.metrics,pipeline,dataService:data,research,portfolio,execution,record:(stream,event)=>data.record(stream,event)});gateway.setDataService(data);gateway.setPipeline(pipeline);gateway.setDashboard(dashboard);gateway.setResearch(research);gateway.setPortfolio(portfolio);gateway.setExecution(execution);gateway.setSre(sre);gateway.setRegime(regime);
-gateway.listen().then(async address=>{console.log(`Quant Command Floor gateway listening on http://${address.address}:${address.port}`);try{const recovered=await pipeline.recover();if(recovered.recovered)console.log(`Pipeline recovered: ${recovered.fills} fills`)}catch(e){console.error(`Pipeline recovery blocked: ${e.message}`);pipeline.risk.halt('recovery-failed')}if(process.env.MARKET_DATA_ENABLED!=='false'){try{await data.start();console.log(`Market data online: ${products.join(', ')}`)}catch(e){console.error(`Market data degraded: ${e.message}`)}}});
-const maintenance=setInterval(async()=>{try{await data.store.compact({before:new Date(Date.now()-86400000)});await data.store.enforceRetention({days:Number(process.env.DATA_RETENTION_DAYS||30)})}catch(e){console.error(`Storage maintenance degraded: ${e.message}`)}},Number(process.env.DATA_MAINTENANCE_MS||3600000));maintenance.unref();
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{clearInterval(maintenance);data.stop().then(()=>gateway.close()).finally(()=>process.exit(0))});
+"use strict";
+require("./env.js").loadEnv();
+const { createGateway } = require("./gateway.js");
+const { MarketDataService } = require("./data/service.js");
+const { TradingPipeline } = require("./pipeline/orchestrator.js");
+const { DashboardService } = require("./dashboard/service.js");
+const { ResearchLab } = require("./research/lab.js");
+const { PortfolioService } = require("./portfolio/service.js");
+const { ExecutionService } = require("./execution/service.js");
+const { SreService } = require("./sre/service.js");
+const { RegimeService } = require("./regime/service.js");
+const gateway = createGateway(),
+  products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean),
+  data = new MarketDataService({
+    products,
+    pollMs: Number(process.env.MARKET_POLL_MS || 5000),
+    publish: gateway.publish,
+  });
+if (process.env.MARKET_WS_ENABLED === "true") data.enableStream();
+const regime = new RegimeService({
+    record: (stream, event) => data.record(stream, event),
+  }),
+  pipeline = new TradingPipeline({
+    dataService: data,
+    regime,
+    publish: gateway.publish,
+  }),
+  dashboard = new DashboardService({ pipeline, dataService: data }),
+  research = new ResearchLab({
+    record: (stream, event) => data.record(stream, event),
+  }),
+  portfolio = new PortfolioService({
+    pipeline,
+    dataService: data,
+    record: (stream, event) => data.record(stream, event),
+  }),
+  execution = new ExecutionService({
+    pipeline,
+    portfolio,
+    record: (stream, event) => data.record(stream, event),
+    publish: gateway.publish,
+  }),
+  sre = new SreService({
+    gatewayMetrics: gateway.metrics,
+    pipeline,
+    dataService: data,
+    research,
+    portfolio,
+    execution,
+    record: (stream, event) => data.record(stream, event),
+  });
+gateway.setDataService(data);
+gateway.setPipeline(pipeline);
+gateway.setDashboard(dashboard);
+gateway.setResearch(research);
+gateway.setPortfolio(portfolio);
+gateway.setExecution(execution);
+gateway.setSre(sre);
+gateway.setRegime(regime);
+gateway.listen().then(async (address) => {
+  console.log(
+    `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
+  );
+  try {
+    const recovered = await pipeline.recover();
+    if (recovered.recovered)
+      console.log(`Pipeline recovered: ${recovered.fills} fills`);
+  } catch (e) {
+    console.error(`Pipeline recovery blocked: ${e.message}`);
+    pipeline.risk.halt("recovery-failed");
+  }
+  if (process.env.MARKET_DATA_ENABLED !== "false") {
+    try {
+      await data.start();
+      console.log(`Market data online: ${products.join(", ")}`);
+    } catch (e) {
+      console.error(`Market data degraded: ${e.message}`);
+    }
+  }
+});
+const maintenance = setInterval(
+  async () => {
+    try {
+      await data.store.compact({ before: new Date(Date.now() - 86400000) });
+      await data.store.enforceRetention({
+        days: Number(process.env.DATA_RETENTION_DAYS || 30),
+      });
+    } catch (e) {
+      console.error(`Storage maintenance degraded: ${e.message}`);
+    }
+  },
+  Number(process.env.DATA_MAINTENANCE_MS || 3600000),
+);
+maintenance.unref();
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.on(signal, () => {
+    clearInterval(maintenance);
+    data
+      .stop()
+      .then(() => gateway.close())
+      .finally(() => process.exit(0));
+  });
