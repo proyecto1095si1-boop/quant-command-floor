@@ -47,12 +47,19 @@ sin inferir la frecuencia aplicada.
 | Pérdida de estrés | 20% del equity |
 | Peso máximo por activo | Mandato de la mesa |
 | Exposición bruta | 70% del equity |
+| Exposición por factor | 45% del equity |
 | Correlación | 0.90 |
 | Spread | 20 bps |
 | Confianza de señal | 15% |
 | Historia | 50 retornos |
 
 VaR toma el percentil 95 de pérdidas históricas; CVaR promedia la cola igual o peor que VaR. El stress engine aplica shocks de mercado de −20%, liquidez de −8% y venue de −12% a la exposición bruta posterior a la orden.
+
+El gate factorial agrupa instrumentos por el factor declarado por Asset Desk y
+se revalida antes de cada child order. Una orden que eleva el factor por encima
+de 45% del equity es vetada; una reducción monotónica puede pasar aunque el
+factor continúe temporalmente sobre el límite. El dictamen conserva exposición
+factorial previa/posterior y el nombre del factor.
 
 ## Estado y recuperación
 

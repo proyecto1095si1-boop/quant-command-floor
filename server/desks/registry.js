@@ -10,10 +10,30 @@ const DEFAULT_WEIGHTS = {
   "Order Block": 0.85,
 };
 const ASSETS = {
-  BTC: { product: "BTC-USD", riskClass: "major", maxWeight: 0.35 },
-  ETH: { product: "ETH-USD", riskClass: "major", maxWeight: 0.3 },
-  SOL: { product: "SOL-USD", riskClass: "major-high-beta", maxWeight: 0.15 },
-  BNB: { product: "BNB-USD", riskClass: "major-venue", maxWeight: 0.1 },
+  BTC: {
+    product: "BTC-USD",
+    riskClass: "major",
+    factor: "crypto-core",
+    maxWeight: 0.35,
+  },
+  ETH: {
+    product: "ETH-USD",
+    riskClass: "major",
+    factor: "crypto-core",
+    maxWeight: 0.3,
+  },
+  SOL: {
+    product: "SOL-USD",
+    riskClass: "major-high-beta",
+    factor: "high-beta-l1",
+    maxWeight: 0.15,
+  },
+  BNB: {
+    product: "BNB-USD",
+    riskClass: "major-venue",
+    factor: "venue-linked",
+    maxWeight: 0.1,
+  },
 };
 class DeskRegistry {
   constructor({
@@ -103,6 +123,7 @@ class DeskRegistry {
         paperOnly: true,
         maxPortfolioWeight: spec.maxWeight,
         riskClass: spec.riskClass,
+        factor: spec.factor || spec.riskClass || asset,
       },
       formula: "Σ(signalᵢ × confidenceᵢ × weightᵢ) / Σ(confidenceᵢ × weightᵢ)",
     };

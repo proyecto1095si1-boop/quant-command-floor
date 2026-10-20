@@ -118,6 +118,7 @@ class TradingPipeline {
           notional: sizing.qty * price,
           confidence: desk.confidence,
           maxWeight: desk.policy.maxPortfolioWeight,
+          factor: spec.factor || spec.riskClass || asset,
           stopDistance: sizing.stopDistance,
           sizing,
         };
@@ -130,11 +131,24 @@ class TradingPipeline {
             v.marketValue,
           ]),
         ),
+        factorExposure = Object.entries(portfolio.positions).reduce(
+          (sum, [product, position]) => {
+            const assetSpec = Object.values(this.desks.assets).find(
+              (candidate) => candidate.product === product,
+            );
+            return (assetSpec?.factor || assetSpec?.riskClass) ===
+              proposal.factor
+              ? sum + Math.abs(position.marketValue)
+              : sum;
+          },
+          0,
+        ),
         riskContext = {
           equity: portfolio.equity,
           grossExposure: portfolio.grossExposure,
           assetExposure: Math.abs(current?.marketValue || 0),
           signedAssetExposure: current?.marketValue || 0,
+          factorExposure,
           exposures,
           dataStatus: context.quality.status,
           returns: assetReturns,
