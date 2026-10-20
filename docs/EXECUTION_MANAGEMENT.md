@@ -22,16 +22,30 @@ Antes de cada child order se reconstruye la cartera marcada y se consulta nuevam
 
 ## Simulación y costos
 
-El Paper Ledger aplica:
+Con un snapshot L2, market y stop-market recorren los niveles del lado opuesto.
+Una limit solo llena los niveles que cruzan su precio y el fill se registra al
+precio límite. La liquidez consumida se comparte entre las child orders del
+mismo snapshot para impedir su reutilización. Si el libro no alcanza, el
+resultado es parcial; si no queda liquidez, se rechaza.
+
+Las órdenes limit pagan maker y market/stop-market pagan taker. Ambas
+comisiones son configurables y usan 0,10 % por defecto. También se validan lote
+y notional mínimo.
+
+Cuando no existe un libro, el Paper Ledger conserva el fallback:
 
 `slippage bps = base + spread/2 + participation × impact`
 
-El precio de compra suma slippage y el de venta lo resta. Cada fill descuenta fees, actualiza cash, posición, precio promedio, PnL realizado/no realizado y exposición. La reconciliación informa procesadas, filled, rejected y snapshot final.
+Ese fill queda marcado como `fillModel: "impact"`; los basados en libro usan
+`fillModel: "l2"`. Cada fill descuenta fees, actualiza cash, posición, precio
+promedio, PnL realizado/no realizado y exposición. La reconciliación informa
+procesadas, filled, partial, rejected y snapshot final.
 
 ## Estados
 
 - Parent: `scheduled`, `filled`, `partial` o `rejected`.
-- Child: `queued`, `filled`, `rejected` o `skipped`.
+- Child: `queued`, `filled`, `partial`, `rejected` o `skipped`. Una limit no
+  cruzada o un stop no disparado permanece en cola.
 
 Las submissions se persisten en `execution.submissions` y las conciliaciones en `execution.reconciliations`.
 

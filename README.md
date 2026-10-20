@@ -52,6 +52,8 @@ La asignación, risk parity y reglas de rebalanceo están en [`docs/PORTFOLIO_MA
 El ruteo TWAP/VWAP, la cola paper y la reconciliación están en [`docs/EXECUTION_MANAGEMENT.md`](docs/EXECUTION_MANAGEMENT.md).
 Los SLI/SLO, incidentes, journal y backups están en [`docs/SRE_AUDIT.md`](docs/SRE_AUDIT.md).
 La autenticación, RBAC, cuatro ojos y controles de producción están en [`docs/PRODUCTION_SECURITY.md`](docs/PRODUCTION_SECURITY.md).
+Los riesgos abiertos, mitigaciones y bloqueantes para capital real están en [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md).
+Las decisiones arquitectónicas aceptadas están en [`docs/adr/`](docs/adr/).
 
 ## Runtime multiagente
 
