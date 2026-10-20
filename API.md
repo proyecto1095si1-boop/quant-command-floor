@@ -459,11 +459,16 @@ Todas las órdenes son paper. `submit` necesita un plan existente y aprobación 
 | POST | `/v1/governance/experiments/assign` | admin |
 | POST | `/v1/governance/experiments/observe` | admin |
 | POST | `/v1/governance/experiments/stop` | admin |
+| GET | `/v1/governance/ai-evaluation` | viewer |
+| POST | `/v1/governance/ai-evaluation/datasets` | admin |
+| POST | `/v1/governance/ai-evaluation/run` | admin |
 
 El registro acepta configuraciones y hashes, no código ejecutable ni secretos.
 Las promociones requieren evaluación cuantitativa elegible.
 Los experimentos solo enrutan evaluaciones paper y conservan hashes, no prompts
 ni outputs completos.
+La evaluación IA solo admite hashes y evidencia estructurada; rechaza campos de
+prompt o respuesta libre.
 
 ### Dashboard
 

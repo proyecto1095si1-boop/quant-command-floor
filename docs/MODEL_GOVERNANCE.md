@@ -80,3 +80,8 @@ un segundo aprobador.
 Antes de promover, T19 permite ejecutar el challenger en shadow o canary paper
 contra el champion. La asignación, métricas pareadas, privacidad y rollback se
 documentan en `SHADOW_CANARY.md`.
+
+Los modelos IA usan además la suite adversarial T20 antes de quedar elegibles.
+No reutiliza artificialmente p-values financieros: registra una evaluación
+tipada con gates de seguridad, grounding, schema, sesgo, estabilidad, costo y
+latencia descritos en `AI_EVALUATION.md`.
