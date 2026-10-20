@@ -48,6 +48,7 @@ La validación purgada, DSR, PBO y promoción champion/challenger están en [`do
 El sizing, VaR/CVaR, stress testing y veto independiente están en [`docs/RISK_MANAGEMENT.md`](docs/RISK_MANAGEMENT.md).
 La asignación, risk parity y reglas de rebalanceo están en [`docs/PORTFOLIO_MANAGEMENT.md`](docs/PORTFOLIO_MANAGEMENT.md).
 El ruteo TWAP/VWAP, la cola paper y la reconciliación están en [`docs/EXECUTION_MANAGEMENT.md`](docs/EXECUTION_MANAGEMENT.md).
+Los SLI/SLO, incidentes, journal y backups están en [`docs/SRE_AUDIT.md`](docs/SRE_AUDIT.md).
 
 ## Runtime multiagente
 

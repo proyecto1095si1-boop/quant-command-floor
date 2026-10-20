@@ -193,3 +193,12 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Revalidación independiente de Risk Gate antes de cada child order.
 - Slippage/impacto, fees, conciliación, persistencia, API y panel visual paper-only.
 
+## Punto 9 — SRE, auditoría y recuperación ✅
+
+- Instrumentación HTTP con ventana de latencia y status codes.
+- SLI/SLO de availability, p95, frescura e integridad; error budget y burn rate.
+- Incidentes deduplicados con severidad, ocurrencias y ACK atribuible.
+- Journal canónico encadenado SHA-256 con detección exacta de manipulación.
+- Backups de ledger, auditoría, riesgo, research, cartera y ejecución con digest.
+- API de operaciones y consola visual SRE integrada al piso.
+
