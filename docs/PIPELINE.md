@@ -37,7 +37,11 @@ Veta ante cualquiera de estas condiciones:
 
 ## Paper Ledger
 
-Mantiene efectivo, posiciones por símbolo, precio promedio, PnL realizado/no realizado, fees e idempotencia. El fill simulado incluye medio spread, slippage base y penalización de impacto según participación contra profundidad L2.
+Mantiene efectivo, posiciones por símbolo, precio promedio, PnL realizado/no
+realizado, fees e idempotencia. Cuando existe snapshot L2, recorre niveles y
+consume cada unidad de liquidez una sola vez; admite fills parciales, fees
+maker/taker, lote y notional mínimo. Sin libro utiliza spread, slippage base e
+impacto por participación, y registra explícitamente `fillModel: "impact"`.
 
 Cada checkpoint contiene ledger, métricas, estado de Riesgo y cadena SHA-256. Al reiniciar, la recuperación verifica la cadena antes de habilitar el pipeline; una corrupción coloca Risk Gate en halt.
 

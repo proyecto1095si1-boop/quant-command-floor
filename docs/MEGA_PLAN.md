@@ -45,7 +45,16 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** datos confiables con salud y procedencia visibles.
 
-**Implementado:** normalización, frescura, detección de huecos/outliers, divergencia multi-fuente, snapshot y replay determinista. Los conectores reales de exchange quedan para la integración backend.
+**Implementado:** normalización, frescura, detección de huecos/outliers,
+divergencia multi-fuente, snapshot y replay determinista. El backend incluye
+conectores de **datos públicos read-only**: Coinbase como fuente primaria
+(REST y WebSocket opcional) y Kraken como fuente REST secundaria. No usan
+credenciales ni tienen capacidad para enviar órdenes.
+
+**Pendiente:** integrar mediante servicios backend seguros los proveedores que
+requieren autenticación o secretos —LLM, noticias, macro, sentimiento, on-chain
+y RPC—. También queda expresamente fuera de alcance cualquier conector de
+ejecución real; el sistema continúa siendo `PAPER_ONLY`.
 
 **Incremento real completo:** Coinbase primario y Kraken secundario con divergencia automática; snapshots L2, ticker, trades incrementales, velas 1m/5m/15m/1h, WebSocket opcional con reconexión, polling de recuperación, calidad robusta, persistencia JSONL con SHA-256, recuperación tras reinicio, compresión, retención, inventario, replay, carga y endpoints de observación. Para gran escala, JSONL puede sustituirse por TimescaleDB o ClickHouse sin cambiar los contratos.
 
@@ -83,7 +92,10 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** ciclo completo de trading sin riesgo financiero real.
 
-**Implementado:** broker paper idempotente, fills con fees/slippage, TWAP, posiciones, ledger y conciliación.
+**Implementado:** broker paper idempotente, walks de snapshots L2 para market,
+limit y stop-market, fills parciales, fees maker/taker, fallback de impacto,
+TWAP/VWAP, posiciones, ledger y conciliación. Cancel/replace y funding del
+ledger permanecen pendientes.
 
 ## Punto 2 — Mesas de cripto majors ✅
 
@@ -131,7 +143,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** cada decisión puede explicarse y reconstruirse.
 
-**Implementado:** cadena hash verificable, event log, métricas y estado visible. Persistencia durable queda para backend.
+**Implementado:** cadena hash verificable, event log, métricas, estado visible
+y persistencia JSONL local recuperable. Un datastore externo append-only y
+checkpoints fuera del entorno primario siguen pendientes para producción.
 
 ## Fase 9 — Seguridad y producción 🚧
 
@@ -143,7 +157,11 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 
 **Salida:** plataforma endurecida para uso operativo controlado.
 
-**Implementado:** validación de endpoints por allowlist, sanitización de configuración, token bucket y fronteras paper-only. Pendiente: identidad, secretos backend, CI/CD y revisión de seguridad antes de producción.
+**Implementado:** validación de endpoints por allowlist, sanitización de
+configuración, token bucket, fronteras paper-only y CI con lint, formato,
+pruebas, cobertura y smoke test fail-closed. Pendiente: proveedor de identidad
+externo, secret manager, pipeline de artefactos/despliegue y revisión formal de
+seguridad antes de cualquier uso con capital real.
 
 ## Incremento backend local — Etapas 0 y 1 ✅
 
@@ -191,7 +209,9 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - TWAP uniforme y VWAP por perfil de volumen, seis slices e intervalo configurable.
 - Participation cap del 10% y residual explícito para no forzar liquidez.
 - Revalidación independiente de Risk Gate antes de cada child order.
-- Slippage/impacto, fees, conciliación, persistencia, API y panel visual paper-only.
+- Walk de L2 con liquidez no reutilizable por snapshot, fallback de impacto,
+  fees maker/taker, fills parciales, conciliación, persistencia, API y panel
+  visual paper-only.
 
 ## Punto 9 — SRE, auditoría y recuperación ✅
 
