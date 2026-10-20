@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict"),
   { DeskRegistry } = require("../server/desks/registry.js");
+require("./consensus.test.js");
 function candles(n = 120) {
   let p = 100;
   return Array.from({ length: n }, (_, i) => {
@@ -44,11 +45,14 @@ function trades(n = 100) {
     },
     report = registry.analyze("BTC", context);
   assert.equal(report.status, "ok");
-  assert.ok(["LONG", "SHORT", "FLAT"].includes(report.action));
+  assert.ok(["LONG", "SHORT", "NO_TRADE"].includes(report.action));
   assert.equal(report.agents.length, 6);
   assert.equal(report.inputSummary.candles, 120);
   assert.ok(report.signal >= -1 && report.signal <= 1);
   assert.equal(report.policy.paperOnly, true);
+  assert.equal(report.consensus.paperOnly, true);
+  assert.ok(report.consensus.effectiveAgents > 0);
+  assert.equal(report.formula.includes("logit"), true);
   const blocked = registry.analyze("ETH", {
     candles: candles(10),
     trades: [],

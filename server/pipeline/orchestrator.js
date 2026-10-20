@@ -76,13 +76,17 @@ class TradingPipeline {
         trades: context.trades.length,
         quality: context.quality.status,
       });
-      const desk = this.desks.analyze(asset, context);
+      const desk = this.desks.analyze(asset, {
+        ...context,
+        regime: context.regime || this.regime?.latest?.get(asset) || null,
+      });
       run.desk = desk;
       this.stage(run, "signal", desk.status, {
         action: desk.action,
         signal: desk.signal,
         confidence: desk.confidence,
         blockers: desk.blockers,
+        ...(desk.consensus ? { consensus: desk.consensus } : {}),
       });
       if (desk.action === "NO_TRADE" || desk.action === "FLAT") {
         run.status = "no-trade";

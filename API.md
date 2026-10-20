@@ -405,6 +405,10 @@ su sesión segura en una identidad verificable para el upgrade.
 
 Activos implementados: `BTC`, `ETH`, `SOL` y `BNB`.
 
+La respuesta incluye `desk.consensus`: posterior, IC95, tamaño efectivo,
+concentración, aportes Bull/Bear y gates del Investment Committee. Si el motor
+se abstiene, la acción es `NO_TRADE` y no se crea una propuesta.
+
 ### Riesgo
 
 | Método | Ruta | Rol |

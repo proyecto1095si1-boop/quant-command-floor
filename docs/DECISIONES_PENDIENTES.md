@@ -59,3 +59,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** interpretar una firma T21 como autorización operativa o
   como prueba de veracidad de la fuente.
 
+## Calibración del comité multiagente
+
+- **Estado:** pendiente por activo y horizonte.
+- **Decisión necesaria:** ventana rolling, estimador robusto de correlación,
+  prior direccional, multiplicadores por régimen y tolerancia del intervalo.
+- **Acción bloqueada:** usar los defaults T22 para dimensionar capital real o
+  presentar su intervalo operativo como probabilidad estadística certificada.
+
