@@ -106,8 +106,9 @@
         <label>TEMPERATURE<input id="cfgTemperature" type="number" min="0" max="2" step="0.05"></label><label>TOP P<input id="cfgTopP" type="number" min="0" max="1" step="0.05"></label>
         <label>MAX TOKENS<input id="cfgTokens" type="number" min="64" max="8192"></label><label>TIMEOUT MS<input id="cfgTimeout" type="number" min="500" max="60000"></label>
       </div>
-      <div class="platform-actions"><button id="platformTest">PROBAR HEALTH</button><button id="platformSave" class="primary">GUARDAR CONFIGURACIÓN</button></div>
+      <div class="platform-actions"><button id="securityCheck">SEGURIDAD</button><button id="platformTest">PROBAR HEALTH</button><button id="platformSave" class="primary">GUARDAR CONFIGURACIÓN</button></div>
       <div id="platformStatus" class="platform-status"><i></i><span>Sin comprobar</span></div>
+      <div id="securityStatus" class="platform-status"><i></i><span>Security profile sin comprobar</span></div>
       <div class="platform-math"><b>INFRA MATH</b><span>EWMA α=0.20 · Robust z = 0.6745(x−median)/MAD · circuit breaker 3 fallas / 30s</span></div>
       <div class="data-plane-panel"><div><b>DATA PLANE REAL</b><button id="refreshData">ACTUALIZAR</button></div><div class="data-plane-grid"><span>FUENTE<b id="dataSource">—</b></span><span>ESTADO<b id="dataStatus">DISABLED</b></span><span>BTC-USD<b id="dataPrice">—</b></span><span>SPREAD<b id="dataSpread">—</b></span><span>IMBALANCE<b id="dataImbalance">—</b></span><span>PERSISTIDOS<b id="dataEvents">0</b></span></div><small id="dataDetail">Esperando conexión con /v1/data/health</small></div>
     </section>

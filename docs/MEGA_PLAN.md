@@ -202,3 +202,11 @@ Construir un sistema operativo visual para un hedge fund cripto multiagente. El 
 - Backups de ledger, auditoría, riesgo, research, cartera y ejecución con digest.
 - API de operaciones y consola visual SRE integrada al piso.
 
+## Punto 10 — Production hardening ✅
+
+- Autenticación HMAC con expiración y comparación constant-time.
+- RBAC jerárquico viewer/operator/risk/admin aplicado por ruta.
+- Producción fail-closed sin secreto robusto y cuatro ojos opcional obligatorio.
+- Rate limit por IP, CORS estricto, límite de payload y headers defensivos.
+- GitHub Actions con suite completa, syntax checks y smoke test de seguridad.
+

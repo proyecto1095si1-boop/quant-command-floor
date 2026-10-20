@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node --use-env-proxy server/index.js",
     "serve:ui": "python3 -m http.server 8080 --directory dist",
-    "test": "node tests/runtime.test.js && node tests/data-research.test.js && node tests/operations.test.js && node tests/platform-config.test.js && node tests/gateway.test.js && node tests/llm-client.test.js && node tests/env.test.js && node tests/market-data.test.js && node tests/http-client.test.js && node tests/stream.test.js && node tests/data-load.test.js && node tests/desks.test.js && node tests/desk-load.test.js && node tests/pipeline.test.js && node tests/dashboard.test.js && node tests/research-advanced.test.js && node tests/risk-advanced.test.js && node tests/portfolio.test.js && node tests/execution.test.js && node tests/sre.test.js"
+    "test": "node tests/runtime.test.js && node tests/data-research.test.js && node tests/operations.test.js && node tests/platform-config.test.js && node tests/gateway.test.js && node tests/llm-client.test.js && node tests/env.test.js && node tests/market-data.test.js && node tests/http-client.test.js && node tests/stream.test.js && node tests/data-load.test.js && node tests/desks.test.js && node tests/desk-load.test.js && node tests/pipeline.test.js && node tests/dashboard.test.js && node tests/research-advanced.test.js && node tests/risk-advanced.test.js && node tests/portfolio.test.js && node tests/execution.test.js && node tests/sre.test.js && node tests/security-manager.test.js"
   },
   "engines": {"node": ">=20"}
 }
