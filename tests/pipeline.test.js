@@ -63,6 +63,31 @@ const desk = {
   const duplicate = await pipeline.run("BTC", { runId: "run-1" });
   assert.equal(duplicate.id, run.id);
   assert.equal(pipeline.status().portfolio.fills, 1);
+  const abstainingPipeline = new TradingPipeline({
+      dataService: data,
+      desks: {
+        ...desk,
+        analyze: () => ({
+          ...desk.analyze(),
+          action: "NO_TRADE",
+          consensus: {
+            paperOnly: true,
+            abstained: true,
+            abstainReasons: ["credibleDirection"],
+          },
+        }),
+      },
+    }),
+    abstained = await abstainingPipeline.run("BTC", {
+      runId: "abstain-1",
+    }),
+    signalAudit = abstainingPipeline.audit.rows.find(
+      (row) => row.type === "pipeline.signal",
+    );
+  assert.equal(abstained.status, "no-trade");
+  assert.equal(abstained.proposal, undefined);
+  assert.equal(abstainingPipeline.ledger.fills.length, 0);
+  assert.equal(signalAudit.payload.payload.consensus.abstained, true);
   pipeline.risk.halt("test");
   const veto = await pipeline.run("BTC", { runId: "run-2" });
   assert.equal(veto.status, "veto");

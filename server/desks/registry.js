@@ -1,6 +1,7 @@
 "use strict";
 const A = require("./agents.js"),
-  M = require("./math.js");
+  M = require("./math.js"),
+  { ConsensusEngine } = require("../decision/consensus.js");
 const DEFAULT_WEIGHTS = {
   Technical: 1.25,
   Volume: 0.9,
@@ -41,11 +42,13 @@ class DeskRegistry {
     weights = DEFAULT_WEIGHTS,
     minCandles = 50,
     minTrades = 20,
+    consensus = new ConsensusEngine(),
   } = {}) {
     this.assets = assets;
     this.weights = weights;
     this.minCandles = minCandles;
     this.minTrades = minTrades;
+    this.consensus = consensus;
   }
   list() {
     return Object.entries(this.assets).map(([asset, x]) => ({
@@ -77,39 +80,23 @@ class DeskRegistry {
         A.marketStructure(candles),
         A.orderBlock(candles),
       ],
-      weighted = results.reduce(
-        (a, x) => {
-          const w = this.weights[x.agent] || 1;
-          return {
-            signal: a.signal + x.signal * x.confidence * w,
-            weight: a.weight + x.confidence * w,
-          };
-        },
-        { signal: 0, weight: 0 },
-      ),
-      signal = weighted.weight ? weighted.signal / weighted.weight : 0,
       dispersion = M.std(results.map((x) => x.signal)),
       agreement = Math.max(0, 1 - dispersion),
-      confidence =
-        M.mean(results.map((x) => x.confidence)) *
-        agreement *
-        (blockers.length ? 0 : 0.95),
-      action = blockers.length
-        ? "NO_TRADE"
-        : signal > 0.2
-          ? "LONG"
-          : signal < -0.2
-            ? "SHORT"
-            : "FLAT";
+      consensus = this.consensus.combine(results, {
+        weights: this.weights,
+        regime: context.regime,
+        blockers,
+      });
     return {
       asset,
       product: spec.product,
       at: new Date().toISOString(),
       status: blockers.length ? "blocked" : "ok",
-      action,
-      signal: M.clamp(signal),
-      confidence: M.clamp(confidence, 0, 1),
+      action: consensus.action,
+      signal: M.clamp(consensus.signal),
+      confidence: M.clamp(consensus.confidence, 0, 1),
       agreement,
+      consensus,
       blockers,
       agents: results,
       inputSummary: {
@@ -125,7 +112,7 @@ class DeskRegistry {
         riskClass: spec.riskClass,
         factor: spec.factor || spec.riskClass || asset,
       },
-      formula: "Σ(signalᵢ × confidenceᵢ × weightᵢ) / Σ(confidenceᵢ × weightᵢ)",
+      formula: "logit(p*) = logit(prior) + Σ(weightᵢ × logit(pᵢ))",
     };
   }
 }
