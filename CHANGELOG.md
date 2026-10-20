@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- CI fija explícitamente Ubuntu 24.04 para evitar cambios no controlados cuando
+  GitHub migra la etiqueta móvil `ubuntu-latest`.
 - La cobertura mínima de líneas del servidor sube de 80 % a 84 %, respaldada
   por pruebas de los clientes HTTP directo/proxy y del conector público Kraken.
 - Las herramientas de desarrollo ahora requieren una línea soportada de Node.js
