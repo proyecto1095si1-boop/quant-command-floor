@@ -1,4 +1,6 @@
 "use strict";
+const { PERIODS_PER_YEAR } = require("../config/annualization.js");
+
 const mean = (x) => (x.length ? x.reduce((a, b) => a + b, 0) / x.length : 0);
 function covariance(a, b) {
   const n = Math.min(a.length, b.length);
@@ -66,7 +68,7 @@ function portfolioVariance(weights, cov) {
       v += weights[i] * weights[j] * cov[i][j];
   return Math.max(0, v);
 }
-function diagnostics(weights, series, periods = 24 * 365) {
+function diagnostics(weights, series, periods = PERIODS_PER_YEAR.hourly) {
   const cov = covarianceMatrix(series),
     variance = portfolioVariance(weights, cov),
     vol = Math.sqrt(variance),

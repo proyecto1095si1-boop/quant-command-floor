@@ -1,5 +1,6 @@
 "use strict";
-const S = require("./statistics.js");
+const { PERIODS_PER_YEAR } = require("../config/annualization.js"),
+  S = require("./statistics.js");
 function purgedKFold(length, { folds = 5, purge = 2, embargo = 2 } = {}) {
   if (length < folds || folds < 2) throw new Error("insufficient-observations");
   const size = Math.ceil(length / folds),
@@ -29,7 +30,7 @@ function combinations(n, k, limit = 252) {
 }
 function probabilityBacktestOverfitting(
   matrix,
-  { slices = 8, maxCombinations = 252, periods = 252 } = {},
+  { slices = 8, maxCombinations = 252, periods = PERIODS_PER_YEAR.daily } = {},
 ) {
   const strategies = matrix.filter((x) => Array.isArray(x) && x.length),
     n = Math.min(...strategies.map((x) => x.length));

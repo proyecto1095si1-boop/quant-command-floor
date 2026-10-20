@@ -1,5 +1,6 @@
 "use strict";
-const M = require("./math.js");
+const { PERIODS_PER_YEAR } = require("../config/annualization.js"),
+  M = require("./math.js");
 const STATES = [
   {
     name: "risk_on_low_vol",
@@ -41,7 +42,12 @@ class RegimeService {
     this.record = record;
     this.latest = new Map();
   }
-  analyze({ asset = "BTC", candles = [], book = {} } = {}) {
+  analyze({
+    asset = "BTC",
+    candles = [],
+    book = {},
+    periods = PERIODS_PER_YEAR.hourly,
+  } = {}) {
     const prices = candles.map((x) => Number(x.close)).filter((x) => x > 0);
     if (prices.length < 60)
       throw Object.assign(new Error("regime-requires-60-candles"), {
@@ -75,8 +81,9 @@ class RegimeService {
           (x) => !state.allowed.includes(x),
         ),
         diagnostics: {
+          annualizationPeriods: periods,
           meanReturn: M.mean(rs.slice(-20)),
-          volatility: M.std(rs.slice(-20)) * Math.sqrt(365 * 24),
+          volatility: M.std(rs.slice(-20)) * Math.sqrt(periods),
           hurst: M.hurst(prices.slice(-120)),
           entropy: M.entropy(rs.slice(-60)),
           changePointProbability: cp.probability,

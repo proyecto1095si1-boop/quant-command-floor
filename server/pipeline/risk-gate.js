@@ -1,7 +1,11 @@
 "use strict";
-const M = require("../risk/math.js");
+const { PERIODS_PER_YEAR } = require("../config/annualization.js"),
+  M = require("../risk/math.js");
 class RiskGate {
   constructor(limits = {}) {
+    this.periodsPerYear = Number(
+      limits.periodsPerYear || PERIODS_PER_YEAR.daily,
+    );
     this.limits = {
       maxDrawdown: 0.1,
       maxVaR: 0.04,
@@ -17,6 +21,7 @@ class RiskGate {
       kellyFraction: 0.25,
       ...limits,
     };
+    delete this.limits.periodsPerYear;
     this.halted = false;
     this.reason = null;
     this.highWater = 0;
@@ -39,11 +44,11 @@ class RiskGate {
     winRate = 0.5,
     payoff = 1,
   }) {
-    const annualVol = M.ewmaVolatility(returns),
-      dailyVol = annualVol / Math.sqrt(252),
+    const annualVol = M.ewmaVolatility(returns, 0.94, this.periodsPerYear),
+      periodVol = annualVol / Math.sqrt(this.periodsPerYear),
       stopDistance = Math.max(
         2 * Math.max(0, atr || 0),
-        price * Math.max(0.008, dailyVol * 1.5),
+        price * Math.max(0.008, periodVol * 1.5),
       ),
       riskBudget = equity * this.limits.riskPerTrade,
       byStop = stopDistance ? riskBudget / stopDistance : 0,
@@ -63,6 +68,7 @@ class RiskGate {
       stopDistance,
       riskBudget,
       annualVol,
+      annualizationPeriods: this.periodsPerYear,
       kelly,
       limits: { byStop, byMandate, byVol, byKelly },
       binding: Object.entries({
@@ -128,7 +134,11 @@ class RiskGate {
           drawdown,
           var: valueAtRisk,
           cvar,
-          annualVol: M.ewmaVolatility(context.returns || []),
+          annualVol: M.ewmaVolatility(
+            context.returns || [],
+            0.94,
+            this.periodsPerYear,
+          ),
           stressLossRatio: stressRatio,
         },
         stress,
@@ -143,6 +153,7 @@ class RiskGate {
       halted: this.halted,
       reason: this.reason,
       limits: { ...this.limits },
+      annualizationPeriods: this.periodsPerYear,
       highWater: this.highWater,
       reviews: this.reviews.length,
       lastReview: this.reviews.at(-1) || null,

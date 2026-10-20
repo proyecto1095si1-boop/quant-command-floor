@@ -1,4 +1,6 @@
 "use strict";
+const { PERIODS_PER_YEAR } = require("../config/annualization.js");
+
 function mean(x) {
   return x.length ? x.reduce((a, b) => a + b, 0) / x.length : 0;
 }
@@ -27,7 +29,7 @@ function historicalVarCvar(xs, confidence = 0.95) {
     observations: xs.length,
   };
 }
-function ewmaVolatility(xs, lambda = 0.94, periods = 252) {
+function ewmaVolatility(xs, lambda = 0.94, periods = PERIODS_PER_YEAR.daily) {
   if (!xs.length) return 0;
   let variance = xs[0] ** 2;
   for (const r of xs.slice(1))
