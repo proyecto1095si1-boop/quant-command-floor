@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Portfolio Desk estima covarianza con shrinkage OAS y proyección PSD, calcula
+  VaR Euler por activo y factor, y Risk Gate limita exposición factorial.
 - Cada fill paper genera postings de doble entrada encadenados con SHA-256; los
   checkpoints y la recuperación fallan si divergen fills, journal o saldos.
 - Ledger, fills L2 y métricas de ejecución usan contabilidad decimal fija de
