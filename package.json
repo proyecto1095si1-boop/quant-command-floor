@@ -7,15 +7,17 @@
     "format": "prettier --write server dist tests",
     "format:check": "prettier --check server dist tests",
     "lint": "eslint server dist tests",
+    "coverage": "c8 --all --include='server/**/*.js' --reporter=text --reporter=json-summary --check-coverage --lines=80 npm test",
     "start": "node --use-env-proxy server/index.js",
     "serve:ui": "python3 -m http.server 8080 --directory dist",
-    "test": "node tests/runtime.test.js && node tests/data-research.test.js && node tests/operations.test.js && node tests/platform-config.test.js && node tests/gateway.test.js && node tests/llm-client.test.js && node tests/env.test.js && node tests/market-data.test.js && node tests/http-client.test.js && node tests/stream.test.js && node tests/data-load.test.js && node tests/desks.test.js && node tests/desk-load.test.js && node tests/pipeline.test.js && node tests/dashboard.test.js && node tests/research-advanced.test.js && node tests/risk-advanced.test.js && node tests/portfolio.test.js && node tests/execution.test.js && node tests/execution-golden.test.js && node tests/sre.test.js && node tests/security-manager.test.js && node tests/regime.test.js && node tests/annualization.test.js && node tests/ui-xss.test.js"
+    "test": "node tests/runtime.test.js && node tests/data-research.test.js && node tests/operations.test.js && node tests/platform-config.test.js && node tests/gateway.test.js && node tests/llm-client.test.js && node tests/env.test.js && node tests/market-data.test.js && node tests/http-client.test.js && node tests/stream.test.js && node tests/data-load.test.js && node tests/desks.test.js && node tests/desk-load.test.js && node tests/pipeline.test.js && node tests/dashboard.test.js && node tests/research-advanced.test.js && node tests/risk-advanced.test.js && node tests/portfolio.test.js && node tests/execution.test.js && node tests/execution-golden.test.js && node tests/sre.test.js && node tests/security-manager.test.js && node tests/regime.test.js && node tests/annualization.test.js && node tests/ui-xss.test.js && node tests/ui-smoke.test.js"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "c8": "^10.1.3",
     "eslint": "^9.39.5",
     "globals": "^16.5.0",
     "jsdom": "^26.1.0",
