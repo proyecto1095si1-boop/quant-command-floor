@@ -51,10 +51,17 @@ const assert = require("node:assert/strict"),
     }),
     submitted,
   );
+  let riskReviews = 0;
+  const evaluate = risk.evaluate.bind(risk);
+  risk.evaluate = (...args) => {
+    riskReviews++;
+    return evaluate(...args);
+  };
   const reconciled = await svc.drain({ spreadBps: 5, depthNotional: 100000 });
   assert.equal(reconciled.filled, 6);
   assert.equal(svc.status().queue, 0);
   assert.equal(ledger.fills.length, 6);
+  assert.equal(riskReviews, 6);
   assert.ok(svc.metrics.fees > 0);
   await assert.rejects(
     () => svc.submit({ planId: "plan-1", prices: { BTC: 100 } }),

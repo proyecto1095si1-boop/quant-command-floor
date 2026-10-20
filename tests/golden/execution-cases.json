@@ -1,0 +1,132 @@
+{
+  "marketBuy": {
+    "order": {
+      "id": "market-2",
+      "symbol": "BTC-USD",
+      "side": "buy",
+      "type": "market",
+      "qty": 2
+    },
+    "book": {
+      "snapshotId": "book-market-2",
+      "asks": [
+        [100, 1],
+        [100.1, 2],
+        [100.5, 5]
+      ],
+      "bids": [[99.9, 10]]
+    },
+    "expected": { "status": "filled", "qty": 2, "price": 100.05, "fee": 0.2001 }
+  },
+  "marketPartial": {
+    "order": {
+      "id": "market-10",
+      "symbol": "BTC-USD",
+      "side": "buy",
+      "type": "market",
+      "qty": 10
+    },
+    "book": {
+      "snapshotId": "book-market-10",
+      "asks": [
+        [100, 1],
+        [100.1, 2],
+        [100.5, 5]
+      ],
+      "bids": [[99.9, 10]]
+    },
+    "expected": { "status": "partial", "qty": 8, "price": 100.3375 }
+  },
+  "limitBuy": {
+    "order": {
+      "id": "limit-buy",
+      "symbol": "BTC-USD",
+      "side": "buy",
+      "type": "limit",
+      "qty": 0.03,
+      "limitPrice": 29950
+    },
+    "book": {
+      "snapshotId": "book-limit",
+      "asks": [
+        [29940, 0.01],
+        [29950, 0.01],
+        [29990, 1]
+      ],
+      "bids": [[29930, 2]]
+    },
+    "expected": {
+      "status": "partial",
+      "qty": 0.02,
+      "price": 29950,
+      "liquidityRole": "maker"
+    }
+  },
+  "stopSell": {
+    "order": {
+      "id": "stop-sell",
+      "symbol": "BTC-USD",
+      "side": "sell",
+      "type": "stop-market",
+      "qty": 1,
+      "stopPrice": 99
+    },
+    "book": {
+      "snapshotId": "book-stop",
+      "asks": [[99.1, 5]],
+      "bids": [
+        [98.9, 0.5],
+        [98.5, 5]
+      ]
+    },
+    "expected": { "status": "filled", "qty": 1, "price": 98.7, "fee": 0.0987 }
+  },
+  "reusedLiquidity": {
+    "book": {
+      "snapshotId": "book-single",
+      "asks": [[100, 1]],
+      "bids": [[99.9, 1]]
+    },
+    "orders": [
+      {
+        "id": "first-buy",
+        "symbol": "BTC-USD",
+        "side": "buy",
+        "type": "market",
+        "qty": 1
+      },
+      {
+        "id": "second-buy",
+        "symbol": "BTC-USD",
+        "side": "buy",
+        "type": "market",
+        "qty": 1
+      }
+    ],
+    "expected": ["filled", "rejected"]
+  },
+  "constraints": {
+    "book": {
+      "snapshotId": "book-rules",
+      "asks": [[100, 10]],
+      "bids": [[99.9, 10]]
+    },
+    "orders": [
+      {
+        "id": "too-small",
+        "symbol": "BTC-USD",
+        "side": "buy",
+        "qty": 0.01,
+        "minNotional": 2
+      },
+      {
+        "id": "bad-lot",
+        "symbol": "BTC-USD",
+        "side": "buy",
+        "qty": 0.015,
+        "lotSize": 0.01
+      }
+    ],
+    "expectedReasons": ["below-min-notional", "invalid-lot-size"]
+  }
+}

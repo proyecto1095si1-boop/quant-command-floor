@@ -24,8 +24,8 @@ const context = {
   book: {
     mid: 160,
     spreadBps: 2,
-    bids: [{ price: 159.9, size: 100 }],
-    asks: [{ price: 160.1, size: 100 }],
+    bids: [{ price: 159.9, size: 1000 }],
+    asks: [{ price: 160.1, size: 1000 }],
   },
   ticker: { price: 160 },
   quality: { status: "healthy" },
@@ -54,6 +54,7 @@ const desk = {
   const run = await pipeline.run("BTC", { runId: "run-1" });
   assert.equal(run.status, "completed");
   assert.equal(run.execution.status, "filled");
+  assert.equal(run.execution.fill.fillModel, "l2");
   assert.equal(
     run.stages.map((x) => x.name).join(","),
     "intake,intake,signal,proposal,risk,execution,reconcile",
@@ -71,6 +72,20 @@ const desk = {
   assert.ok(recorded.length > 0);
   const marks = ledger.snapshot({ "BTC-USD": 170 });
   assert.ok(marks.unrealizedPnl > 0);
+  const impactPipeline = new TradingPipeline({
+      dataService: data,
+      desks: desk,
+      ledger: new PaperLedger({ cash: 100000 }),
+    }),
+    impactRun = await impactPipeline.run("BTC", {
+      runId: "impact-1",
+      context: { ...context, book: null },
+    }),
+    impactAudit = impactPipeline.audit.rows.find(
+      (row) => row.type === "pipeline.execution",
+    );
+  assert.equal(impactRun.execution.fill.fillModel, "impact");
+  assert.equal(impactAudit.payload.payload.fill.fillModel, "impact");
   const chain = new Sha256AuditChain();
   chain.append("x", { a: 1 });
   chain.rows[0].payload.a = 2;
