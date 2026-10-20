@@ -19,6 +19,8 @@ class PortfolioService {
       riskAversion: 6,
       rebalanceBand: 0.02,
       maxTurnover: 0.2,
+      varConfidence: 0.95,
+      maxFactorShare: 0.8,
       ...policy,
     };
     this.plans = [];
@@ -58,7 +60,14 @@ class PortfolioService {
         status: 422,
       });
     const aligned = series.map((x) => x.slice(-n).map(Number)),
-      caps = assets.map((x) => x.maxWeight),
+      invalid = aligned.some((row) =>
+        row.some((value) => !Number.isFinite(value)),
+      );
+    if (invalid)
+      throw Object.assign(new Error("invalid-portfolio-returns"), {
+        status: 422,
+      });
+    const caps = assets.map((x) => x.maxWeight),
       rp = M.riskParity(aligned, caps, this.policy.investmentBudget),
       mv = M.meanVariance(aligned, caps, this.policy),
       blend = Number(input.riskParityBlend ?? this.policy.riskParityBlend),
@@ -74,7 +83,12 @@ class PortfolioService {
           (portfolio.equity || 1),
       ),
       rebalancing = M.rebalance(current, target, this.policy),
-      diagnostics = M.diagnostics(target, aligned),
+      diagnostics = M.diagnostics(target, aligned, undefined, {
+        confidence: this.policy.varConfidence,
+        factorLabels: assets.map(
+          (asset) => asset.factor || asset.riskClass || asset.asset,
+        ),
+      }),
       rows = assets.map((x, i) => ({
         ...x,
         currentWeight: current[i],
@@ -82,6 +96,9 @@ class PortfolioService {
         tradeWeight: rebalancing.trades[i],
         tradeNotional: rebalancing.trades[i] * portfolio.equity,
         riskContribution: diagnostics.riskContributions[i],
+        marginalVaR: diagnostics.marginalVaR[i],
+        componentVaR: diagnostics.componentVaR[i],
+        componentVaRNotional: diagnostics.componentVaR[i] * portfolio.equity,
       })),
       plan = {
         id: crypto.randomUUID(),
@@ -94,6 +111,21 @@ class PortfolioService {
         diagnostics: {
           annualVolatility: diagnostics.annualVolatility,
           diversificationRatio: diagnostics.diversificationRatio,
+          covarianceEstimator: diagnostics.covarianceEstimator,
+          covarianceShrinkage: diagnostics.shrinkage,
+          covarianceMinEigenvalue: Math.min(...diagnostics.eigenvalues),
+          varConfidence: diagnostics.confidence,
+          valueAtRisk: diagnostics.valueAtRisk,
+          valueAtRiskNotional: diagnostics.valueAtRisk * portfolio.equity,
+          componentVaRSum: diagnostics.componentVaR.reduce(
+            (sum, value) => sum + value,
+            0,
+          ),
+          factorConcentration: diagnostics.factorConcentration,
+          factorLimit: this.policy.maxFactorShare,
+          factorBreaches: Object.entries(diagnostics.factorConcentration.shares)
+            .filter(([, share]) => share > this.policy.maxFactorShare + 1e-12)
+            .map(([factor, share]) => ({ factor, share })),
         },
         rebalancing: {
           turnover: rebalancing.turnover,

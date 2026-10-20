@@ -56,6 +56,7 @@ class RiskGate {
       maxVaR: 0.04,
       maxCVaR: 0.06,
       maxGrossExposure: 0.7,
+      maxFactorExposure: 0.45,
       maxCorrelation: 0.9,
       maxSpreadBps: 20,
       minConfidence: 0.15,
@@ -137,6 +138,15 @@ class RiskGate {
       projection = projectExposure(proposal, context),
       postAsset = projection.postAbsolute / equity,
       postGross = projection.grossAfter / equity,
+      factorBefore = Math.max(
+        projection.currentAbsolute,
+        Number(context.factorExposure || 0),
+      ),
+      postFactor =
+        (Math.max(0, factorBefore - projection.currentAbsolute) +
+          projection.postAbsolute) /
+        equity,
+      factorImproves = postFactor < factorBefore / equity - EPSILON,
       emergencyReduction =
         projection.reduceOnlyRequested && projection.reduceOnlyValid,
       stress = M.stressLoss({
@@ -182,6 +192,12 @@ class RiskGate {
           emergencyReduction || postGross <= this.limits.maxGrossExposure,
         ],
         [
+          "factor-exposure",
+          emergencyReduction ||
+            factorImproves ||
+            postFactor <= this.limits.maxFactorExposure,
+        ],
+        [
           "correlation",
           emergencyReduction ||
             (context.correlation || 0) <= this.limits.maxCorrelation,
@@ -204,6 +220,9 @@ class RiskGate {
         metrics: {
           postAssetWeight: postAsset,
           postGrossExposure: postGross,
+          postFactorExposure: postFactor,
+          preFactorExposure: factorBefore / equity,
+          factor: proposal.factor || "unclassified",
           spreadBps: context.spreadBps || 0,
           drawdown,
           var: valueAtRisk,
@@ -227,6 +246,7 @@ class RiskGate {
               "stress-loss",
               "asset-weight",
               "gross-exposure",
+              "factor-exposure",
               "correlation",
               "liquidity",
             ]

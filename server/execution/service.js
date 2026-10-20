@@ -162,6 +162,7 @@ class ExecutionService {
           notional: child.notional,
           confidence: 1,
           maxWeight: spec.maxWeight,
+          factor: spec.factor || spec.riskClass || parent.asset,
           type: child.orderType,
           limitPrice: child.limitPrice,
           stopPrice: child.stopPrice,
@@ -172,6 +173,18 @@ class ExecutionService {
           grossExposure: portfolio.grossExposure,
           assetExposure: Math.abs(position?.marketValue || 0),
           signedAssetExposure: position?.marketValue || 0,
+          factorExposure: Object.entries(portfolio.positions).reduce(
+            (sum, [product, currentPosition]) => {
+              const assetSpec = Object.values(this.pipeline.desks.assets).find(
+                (candidate) => candidate.product === product,
+              );
+              return (assetSpec?.factor || assetSpec?.riskClass) ===
+                proposal.factor
+                ? sum + Math.abs(currentPosition.marketValue)
+                : sum;
+            },
+            0,
+          ),
           dataStatus: "healthy",
           spreadBps: effectiveSpreadBps,
           exposures: Object.fromEntries(
