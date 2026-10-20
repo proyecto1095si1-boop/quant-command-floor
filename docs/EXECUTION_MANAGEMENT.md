@@ -20,6 +20,12 @@ Los parámetros son configurables y están visibles en `GET /v1/execution/status
 
 Antes de cada child order se reconstruye la cartera marcada y se consulta nuevamente Risk Gate. Se vuelven a verificar halt global, peso del activo, exposición bruta, stress loss, spread y quantity. Esto permite vetar una cola previamente aprobada si el estado cambió.
 
+El EMS infiere `reduceOnly` para una child cuando su lado es opuesto a la
+posición existente y su cantidad no puede cruzar por cero. Posición, delta y
+exposición se recalculan después de cada fill: una slice posterior que intentara
+invertir la posición deja de ser reduce-only y vuelve a pasar por todos los
+gates normales.
+
 ## Simulación y costos
 
 Con un snapshot L2, market y stop-market recorren los niveles del lado opuesto.

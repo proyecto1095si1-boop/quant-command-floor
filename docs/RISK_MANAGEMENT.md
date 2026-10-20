@@ -2,6 +2,28 @@
 
 Riesgo es una barrera síncrona e independiente entre Signal Hub y Execution Queue. Una señal fuerte no puede omitirla. El resultado siempre contiene métricas, cada control evaluado y la causa exacta de cualquier veto.
 
+## Exposición firmada y reduce-only
+
+Cada propuesta se proyecta sobre la posición firmada del activo: una posición
+long es positiva y una short es negativa. Para una orden con notional `N`:
+
+`delta = side == buy ? +N : -N`
+
+`postAsset = currentSignedAsset + delta`
+
+`postGross = grossBefore - abs(currentSignedAsset) + abs(postAsset)`
+
+Así, vender una posición long reduce riesgo en vez de contarse como nueva
+exposición; comprar para cubrir una short se trata de la misma forma. Una orden
+`reduceOnly` solo es válida si existe una posición opuesta, disminuye su valor
+absoluto y no cruza por cero ni abre una posición inversa.
+
+Una reducción válida puede ejecutarse con el sistema detenido y omitir gates de
+cartera que impedirían cerrar riesgo ya existente. Aun así exige quantity y
+notional positivos, y datos en estado healthy o degraded; nunca opera con el
+data plane down. El dictamen conserva la proyección firmada y la lista
+`reduceOnlyOverrides` para auditoría.
+
 ## Tamaño de posición
 
 La cantidad final es el mínimo de cuatro límites:
