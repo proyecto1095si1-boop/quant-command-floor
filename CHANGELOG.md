@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Cada fill paper genera postings de doble entrada encadenados con SHA-256; los
+  checkpoints y la recuperación fallan si divergen fills, journal o saldos.
 - Ledger, fills L2 y métricas de ejecución usan contabilidad decimal fija de
   ocho posiciones; checkpoints conservan átomos exactos y cada snapshot expone
   el balance del invariante de equity.
