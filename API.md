@@ -469,6 +469,12 @@ Los experimentos solo enrutan evaluaciones paper y conservan hashes, no prompts
 ni outputs completos.
 La evaluación IA solo admite hashes y evidencia estructurada; rechaza campos de
 prompt o respuesta libre.
+El alta de datasets requiere `manifest` y `attestation`. El manifiesto contiene
+metadatos de procedencia y hashes; `attestation` usa `reviewerId`, algoritmo
+`Ed25519` y firma base64 del hash que vincula manifiesto, identidad, versión y
+casos. La clave pública debe existir en
+`AI_EVALUATION_TRUSTED_REVIEWERS`. Las corridas devuelven hashes de
+reproducibilidad, ECE, Brier e intervalos Wilson 95%.
 
 ### Dashboard
 

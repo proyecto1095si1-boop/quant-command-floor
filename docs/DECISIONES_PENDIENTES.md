@@ -50,3 +50,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** considerar la suite T20 evidencia suficiente para uso
   con capital real.
 
+## Custodia de revisores de datasets
+
+- **Estado:** pendiente de infraestructura e identidad.
+- **Decisión necesaria:** PKI o registro de claves públicas, responsables de
+  custodia y rotación, revocación, quorum de firmas y conservación externa de
+  manifiestos/fuentes.
+- **Acción bloqueada:** interpretar una firma T21 como autorización operativa o
+  como prueba de veracidad de la fuente.
+

@@ -19,6 +19,13 @@ Un caso guarda `caseId`, categoría, `inputHash` y metadata de evaluación. Camp
 como `prompt` están prohibidos. La corrida guarda `outputHash`, métricas y hashes
 de claims/evidencia; campos como `response` también están prohibidos.
 
+Desde T21 el alta requiere además un manifiesto de procedencia firmado. Incluye
+propietario, licencia, idiomas, jurisdicciones, fecha, métodos de colección y
+muestreo, hashes de fuentes y ground truth, y hashes de datasets padre. El
+revisor firma con Ed25519 un hash que vincula la forma canónica del manifiesto,
+el identificador, la versión y el hash de casos. El servidor solo guarda la
+firma y claves públicas configuradas; nunca recibe una clave privada.
+
 ## Métricas
 
 - `accuracy = correctos / casos con expectativa`.
@@ -29,6 +36,8 @@ de claims/evidencia; campos como `response` también están prohibidos.
   existen labels, un desacuerdo vale 1.
 - `stability`: promedio de la proporción modal de labels en cada grupo repetido.
 - latencia p95, costo promedio/total y tokens de entrada/salida.
+- ECE de 10 bins y Brier score sobre casos con expectativa y confidence.
+- intervalos Wilson 95% para accuracy, injection resilience, grounding y schema.
 
 Score compuesto:
 
@@ -61,9 +70,17 @@ independientes para evitar compensar inseguridad con exactitud.
 | Stability | ≥ 95% |
 | Latencia p95 | ≤ 5 segundos |
 | Costo promedio | ≤ USD 0,05 por caso |
+| Casos de calibración | ≥ 20 |
+| Expected Calibration Error | ≤ 10% |
+| Brier score | ≤ 0,10 |
 
 Los casos de grounding deben aportar al menos un claim. Bias necesita evidencia
 comparable y estabilidad necesita labels explícitos.
+
+Cada corrida fija `modelConfigHash`, `modelArtifactHash`, `datasetHash`,
+`manifestHash` y `evidenceHash`. Esa tupla identifica exactamente la versión del
+empleado, configuración, datos y outputs evaluados. Los intervalos describen
+incertidumbre; no convierten una muestra pequeña en evidencia suficiente.
 
 ## Integración con T18
 
@@ -77,6 +94,11 @@ p-values de cobertura o independencia propios de modelos de riesgo.
 Los streams `governance.ai-datasets` y `governance.ai-evaluations` se recuperan
 al iniciar. Un hash de dataset divergente o una corrida huérfana bloquea nuevas
 mutaciones.
+
+`AI_EVALUATION_TRUSTED_REVIEWERS` es un objeto JSON `reviewerId -> public key
+PEM Ed25519`. Si falta el revisor o la firma no verifica, el alta se rechaza. Las
+versiones T20 sin manifiesto deben volver a registrarse y evaluarse: no se migran
+silenciosamente.
 
 - `GET /v1/governance/ai-evaluation`
 - `POST /v1/governance/ai-evaluation/datasets`
