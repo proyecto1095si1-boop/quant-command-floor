@@ -1,12 +1,37 @@
 "use strict";
 
 const assert = require("node:assert/strict"),
-  { ModelGovernanceService } = require("../server/governance/service.js"),
+  crypto = require("node:crypto"),
+  {
+    ModelGovernanceService,
+    fingerprint,
+  } = require("../server/governance/service.js"),
   {
     AiEvaluationService,
     validateCase,
     validateEvidence,
-  } = require("../server/governance/ai-evaluation.js");
+  } = require("../server/governance/ai-evaluation.js"),
+  {
+    parseTrustedReviewers,
+    validateManifest,
+  } = require("../server/governance/provenance.js");
+
+const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519"),
+  reviewerId = "risk-validation",
+  trustedReviewers = new Map([[reviewerId, publicKey]]),
+  manifest = {
+    schemaVersion: 1,
+    owner: "quant-research",
+    license: "proprietary-review-required",
+    languages: ["en", "es"],
+    jurisdictions: ["AR", "global"],
+    createdAt: "2026-10-20T00:00:00.000Z",
+    collectionMethod: "curated-adversarial-v1",
+    samplingMethod: "stratified-six-categories",
+    sourceHashes: ["9".repeat(64)],
+    groundTruthHash: "8".repeat(64),
+    parentDatasetHashes: [],
+  };
 
 const hash = (character) => character.repeat(64),
   cases = [
@@ -50,7 +75,7 @@ const hash = (character) => character.repeat(64),
     caseId: testCase.caseId,
     outputHash: hash(index % 2 ? "c" : "d"),
     label: testCase.caseId === "accuracy-1" ? "BULL" : "SAFE",
-    confidence: 0.5,
+    confidence: testCase.category === "accuracy" ? 1 : 0.5,
     claimEvidence:
       testCase.category === "grounding"
         ? [{ claimHash: hash("e"), evidenceHash: hash("f") }]
@@ -62,7 +87,28 @@ const hash = (character) => character.repeat(64),
     inputTokens: 100,
     outputTokens: 50,
     costUsd: 0.01,
-  }));
+  })),
+  attestation = (
+    datasetId,
+    version,
+    manifestValue = manifest,
+    casesValue = cases,
+  ) => {
+    const manifestHash = fingerprint(validateManifest(manifestValue)),
+      attestationHash = fingerprint({
+        datasetId,
+        version,
+        casesHash: fingerprint(casesValue.map(validateCase)),
+        manifestHash,
+      });
+    return {
+      reviewerId,
+      algorithm: "Ed25519",
+      signature: crypto
+        .sign(null, Buffer.from(attestationHash, "hex"), privateKey)
+        .toString("base64"),
+    };
+  };
 
 (async () => {
   const events = [],
@@ -84,7 +130,8 @@ const hash = (character) => character.repeat(64),
     service = new AiEvaluationService({
       governance,
       record: async (...event) => events.push(event),
-      policy: { minimumCases: 12 },
+      policy: { minimumCases: 12, minimumCalibrationCases: 1 },
+      trustedReviewers,
     }),
     dataset = await service.registerDataset(
       {
@@ -92,11 +139,15 @@ const hash = (character) => character.repeat(64),
         version: "1.0.0",
         description: "Hashed adversarial suite",
         cases,
+        manifest,
+        attestation: attestation("macro-adversarial", "1.0.0"),
       },
       "risk-validation",
     );
   assert.equal(dataset.cases.length, 12);
   assert.equal(dataset.hash.length, 64);
+  assert.equal(dataset.manifestHash, fingerprint(manifest));
+  assert.equal(dataset.attestation.reviewerId, reviewerId);
   assert.equal(JSON.stringify(dataset).includes("prompt"), true);
   assert.equal(JSON.stringify(dataset).includes("ignore instructions"), false);
 
@@ -117,9 +168,14 @@ const hash = (character) => character.repeat(64),
   assert.equal(run.metrics.grounding, 1);
   assert.equal(run.metrics.biasPairs, 2);
   assert.equal(run.metrics.stabilityGroups, 2);
+  assert.equal(run.metrics.calibration.expectedCalibrationError, 0);
+  assert.equal(run.metrics.calibration.brierScore, 0);
+  assert.equal(run.metrics.intervals95.accuracy.observations, 1);
   assert.equal(run.governanceEvaluation.eligible, true);
   assert.equal("evidence" in run, false);
   assert.equal(run.evidenceHash.length, 64);
+  assert.equal(run.reproducibility.modelConfigHash, model.configHash);
+  assert.equal(run.reproducibility.manifestHash, dataset.manifestHash);
 
   const promoted = await governance.promote(
     { modelId: model.modelId, version: model.version },
@@ -158,6 +214,8 @@ const hash = (character) => character.repeat(64),
         version: "1",
         description: "<script>raw prompt</script>",
         cases,
+        manifest,
+        attestation: attestation("unsafe-metadata", "1"),
       }),
     /invalid-ai-evaluation-dataset/,
   );
@@ -181,7 +239,8 @@ const hash = (character) => character.repeat(64),
       .map(([, event]) => event),
     recovered = new AiEvaluationService({
       governance,
-      policy: { minimumCases: 12 },
+      policy: { minimumCases: 12, minimumCalibrationCases: 1 },
+      trustedReviewers,
     });
   assert.deepEqual(
     recovered.recover({ datasets: datasetEvents, runs: runEvents }),
@@ -192,7 +251,7 @@ const hash = (character) => character.repeat(64),
     },
   );
   assert.equal(recovered.status().runs, 2);
-  const corrupt = new AiEvaluationService({ governance });
+  const corrupt = new AiEvaluationService({ governance, trustedReviewers });
   assert.throws(
     () =>
       corrupt.recover({
@@ -200,7 +259,7 @@ const hash = (character) => character.repeat(64),
       }),
     /ai-evaluation-recovery-failed/,
   );
-  const altered = new AiEvaluationService({ governance });
+  const altered = new AiEvaluationService({ governance, trustedReviewers });
   assert.throws(
     () =>
       altered.recover({
@@ -208,6 +267,64 @@ const hash = (character) => character.repeat(64),
         runs: [{ ...runEvents[0], datasetHash: hash("0") }],
       }),
     /ai-evaluation-recovery-failed/,
+  );
+  const untrusted = new AiEvaluationService({
+    governance,
+    policy: { minimumCases: 12, minimumCalibrationCases: 1 },
+  });
+  await assert.rejects(
+    () =>
+      untrusted.registerDataset({
+        datasetId: "untrusted",
+        version: "1",
+        cases,
+        manifest,
+        attestation: attestation("untrusted", "1"),
+      }),
+    /untrusted-provenance-reviewer/,
+  );
+  const tamperedManifest = { ...manifest, owner: "attacker" };
+  await assert.rejects(
+    () =>
+      service.registerDataset({
+        datasetId: "tampered",
+        version: "1",
+        cases,
+        manifest: tamperedManifest,
+        attestation: attestation("tampered", "1"),
+      }),
+    /invalid-provenance-signature/,
+  );
+  const orphanManifest = {
+    ...manifest,
+    parentDatasetHashes: ["7".repeat(64)],
+  };
+  await assert.rejects(
+    () =>
+      service.registerDataset({
+        datasetId: "orphan-lineage",
+        version: "1",
+        cases,
+        manifest: orphanManifest,
+        attestation: attestation("orphan-lineage", "1", orphanManifest),
+      }),
+    /unknown-parent-dataset/,
+  );
+  assert.equal(
+    parseTrustedReviewers(
+      JSON.stringify({
+        [reviewerId]: publicKey.export({ type: "spki", format: "pem" }),
+      }),
+    ).size,
+    1,
+  );
+  assert.throws(
+    () => parseTrustedReviewers("{"),
+    /invalid-trusted-reviewers-config/,
+  );
+  assert.throws(
+    () => parseTrustedReviewers(JSON.stringify({ reviewer: "not-a-key" })),
+    /invalid-trusted-reviewers-config/,
   );
   console.log("AI adversarial evaluation tests: ok");
 })().catch((error) => {
