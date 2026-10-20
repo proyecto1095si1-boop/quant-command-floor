@@ -14,6 +14,12 @@ const dist = path.resolve(__dirname, "../dist"),
   }),
   { window } = dom;
 
+const requests = [];
+window.fetch = async (url, options = {}) => {
+  requests.push({ url, options });
+  return { ok: true, status: 200, json: async () => ({}) };
+};
+
 for (const file of [
   "platform-config.js",
   "runtime.js",
@@ -63,6 +69,14 @@ assert.equal(document.querySelector("#riskGate").textContent, "LOCKED");
 assert.equal(
   document.querySelector("#killSwitch").classList.contains("active"),
   true,
+);
+assert.equal(
+  requests.some(
+    ({ url, options }) =>
+      url.endsWith("/v1/pipeline/halt") && options.method === "POST",
+  ),
+  true,
+  "the primary Kill Switch calls the backend halt endpoint",
 );
 
 dom.window.close();

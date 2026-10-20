@@ -51,6 +51,20 @@ function textResponse(
   });
   res.end(body);
 }
+function rejectUpgrade(socket, status, error) {
+  const reason =
+      {
+        401: "Unauthorized",
+        403: "Forbidden",
+        404: "Not Found",
+        429: "Too Many Requests",
+        503: "Service Unavailable",
+      }[status] || "Bad Request",
+    payload = JSON.stringify({ error });
+  socket.end(
+    `HTTP/1.1 ${status} ${reason}\r\nConnection: close\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: ${Buffer.byteLength(payload)}\r\n\r\n${payload}`,
+  );
+}
 async function body(req) {
   return new Promise((resolve, reject) => {
     let size = 0,
@@ -132,7 +146,7 @@ function createGateway(options = {}) {
       else socket.write(frame);
     }
   };
-  const server = http.createServer(async (req, res) => {
+  const handleRequest = async (req, res) => {
     const requestStarted = Date.now();
     res.on("finish", () => {
       metrics.latencies.push(Date.now() - requestStarted);
@@ -470,16 +484,23 @@ function createGateway(options = {}) {
       if (!pipeline)
         return json(res, 503, { error: "pipeline-disabled" }, headers);
       const x = await body(req);
-      pipeline.risk.halt(String(x.reason || "manual"));
-      return json(res, 200, pipeline.status(), headers);
+      const status = pipeline.halt
+        ? await pipeline.halt(
+            String(x.reason || "manual"),
+            req.auth?.sub || "system",
+          )
+        : (pipeline.risk.halt(String(x.reason || "manual")), pipeline.status());
+      return json(res, 200, status, headers);
     }
     if (req.method === "POST" && req.url === "/v1/pipeline/resume") {
       if (!pipeline)
         return json(res, 503, { error: "pipeline-disabled" }, headers);
       try {
         fourEyes(req);
-        pipeline.risk.resume();
-        return json(res, 200, pipeline.status(), headers);
+        const status = pipeline.resume
+          ? await pipeline.resume(req.auth?.sub || "system")
+          : (pipeline.risk.resume(), pipeline.status());
+        return json(res, 200, status, headers);
       } catch (e) {
         return json(res, e.status || 403, { error: e.message }, headers);
       }
@@ -586,12 +607,41 @@ function createGateway(options = {}) {
       }
     }
     return json(res, 404, { error: "not-found" }, headers);
+  };
+  const server = http.createServer((req, res) => {
+    handleRequest(req, res).catch((error) => {
+      metrics.errors++;
+      if (res.headersSent) return res.destroy(error);
+      return json(
+        res,
+        error.status || 500,
+        {
+          error: error.status ? error.message : "internal-server-error",
+          detail:
+            process.env.NODE_ENV === "development" ? error.message : undefined,
+        },
+        cors(req.headers.origin, allowedOrigin),
+      );
+    });
   });
   server.on("upgrade", (req, socket) => {
-    if (req.url !== "/v1/stream" || clients.size >= MAX_CLIENTS)
-      return socket.destroy();
+    if (req.url !== "/v1/stream")
+      return rejectUpgrade(socket, 404, "stream-not-found");
+    const originHeaders = cors(req.headers.origin, allowedOrigin);
+    if (req.headers.origin && !originHeaders["access-control-allow-origin"])
+      return rejectUpgrade(socket, 403, "origin-denied");
+    const rate = security.consume(req.socket.remoteAddress || "unknown");
+    if (!rate.allowed) return rejectUpgrade(socket, 429, "rate-limit-exceeded");
+    try {
+      const claims = security.authenticate(req.headers.authorization);
+      security.authorize(claims, "viewer");
+    } catch (error) {
+      return rejectUpgrade(socket, error.status || 401, error.message);
+    }
+    if (clients.size >= MAX_CLIENTS)
+      return rejectUpgrade(socket, 503, "stream-saturated");
     const key = req.headers["sec-websocket-key"];
-    if (!key) return socket.destroy();
+    if (!key) return rejectUpgrade(socket, 400, "websocket-key-required");
     const accept = crypto
       .createHash("sha1")
       .update(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
