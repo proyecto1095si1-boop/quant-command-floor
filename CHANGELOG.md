@@ -38,6 +38,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Experimentos shadow/canary paper con asignación determinista, comparación
+  champion/challenger, datos hasheados, guardrails y rollback automático.
 - Gobierno champion/challenger para modelos matemáticos e IA con registro
   versionado, parámetros sin secretos, PSI, KS, mean shift, evidencia fuera de
   muestra y promoción auditada por dos aprobadores.

@@ -454,9 +454,16 @@ Todas las órdenes son paper. `submit` necesita un plan existente y aprobación 
 | POST | `/v1/governance/register` | admin |
 | POST | `/v1/governance/evaluate` | admin |
 | POST | `/v1/governance/promote` | admin + dos aprobadores |
+| GET | `/v1/governance/experiments` | viewer |
+| POST | `/v1/governance/experiments/start` | admin |
+| POST | `/v1/governance/experiments/assign` | admin |
+| POST | `/v1/governance/experiments/observe` | admin |
+| POST | `/v1/governance/experiments/stop` | admin |
 
 El registro acepta configuraciones y hashes, no código ejecutable ni secretos.
 Las promociones requieren evaluación cuantitativa elegible.
+Los experimentos solo enrutan evaluaciones paper y conservan hashes, no prompts
+ni outputs completos.
 
 ### Dashboard
 

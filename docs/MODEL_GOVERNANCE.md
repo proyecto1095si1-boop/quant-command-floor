@@ -76,3 +76,7 @@ el gobierno en estado no disponible y bloquean nuevas mutaciones.
 
 Los GET requieren viewer. Los POST requieren admin; promoción además necesita
 un segundo aprobador.
+
+Antes de promover, T19 permite ejecutar el challenger en shadow o canary paper
+contra el champion. La asignación, métricas pareadas, privacidad y rollback se
+documentan en `SHADOW_CANARY.md`.
