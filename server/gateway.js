@@ -395,6 +395,43 @@ function createGateway(options = {}) {
         return json(res, e.status || 422, { error: e.message }, headers);
       }
     }
+    if (req.method === "GET" && req.url === "/v1/risk/scenarios")
+      return json(
+        res,
+        portfolio ? 200 : 503,
+        portfolio ? portfolio.scenarios() : { error: "portfolio-disabled" },
+        headers,
+      );
+    if (req.method === "GET" && req.url === "/v1/risk/stress/status")
+      return json(
+        res,
+        portfolio ? 200 : 503,
+        portfolio ? portfolio.stressStatus() : { error: "portfolio-disabled" },
+        headers,
+      );
+    if (req.method === "POST" && req.url === "/v1/risk/stress") {
+      if (!portfolio)
+        return json(res, 503, { error: "portfolio-disabled" }, headers);
+      try {
+        return json(res, 200, await portfolio.stress(await body(req)), headers);
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (req.method === "POST" && req.url === "/v1/risk/reverse-stress") {
+      if (!portfolio)
+        return json(res, 503, { error: "portfolio-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await portfolio.reverseStress(await body(req)),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/execution/status")
       return json(
         res,

@@ -42,7 +42,26 @@ const assert = require("node:assert/strict"),
   assert.equal(plan.allocations.length, 4);
   assert.equal(plan.approval.state, "proposed");
   assert.ok(plan.cashTarget >= 0.149);
-  assert.equal(events[0][0], "portfolio.plans");
+  assert.equal(events[0][0], "risk.stress");
+  assert.equal(events[1][0], "portfolio.plans");
+  assert.equal(plan.diagnostics.stress.paperOnly, true);
+  assert.ok(plan.diagnostics.stress.results.length > 0);
+  assert.ok(svc.scenarios().scenarios.length > 0);
+  const stress = await svc.stress({
+    portfolioPlanId: plan.id,
+    scenarioIds: ["ftx-2022"],
+  });
+  assert.equal(stress.paperOnly, true);
+  const reverse = await svc.reverseStress({
+    portfolioPlanId: plan.id,
+    targetLossRatio: 0.1,
+  });
+  assert.equal(reverse.paperOnly, true);
+  assert.equal(svc.stressStatus().reverseRuns, 1);
+  assert.throws(
+    () => svc.stress({ portfolioPlanId: "missing" }),
+    /portfolio-plan-not-found/,
+  );
   console.log("portfolio tests: ok");
 })().catch((e) => {
   console.error(e);

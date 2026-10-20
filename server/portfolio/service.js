@@ -2,6 +2,7 @@
 const crypto = require("node:crypto"),
   M = require("./math.js"),
   Tail = require("../risk/tail.js"),
+  { StressEngine } = require("../risk/stress-engine.js"),
   { returns } = require("../risk/math.js");
 class PortfolioService {
   constructor({
@@ -29,6 +30,7 @@ class PortfolioService {
       ...policy,
     };
     this.plans = [];
+    this.stressEngine = new StressEngine({ record, policy: policy.stress });
   }
   assets() {
     return Object.entries(this.pipeline.desks.assets).map(([asset, x]) => ({
@@ -159,10 +161,46 @@ class PortfolioService {
         },
         approval: { required: true, state: "proposed" },
       };
+    plan.diagnostics.stress = await this.stressEngine.run(plan, {
+      returnsMatrix: aligned,
+      liquidityData: input.liquidityData,
+      scenarioIds: input.scenarioIds,
+      overrides: input.stressOverrides,
+      factorReturns: input.factorReturns,
+      ridgePenalty: input.ridgePenalty,
+    });
     this.plans.push(plan);
     if (this.plans.length > 100) this.plans.shift();
     await this.record("portfolio.plans", plan);
     return plan;
+  }
+
+  scenarios() {
+    return this.stressEngine.scenarios();
+  }
+
+  stressStatus() {
+    return this.stressEngine.status();
+  }
+
+  findPlan(planId) {
+    const plan = this.plans.find((candidate) => candidate.id === planId);
+    if (!plan)
+      throw Object.assign(new Error("portfolio-plan-not-found"), {
+        status: 404,
+      });
+    return plan;
+  }
+
+  stress(input = {}) {
+    return this.stressEngine.run(this.findPlan(input.portfolioPlanId), input);
+  }
+
+  async reverseStress(input = {}) {
+    return this.stressEngine.reverse(
+      this.findPlan(input.portfolioPlanId),
+      input,
+    );
   }
 }
 module.exports = { PortfolioService };
