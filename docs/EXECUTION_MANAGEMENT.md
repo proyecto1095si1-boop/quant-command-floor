@@ -66,6 +66,30 @@ aceptando checkpoints numéricos anteriores, que se canonicalizan una vez.
 Cantidades menores a `0.00000001` se rechazan y la liquidez L2 consumida se
 contabiliza con la misma escala para evitar niveles fantasma por coma flotante.
 
+## Journal de doble entrada
+
+Cada fill confirmado produce cuatro postings atómicos:
+
+- `cash`: variación neta de efectivo;
+- `inventory:<symbol>`: variación del cost basis firmado;
+- `realized-pnl`: resultado realizado como cuenta de ingreso o pérdida;
+- `fees`: costo explícito de ejecución.
+
+Débitos y créditos deben coincidir exactamente. La fila incluye secuencia
+monotónica, identificador y fingerprint del fill, hash anterior y SHA-256 del
+contenido canónico. El fill conserva a su vez `journal.seq` y `journal.hash`.
+La verificación comprueba la cadena en ambos sentidos y reconcilia los saldos
+acumulados del journal contra cash, fees, PnL y cost basis del ledger.
+
+Un checkpoint no se exporta si esa reconciliación falla. Durante recovery,
+cualquier alteración detiene Risk Gate con `recovery-integrity-failed`. Un
+checkpoint anterior a esta política recibe un `legacy-checkpoint-anchor`: fija
+el hash de sus fills y balances al migrarlo, sin afirmar integridad previa.
+
+SHA-256 local aporta evidencia de alteración accidental y encadenamiento, no
+identidad ni no repudio frente a un atacante que pueda reescribir todo el
+archivo. Capital real exige anclaje externo inmutable o firmado.
+
 ## Estados
 
 - Parent: `scheduled`, `filled`, `partial` o `rejected`.
