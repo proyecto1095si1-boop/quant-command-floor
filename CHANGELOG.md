@@ -7,6 +7,12 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Cambiado
+
+- Riesgo e investigación anualizan retornos diarios cripto con 365 períodos en
+  lugar de 252; riesgo, investigación, cartera y régimen comparten ahora una
+  configuración sobrescribible.
+
 ### Añadido
 
 - Lockfile de npm para instalaciones reproducibles en desarrollo y CI.
