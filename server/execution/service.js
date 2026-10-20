@@ -145,6 +145,14 @@ class ExecutionService {
         effectiveSpreadBps = Number(book?.spreadBps ?? spreadBps),
         portfolio = this.pipeline.ledger.snapshot(this.pipeline.marks()),
         spec = this.pipeline.desks.assets[parent.asset],
+        position = portfolio.positions[child.symbol],
+        inferredReduceOnly =
+          (child.side === "sell" &&
+            Number(position?.qty || 0) > 0 &&
+            child.qty <= Number(position?.qty || 0) + 1e-9) ||
+          (child.side === "buy" &&
+            Number(position?.qty || 0) < 0 &&
+            child.qty <= Math.abs(Number(position?.qty || 0)) + 1e-9),
         proposal = {
           id: child.id,
           symbol: child.symbol,
@@ -156,12 +164,13 @@ class ExecutionService {
           type: child.orderType,
           limitPrice: child.limitPrice,
           stopPrice: child.stopPrice,
+          reduceOnly: inferredReduceOnly,
         },
-        position = portfolio.positions[child.symbol],
         review = this.pipeline.risk.evaluate(proposal, {
           equity: portfolio.equity,
           grossExposure: portfolio.grossExposure,
           assetExposure: Math.abs(position?.marketValue || 0),
+          signedAssetExposure: position?.marketValue || 0,
           dataStatus: "healthy",
           spreadBps: effectiveSpreadBps,
           exposures: Object.fromEntries(

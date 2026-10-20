@@ -63,6 +63,30 @@ const assert = require("node:assert/strict"),
   assert.equal(ledger.fills.length, 6);
   assert.equal(riskReviews, 6);
   assert.ok(svc.metrics.fees > 0);
+  const qtyBeforeReduction = ledger.positions.get("BTC-USD").qty,
+    reductionPlan = {
+      id: "plan-reduce",
+      allocations: [{ asset: "BTC", product: "BTC-USD", tradeNotional: -600 }],
+    };
+  portfolio.plans.push(reductionPlan);
+  await svc.submit({
+    planId: "plan-reduce",
+    approvedBy: "Human Director",
+    prices: { BTC: 100 },
+  });
+  risk.halt("emergency");
+  const reducedWhileHalted = await svc.drain({
+    spreadBps: 100,
+    depthNotional: 100000,
+  });
+  assert.equal(reducedWhileHalted.filled, 6);
+  assert.ok(ledger.positions.get("BTC-USD").qty < qtyBeforeReduction);
+  assert.equal(
+    svc.children
+      .filter((x) => x.parentId === svc.parents.at(-1).id)
+      .every((x) => x.risk.metrics.exposure.reduceOnlyRequested),
+    true,
+  );
   await assert.rejects(
     () => svc.submit({ planId: "plan-1", prices: { BTC: 100 } }),
     /human-approval-required/,

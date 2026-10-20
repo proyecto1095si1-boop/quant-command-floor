@@ -134,6 +134,7 @@ class TradingPipeline {
           equity: portfolio.equity,
           grossExposure: portfolio.grossExposure,
           assetExposure: Math.abs(current?.marketValue || 0),
+          signedAssetExposure: current?.marketValue || 0,
           exposures,
           dataStatus: context.quality.status,
           returns: assetReturns,
