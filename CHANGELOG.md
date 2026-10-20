@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Motor paper de stress sistémico con catálogo versionado, shocks factoriales,
+  costo de liquidación, dependencia adversa PSD, ridge factorial, reverse
+  stress, capital buffer y API auditada.
 - Riesgo de cola de cartera con Filtered Historical Simulation, EVT/POT,
   Expected Shortfall, backtests de Kupiec y Christoffersen y semáforo binomial
   de calidad del modelo.

@@ -62,6 +62,12 @@ del Risk Gate ni relajan ningún veto. Antes de usarlos como límite automático
 debe gobernarse la frecuencia, ventana, muestra mínima y respuesta operativa a
 zonas amarilla/roja.
 
+T17 agrega escenarios históricos aproximados e hipotéticos, impacto de
+liquidación `σ·η·√(Q/ADV)`, correlación adversa PSD, dependencia de cola, ridge
+factorial y reverse stress. Los faltantes aplican haircuts y reducen
+`completeness`. Esta capa también permanece diagnóstica hasta que se apruebe la
+política registrada en `DECISIONES_PENDIENTES.md`.
+
 El gate factorial agrupa instrumentos por el factor declarado por Asset Desk y
 se revalida antes de cada child order. Una orden que eleva el factor por encima
 de 45% del equity es vetada; una reducción monotónica puede pasar aunque el

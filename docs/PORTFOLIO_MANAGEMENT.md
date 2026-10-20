@@ -72,9 +72,17 @@ Cada plan conserva pesos actuales, objetivos, contribuciones al riesgo,
 órdenes notionals paper, efectivo objetivo, observaciones, modelos de cola,
 backtests y estado de aprobación.
 
+Cada plan ejecuta además el catálogo versionado de stress: pérdida de mercado,
+liquidez, contraparte, equity posterior, dependencia adversa, reverse stress y
+capital buffer. Las fórmulas, supuestos de datos faltantes y alcance se detallan
+en `STRESS_TESTING.md`.
+
 ## API
 
 - `GET /v1/portfolio/status`: cartera marcada, política y último plan.
 - `POST /v1/portfolio/plan`: acepta una matriz de retornos por activo o consulta velas horarias del Data Plane.
+- `GET /v1/risk/scenarios`: catálogo versionado de shocks.
+- `POST /v1/risk/stress`: corrida adicional sobre un plan existente.
+- `POST /v1/risk/reverse-stress`: distancia al drawdown objetivo.
 
 Los planes se persisten en `portfolio.plans` con integridad SHA-256 del almacenamiento. Una fase futura puede transformar planes aprobados en órdenes, siempre pasando nuevamente por Risk Gate.
