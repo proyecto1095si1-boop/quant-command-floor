@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Risk Gate proyecta exposición neta firmada y exposición bruta posterior a la
+  orden. Las ventas ya no se consideran siempre aumento de riesgo y los cierres
+  `reduceOnly` válidos pueden reducir posiciones durante un halt.
 - El WebSocket de eventos valida origen, rate limit y autenticación en
   producción; el Kill Switch principal detiene el pipeline backend y los
   controles halt/resume quedan auditados y recuperables tras reinicios.

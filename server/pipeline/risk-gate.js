@@ -1,6 +1,51 @@
 "use strict";
 const { PERIODS_PER_YEAR } = require("../config/annualization.js"),
   M = require("../risk/math.js");
+
+const EPSILON = 1e-9;
+
+function projectExposure(proposal, context = {}) {
+  const mapped = Number(context.exposures?.[proposal.symbol]),
+    explicit = Number(context.signedAssetExposure),
+    fallback = Number(context.assetExposure),
+    current = Number.isFinite(explicit)
+      ? explicit
+      : Number.isFinite(mapped)
+        ? mapped
+        : Number.isFinite(fallback)
+          ? fallback
+          : 0,
+    notional = Math.max(0, Number(proposal.notional) || 0),
+    delta = (proposal.side === "sell" ? -1 : 1) * notional,
+    post = current + delta,
+    currentAbsolute = Math.abs(current),
+    postAbsolute = Math.abs(post),
+    grossBefore = Math.max(0, Number(context.grossExposure) || 0),
+    grossAfter = Math.max(0, grossBefore - currentAbsolute) + postAbsolute,
+    directionReduces = current !== 0 && Math.sign(delta) !== Math.sign(current),
+    flips =
+      current !== 0 && post !== 0 && Math.sign(current) !== Math.sign(post),
+    riskReducing = postAbsolute < currentAbsolute - EPSILON,
+    closes = current !== 0 && postAbsolute <= EPSILON,
+    reduceOnlyValid =
+      directionReduces && !flips && postAbsolute <= currentAbsolute + EPSILON;
+  return {
+    current,
+    delta,
+    post,
+    currentAbsolute,
+    postAbsolute,
+    grossBefore,
+    grossAfter,
+    directionReduces,
+    riskReducing,
+    closes,
+    flips,
+    reduceOnlyRequested: proposal.reduceOnly === true,
+    reduceOnlyValid,
+  };
+}
+
 class RiskGate {
   constructor(limits = {}) {
     this.periodsPerYear = Number(
@@ -89,34 +134,63 @@ class RiskGate {
       tail = M.historicalVarCvar(context.returns || []),
       valueAtRisk = Math.max(context.var || 0, tail.var),
       cvar = Math.max(context.cvar || 0, tail.cvar),
-      postAsset =
-        (Math.abs(context.assetExposure || 0) + proposal.notional) / equity,
-      postGross = ((context.grossExposure || 0) + proposal.notional) / equity,
+      projection = projectExposure(proposal, context),
+      postAsset = projection.postAbsolute / equity,
+      postGross = projection.grossAfter / equity,
+      emergencyReduction =
+        projection.reduceOnlyRequested && projection.reduceOnlyValid,
       stress = M.stressLoss({
         ...context.exposures,
-        [proposal.symbol]: (context.assetExposure || 0) + proposal.notional,
+        [proposal.symbol]: projection.post,
       }),
       stressRatio = stress.worst / equity,
       checks = [
-        ["system", !this.halted],
-        ["data", context.dataStatus === "healthy"],
+        ["system", !this.halted || emergencyReduction],
+        [
+          "data",
+          context.dataStatus === "healthy" ||
+            (emergencyReduction && context.dataStatus === "degraded"),
+        ],
+        [
+          "reduce-only",
+          !projection.reduceOnlyRequested || projection.reduceOnlyValid,
+        ],
         [
           "history",
-          !context.returns?.length ||
+          emergencyReduction ||
+            !context.returns?.length ||
             tail.observations >= this.limits.minObservations,
         ],
-        ["confidence", proposal.confidence >= this.limits.minConfidence],
-        ["drawdown", drawdown <= this.limits.maxDrawdown],
-        ["VaR", valueAtRisk <= this.limits.maxVaR],
-        ["CVaR", cvar <= this.limits.maxCVaR],
-        ["stress-loss", stressRatio <= this.limits.maxStressLoss],
-        ["asset-weight", postAsset <= proposal.maxWeight + 1e-9],
-        ["gross-exposure", postGross <= this.limits.maxGrossExposure],
+        [
+          "confidence",
+          emergencyReduction ||
+            proposal.confidence >= this.limits.minConfidence,
+        ],
+        ["drawdown", emergencyReduction || drawdown <= this.limits.maxDrawdown],
+        ["VaR", emergencyReduction || valueAtRisk <= this.limits.maxVaR],
+        ["CVaR", emergencyReduction || cvar <= this.limits.maxCVaR],
+        [
+          "stress-loss",
+          emergencyReduction || stressRatio <= this.limits.maxStressLoss,
+        ],
+        [
+          "asset-weight",
+          emergencyReduction || postAsset <= proposal.maxWeight + EPSILON,
+        ],
+        [
+          "gross-exposure",
+          emergencyReduction || postGross <= this.limits.maxGrossExposure,
+        ],
         [
           "correlation",
-          (context.correlation || 0) <= this.limits.maxCorrelation,
+          emergencyReduction ||
+            (context.correlation || 0) <= this.limits.maxCorrelation,
         ],
-        ["liquidity", (context.spreadBps || 0) <= this.limits.maxSpreadBps],
+        [
+          "liquidity",
+          emergencyReduction ||
+            (context.spreadBps || 0) <= this.limits.maxSpreadBps,
+        ],
         ["quantity", proposal.qty > 0 && proposal.notional > 0],
       ],
       failed = checks.filter((x) => !x[1]).map((x) => x[0]),
@@ -140,8 +214,23 @@ class RiskGate {
             this.periodsPerYear,
           ),
           stressLossRatio: stressRatio,
+          exposure: projection,
         },
         stress,
+        reduceOnlyOverrides: emergencyReduction
+          ? [
+              "history",
+              "confidence",
+              "drawdown",
+              "VaR",
+              "CVaR",
+              "stress-loss",
+              "asset-weight",
+              "gross-exposure",
+              "correlation",
+              "liquidity",
+            ]
+          : [],
         haltReason: this.reason,
       };
     this.reviews.push(review);
@@ -160,4 +249,4 @@ class RiskGate {
     };
   }
 }
-module.exports = { RiskGate };
+module.exports = { RiskGate, projectExposure };
