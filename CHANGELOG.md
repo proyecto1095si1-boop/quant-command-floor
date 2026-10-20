@@ -38,6 +38,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Procedencia firmada Ed25519, linaje por hashes, identidad reproducible,
+  calibración ECE/Brier e intervalos Wilson para datasets y empleados IA.
 - Evaluación adversarial versionada de agentes IA para exactitud, prompt
   injection, grounding, schema, sesgo, estabilidad, costo y latencia, integrada
   con promotion gates de Model Governance.

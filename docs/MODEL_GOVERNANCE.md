@@ -85,3 +85,7 @@ Los modelos IA usan además la suite adversarial T20 antes de quedar elegibles.
 No reutiliza artificialmente p-values financieros: registra una evaluación
 tipada con gates de seguridad, grounding, schema, sesgo, estabilidad, costo y
 latencia descritos en `AI_EVALUATION.md`.
+
+T21 incorpora procedencia firmada, linaje, hashes de reproducibilidad,
+calibración ECE/Brier e intervalos Wilson. La decisión criptográfica y sus
+límites están en `adr/0012-signed-dataset-provenance.md`.

@@ -12,6 +12,7 @@ const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
 const { AiEvaluationService } = require("./governance/ai-evaluation.js");
+const { parseTrustedReviewers } = require("./governance/provenance.js");
 const gateway = createGateway(),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
@@ -56,6 +57,9 @@ const regime = new RegimeService({
   aiEvaluation = new AiEvaluationService({
     governance,
     record: (stream, event) => data.record(stream, event),
+    trustedReviewers: parseTrustedReviewers(
+      process.env.AI_EVALUATION_TRUSTED_REVIEWERS,
+    ),
   }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,

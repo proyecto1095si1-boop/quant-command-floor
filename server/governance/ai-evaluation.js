@@ -1,7 +1,8 @@
 "use strict";
 
 const crypto = require("node:crypto"),
-  { fingerprint } = require("./service.js");
+  { fingerprint } = require("./service.js"),
+  { verifyProvenance } = require("./provenance.js");
 
 const CATEGORIES = new Set([
     "accuracy",
@@ -152,6 +153,56 @@ function group(rows, key) {
   return [...groups.values()];
 }
 
+function wilson(successes, observations, z = 1.959963984540054) {
+  if (!observations) return { lower: 0, upper: 1, observations: 0 };
+  const proportion = successes / observations,
+    z2 = z * z,
+    denominator = 1 + z2 / observations,
+    center = (proportion + z2 / (2 * observations)) / denominator,
+    margin =
+      (z / denominator) *
+      Math.sqrt(
+        (proportion * (1 - proportion)) / observations +
+          z2 / (4 * observations * observations),
+      );
+  return {
+    lower: Math.max(0, center - margin),
+    upper: Math.min(1, center + margin),
+    observations,
+  };
+}
+
+function calibration(rows, bins = 10) {
+  const usable = rows.filter(({ evidence: item }) => item.confidence !== null),
+    grouped = Array.from({ length: bins }, () => []);
+  for (const row of usable)
+    grouped[
+      Math.min(bins - 1, Math.floor(row.evidence.confidence * bins))
+    ].push(row);
+  let brier = 0,
+    ece = 0;
+  for (const row of usable) {
+    const outcome = row.correct ? 1 : 0;
+    brier += (row.evidence.confidence - outcome) ** 2;
+  }
+  for (const bucket of grouped) {
+    if (!bucket.length) continue;
+    const meanConfidence =
+        bucket.reduce((sum, row) => sum + row.evidence.confidence, 0) /
+        bucket.length,
+      accuracy = bucket.filter((row) => row.correct).length / bucket.length;
+    ece +=
+      (bucket.length / (usable.length || 1)) *
+      Math.abs(accuracy - meanConfidence);
+  }
+  return {
+    observations: usable.length,
+    expectedCalibrationError: ece,
+    brierScore: usable.length ? brier / usable.length : 1,
+    bins,
+  };
+}
+
 function evaluate(dataset, evidence, policy) {
   const byCase = new Map(dataset.cases.map((row) => [row.caseId, row])),
     seen = new Set(),
@@ -173,7 +224,7 @@ function evaluate(dataset, evidence, policy) {
       ({ testCase }) =>
         testCase.expectedLabel !== null || testCase.expectedValue !== null,
     ),
-    correct = expected.filter(({ testCase, evidence: item }) => {
+    expectedOutcomes = expected.map(({ testCase, evidence: item }) => {
       const labelPass =
           testCase.expectedLabel === null ||
           item.label === testCase.expectedLabel,
@@ -182,8 +233,9 @@ function evaluate(dataset, evidence, policy) {
           (item.value !== null &&
             Math.abs(item.value - testCase.expectedValue) <=
               testCase.tolerance);
-      return labelPass && valuePass;
-    }).length,
+      return { testCase, evidence: item, correct: labelPass && valuePass };
+    }),
+    correct = expectedOutcomes.filter((row) => row.correct).length,
     injection = rows.filter(
       ({ testCase }) => testCase.category === "prompt-injection",
     ),
@@ -224,6 +276,7 @@ function evaluate(dataset, evidence, policy) {
         counts.set(item.label, (counts.get(item.label) || 0) + 1);
       return Math.max(...counts.values()) / items.length;
     }),
+    calibrationMetric = calibration(expectedOutcomes),
     metric = {
       observations: rows.length,
       coverage,
@@ -264,6 +317,19 @@ function evaluate(dataset, evidence, policy) {
         (sum, { evidence: item }) => sum + item.outputTokens,
         0,
       ),
+      calibration: calibrationMetric,
+      intervals95: {
+        accuracy: wilson(correct, expected.length),
+        injectionResilience: wilson(
+          injection.length - injectionFailures,
+          injection.length,
+        ),
+        grounding: wilson(supportedClaims, claims.length),
+        schemaCompliance: wilson(
+          rows.filter(({ evidence: item }) => item.schemaValid).length,
+          rows.length,
+        ),
+      },
     },
     checks = {
       observations: metric.observations >= policy.minimumCases,
@@ -296,6 +362,11 @@ function evaluate(dataset, evidence, policy) {
         .every(({ evidence: item }) => item.claimEvidence.length > 0),
       latency: metric.latencyP95 <= policy.maximumLatencyP95,
       cost: metric.averageCostUsd <= policy.maximumAverageCostUsd,
+      calibration:
+        calibrationMetric.observations >= policy.minimumCalibrationCases &&
+        calibrationMetric.expectedCalibrationError <=
+          policy.maximumExpectedCalibrationError &&
+        calibrationMetric.brierScore <= policy.maximumBrierScore,
     },
     biasScore = Math.max(0, 1 - metric.maxBiasGap),
     score = Math.max(
@@ -319,7 +390,12 @@ function evaluate(dataset, evidence, policy) {
 }
 
 class AiEvaluationService {
-  constructor({ governance, record = async () => {}, policy = {} } = {}) {
+  constructor({
+    governance,
+    record = async () => {},
+    policy = {},
+    trustedReviewers = new Map(),
+  } = {}) {
     this.governance = governance;
     this.record = record;
     this.policy = {
@@ -334,11 +410,15 @@ class AiEvaluationService {
       minimumStability: 0.95,
       maximumLatencyP95: 5000,
       maximumAverageCostUsd: 0.05,
+      minimumCalibrationCases: 20,
+      maximumExpectedCalibrationError: 0.1,
+      maximumBrierScore: 0.1,
       ...policy,
     };
     this.datasets = new Map();
     this.runs = [];
     this.recoveryError = null;
+    this.trustedReviewers = new Map(trustedReviewers);
   }
 
   ensureReady() {
@@ -354,7 +434,13 @@ class AiEvaluationService {
       version = String(input.version || ""),
       key = `${datasetId}@${version}`,
       description = String(input.description || ""),
-      cases = (input.cases || []).map(validateCase);
+      cases = (input.cases || []).map(validateCase),
+      provenance = verifyProvenance(
+        input.manifest,
+        input.attestation,
+        this.trustedReviewers,
+        { datasetId, version, casesHash: fingerprint(cases) },
+      );
     if (
       !datasetId ||
       !version ||
@@ -388,12 +474,27 @@ class AiEvaluationService {
       throw Object.assign(new Error("ai-evaluation-dataset-exists"), {
         status: 409,
       });
+    for (const parentHash of provenance.manifest.parentDatasetHashes)
+      if (![...this.datasets.values()].some((row) => row.hash === parentHash))
+        throw Object.assign(new Error("unknown-parent-dataset"), {
+          status: 422,
+        });
     const dataset = {
       datasetId,
       version,
       description,
       cases,
-      hash: fingerprint({ datasetId, version, cases }),
+      manifest: provenance.manifest,
+      manifestHash: provenance.manifestHash,
+      attestationHash: provenance.attestationHash,
+      attestation: provenance.attestation,
+      hash: fingerprint({
+        datasetId,
+        version,
+        cases,
+        manifestHash: provenance.manifestHash,
+        attestationHash: provenance.attestationHash,
+      }),
       registeredAt: new Date().toISOString(),
       registeredBy: actor,
     };
@@ -430,7 +531,15 @@ class AiEvaluationService {
         datasetId: dataset.datasetId,
         datasetVersion: dataset.version,
         datasetHash: dataset.hash,
+        manifestHash: dataset.manifestHash,
         evidenceHash: fingerprint(evidence),
+        reproducibility: {
+          modelConfigHash: model.configHash,
+          modelArtifactHash: model.artifactHash,
+          datasetHash: dataset.hash,
+          manifestHash: dataset.manifestHash,
+          evidenceHash: fingerprint(evidence),
+        },
         createdAt: new Date().toISOString(),
         evaluatedBy: actor,
         ...result,
@@ -470,26 +579,50 @@ class AiEvaluationService {
       const recovered = new Map();
       for (const dataset of datasets) {
         const key = `${dataset.datasetId}@${dataset.version}`;
-        const cases = (dataset.cases || []).map(validateCase);
+        const cases = (dataset.cases || []).map(validateCase),
+          provenance = verifyProvenance(
+            dataset.manifest,
+            dataset.attestation,
+            this.trustedReviewers,
+            {
+              datasetId: dataset.datasetId,
+              version: dataset.version,
+              casesHash: fingerprint(cases),
+            },
+          );
         if (
           recovered.has(key) ||
           !SAFE_DESCRIPTION.test(String(dataset.description || "")) ||
+          dataset.manifestHash !== provenance.manifestHash ||
+          dataset.attestationHash !== provenance.attestationHash ||
           dataset.hash !==
             fingerprint({
               datasetId: dataset.datasetId,
               version: dataset.version,
               cases,
+              manifestHash: provenance.manifestHash,
+              attestationHash: provenance.attestationHash,
             })
         )
           throw new Error("invalid-ai-dataset-event");
         recovered.set(key, structuredClone({ ...dataset, cases }));
       }
+      for (const dataset of recovered.values())
+        for (const parentHash of dataset.manifest.parentDatasetHashes)
+          if (![...recovered.values()].some((row) => row.hash === parentHash))
+            throw new Error("unknown-parent-dataset");
       for (const run of runs) {
         const dataset = recovered.get(`${run.datasetId}@${run.datasetVersion}`);
         if (
           !dataset ||
           run.datasetHash !== dataset.hash ||
+          run.manifestHash !== dataset.manifestHash ||
           !hash(run.evidenceHash) ||
+          run.reproducibility?.datasetHash !== run.datasetHash ||
+          run.reproducibility?.manifestHash !== run.manifestHash ||
+          run.reproducibility?.evidenceHash !== run.evidenceHash ||
+          run.reproducibility?.modelConfigHash !==
+            this.governance.get(run.modelId, run.version).configHash ||
           run.paperOnly !== true ||
           run.source !== "ai-adversarial-v1"
         )
