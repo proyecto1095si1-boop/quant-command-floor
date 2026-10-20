@@ -33,3 +33,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Implicación actual:** T18 valida rango, drift y no inferioridad, pero el
   comité humano sigue siendo responsable de la semántica del score.
 
+## Guardrails por familia de modelo
+
+- **Estado:** pendientes de calibración.
+- **Decisión necesaria:** muestra mínima, incremento de error, divergencia
+  numérica, schema, grounding, política, latencia y porcentaje canary para cada
+  empleado IA o motor matemático.
+- **Acción bloqueada:** conectar la selección canary con ejecución o promover
+  automáticamente por resultados online.
+

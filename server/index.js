@@ -10,6 +10,7 @@ const { ExecutionService } = require("./execution/service.js");
 const { SreService } = require("./sre/service.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
+const { ExperimentService } = require("./governance/experiments.js");
 const gateway = createGateway(),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
@@ -47,6 +48,10 @@ const regime = new RegimeService({
   governance = new ModelGovernanceService({
     record: (stream, event) => data.record(stream, event),
   }),
+  experiments = new ExperimentService({
+    governance,
+    record: (stream, event) => data.record(stream, event),
+  }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,
     pipeline,
@@ -65,6 +70,7 @@ gateway.setExecution(execution);
 gateway.setSre(sre);
 gateway.setRegime(regime);
 gateway.setGovernance(governance);
+gateway.setExperiments(experiments);
 gateway.listen().then(async (address) => {
   console.log(
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
@@ -78,6 +84,15 @@ gateway.listen().then(async (address) => {
     const recovered = governance.recover({ models, evaluations, promotions });
     if (recovered.models)
       console.log(`Model governance recovered: ${recovered.models} models`);
+    const experimentEvents = await data.store.tail(
+      "governance.experiments",
+      10000,
+    );
+    const experimentRecovery = experiments.recover(experimentEvents);
+    if (experimentRecovery.experiments)
+      console.log(
+        `Model experiments recovered: ${experimentRecovery.experiments}`,
+      );
   } catch (e) {
     console.error(`Model governance recovery blocked: ${e.message}`);
   }
