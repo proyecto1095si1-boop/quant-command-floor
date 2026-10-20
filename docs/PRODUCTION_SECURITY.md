@@ -33,6 +33,19 @@ Con `REQUIRE_FOUR_EYES=true`, promover research, encolar ejecución y reabrir un
 
 Para múltiples réplicas, el rate limit debe migrar a un store distribuido o API gateway. TLS/HSTS debe terminar en el proxy de producción.
 
+El upgrade WebSocket de `/v1/stream` valida `Origin`, consume el mismo rate
+limit y requiere un token Bearer con rol `viewer` o superior en producción. No
+se permiten tokens en la URL. La integración de navegador con un IdP y cookies
+de sesión seguras continúa pendiente.
+
+## Kill Switch
+
+El Kill Switch principal bloquea primero la simulación local y solicita luego
+el halt del pipeline. El backend registra el actor autenticado, encadena el
+evento en auditoría y escribe un checkpoint; tras reiniciar, un halt confirmado
+permanece activo. Reanudar requiere la ruta separada de `resume` y nunca ocurre
+al volver a pulsar el Kill Switch.
+
 ## CI y despliegue
 
 GitHub Actions ejecuta todas las pruebas, syntax checks y un smoke test fail-closed en Node 20. Antes de desplegar dinero real todavía se requieren SAST/dependency scanning, imágenes firmadas, SBOM, despliegue privado, rotación de secretos, backups externos probados y límites configurados directamente en el broker.

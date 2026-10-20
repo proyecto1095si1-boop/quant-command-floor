@@ -9,6 +9,11 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- El WebSocket de eventos valida origen, rate limit y autenticación en
+  producción; el Kill Switch principal detiene el pipeline backend y los
+  controles halt/resume quedan auditados y recuperables tras reinicios.
+- El gateway convierte rechazos asíncronos no manejados en respuestas HTTP
+  controladas sin exponer detalles internos fuera de desarrollo.
 - CI fija explícitamente Ubuntu 24.04 para evitar cambios no controlados cuando
   GitHub migra la etiqueta móvil `ubuntu-latest`.
 - La cobertura mínima de líneas del servidor sube de 80 % a 84 %, respaldada

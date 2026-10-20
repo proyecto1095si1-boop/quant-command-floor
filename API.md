@@ -360,7 +360,7 @@ Los valores deben ser distintos.
 |---|---|---|---|
 | GET | `/v1/health` | Público | Liveness del gateway |
 | GET | `/v1/security/status` | Público | Perfil de seguridad sin exponer secretos |
-| GET | `/v1/stream` | Autenticación pendiente en upgrade | WebSocket de eventos |
+| GET | `/v1/stream` | Bearer `viewer` o superior en producción | WebSocket de eventos |
 
 ### Régimen de mercado
 
@@ -369,7 +369,10 @@ Los valores deben ser distintos.
 | GET | `/v1/regime/status` | viewer |
 | POST | `/v1/regime/{asset}/analyze` | operator |
 
-Nota: antes de producción pública debe agregarse autenticación explícita al handshake WebSocket mediante cookie segura o subprotocol token; no pasar tokens en query strings.
+El handshake WebSocket aplica la misma allowlist de `Origin`, rate limit por IP
+y autenticación Bearer que el gateway HTTP. Los tokens no se aceptan en query
+strings. Un navegador de producción requerirá que el futuro IdP/proxy convierta
+su sesión segura en una identidad verificable para el upgrade.
 
 ### Data Plane
 
