@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Riesgo de cola de cartera con Filtered Historical Simulation, EVT/POT,
+  Expected Shortfall, backtests de Kupiec y Christoffersen y semáforo binomial
+  de calidad del modelo.
 - Lockfile de npm para instalaciones reproducibles en desarrollo y CI.
 - Reglas editoriales compartidas mediante `.editorconfig`.
 - Registro de decisiones del proyecto que requieren definición del propietario.

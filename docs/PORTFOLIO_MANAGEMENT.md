@@ -37,6 +37,29 @@ A partir de esa matriz se calcula:
 - Concentración factorial: pesos absolutos agrupados por `factor`, HHI,
   cantidad efectiva de factores y mayor share.
 
+El diagnóstico de cola evita depender solamente de normalidad:
+
+- **Filtered Historical Simulation (FHS):** filtra cada retorno por su
+  volatilidad EWMA (`λ=0.94`) y reescala los residuos con la volatilidad
+  condicional pronosticada. De sus escenarios obtiene VaR y Expected Shortfall
+  empíricos al 99%.
+- **EVT/POT:** selecciona pérdidas sobre el percentil 90 y ajusta una
+  Generalized Pareto por método de momentos. Extrapola VaR y Expected Shortfall
+  al 99%; exige al menos 10 excesos, limita `ξ<1` para que la media de cola sea
+  finita y publica tanto el shape crudo como el usado.
+- **Estimación conservadora:** entre modelos disponibles, reporta el de mayor
+  Expected Shortfall. No se interpreta como cota máxima garantizada.
+- **Validación fuera de muestra:** una ventana móvil de 100 retornos vuelve a
+  estimar FHS sin mirar el dato siguiente. Kupiec contrasta la frecuencia de
+  excepciones, Christoffersen su independencia y el test conjunto usa dos
+  grados de libertad. El semáforo binomial reproduce para 250 observaciones al
+  99% las zonas Basel: verde 0–4, amarillo 5–9 y rojo desde 10.
+
+Los p-values, conteos de transición y umbrales quedan dentro del plan. El
+semáforo es diagnóstico: T16 no lo convierte por sí solo en autorización o
+veto, porque una muestra fuera de mercado y una calibración no gobernada no
+deben controlar ejecución automáticamente.
+
 Los factores iniciales son `crypto-core` para BTC/ETH, `high-beta-l1` para SOL
 y `venue-linked` para BNB. El plan informa breaches relativos al capital
 invertido; no oculta el efectivo como factor diversificador.
@@ -45,7 +68,9 @@ invertido; no oculta el efectivo como factor diversificador.
 
 No se genera trade cuando la diferencia absoluta contra el objetivo es menor a 2%. El turnover es `½Σ|Δw|`; si supera 20% por ciclo, todas las órdenes se reducen proporcionalmente. Esto controla fees, slippage y churn.
 
-Cada plan conserva pesos actuales, objetivos, contribuciones al riesgo, órdenes notionals paper, efectivo objetivo, observaciones, método y estado de aprobación.
+Cada plan conserva pesos actuales, objetivos, contribuciones al riesgo,
+órdenes notionals paper, efectivo objetivo, observaciones, modelos de cola,
+backtests y estado de aprobación.
 
 ## API
 
