@@ -47,6 +47,25 @@ Ese fill queda marcado como `fillModel: "impact"`; los basados en libro usan
 promedio, PnL realizado/no realizado y exposición. La reconciliación informa
 procesadas, filled, partial, rejected y snapshot final.
 
+## Precisión monetaria e invariantes
+
+El ledger representa internamente precio, cantidad, notional, fees, costo y PnL
+como enteros `BigInt` con ocho decimales. La API conserva campos numéricos por
+compatibilidad y agrega representaciones exactas con ocho decimales en
+`fill.monetary` y `portfolio.accounting`. El redondeo es half-away-from-zero en
+la frontera de ocho decimales.
+
+El costo de una posición se conserva como cost basis firmado. En cada snapshot
+se comprueba en unidades atómicas:
+
+`equity = initialCash + realizedPnL + unrealizedPnL - fees`
+
+`accounting.balanced` solo es true si el residual es exactamente cero. Los
+checkpoints nuevos guardan átomos como strings JSON y la restauración sigue
+aceptando checkpoints numéricos anteriores, que se canonicalizan una vez.
+Cantidades menores a `0.00000001` se rechazan y la liquidez L2 consumida se
+contabiliza con la misma escala para evitar niveles fantasma por coma flotante.
+
 ## Estados
 
 - Parent: `scheduled`, `filled`, `partial` o `rejected`.

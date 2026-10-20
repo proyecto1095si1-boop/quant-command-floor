@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Ledger, fills L2 y métricas de ejecución usan contabilidad decimal fija de
+  ocho posiciones; checkpoints conservan átomos exactos y cada snapshot expone
+  el balance del invariante de equity.
 - Risk Gate proyecta exposición neta firmada y exposición bruta posterior a la
   orden. Las ventas ya no se consideran siempre aumento de riesgo y los cierres
   `reduceOnly` válidos pueden reducir posiciones durante un halt.
