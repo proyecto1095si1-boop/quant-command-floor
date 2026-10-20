@@ -1,0 +1,19 @@
+{
+  "marketShock": {
+    "equity": 100000,
+    "weight": 0.6,
+    "shock": -0.2,
+    "expectedMarketLoss": 12000
+  },
+  "stablecoinDepeg": {
+    "notional": 100000,
+    "shock": -0.08,
+    "expectedMarketLoss": 8000
+  },
+  "reverseStress": {
+    "equity": 100000,
+    "exposure": 50000,
+    "targetLossRatio": 0.1,
+    "expectedCriticalShock": -0.2
+  }
+}
