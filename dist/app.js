@@ -203,13 +203,26 @@ const riskEngine = new QCFOps.RiskEngine(),
   auditChain = new QCFAudit.AuditChain(),
   opsMetrics = new QCFAudit.Metrics();
 let paperSeq = 0;
+function esc(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character],
+  );
+}
 function roomContent(a) {
-  let content = `<div class="room-head"><span class="room-label">${String(a.id).padStart(2, "0")} · ${a.name}</span><span class="room-code">${a.type}</span></div><span class="room-sub">${a.agents.length} AGENTS / ONLINE</span>`;
+  let content = `<div class="room-head"><span class="room-label">${esc(String(a.id).padStart(2, "0"))} · ${esc(a.name)}</span><span class="room-code">${esc(a.type)}</span></div><span class="room-sub">${esc(a.agents.length)} AGENTS / ONLINE</span>`;
   if (a.groups) {
     let gx = 15,
       gy = 60;
     a.groups.forEach((g, gi) => {
-      content += `<div style="position:absolute;left:${gx + gi * 220}px;top:48px;width:200px;border-top:1px solid ${a.color}55;padding-top:5px;font:7px DM Mono;color:${a.color}">${g[0]}</div>`;
+      content += `<div style="position:absolute;left:${gx + gi * 220}px;top:48px;width:200px;border-top:1px solid ${esc(a.color)}55;padding-top:5px;font:7px DM Mono;color:${esc(a.color)}">${esc(g[0])}</div>`;
       g.slice(1, 10).forEach((n, i) => {
         const x = gx + gi * 220 + (i % 3) * 62,
           y = gy + 38 + Math.floor(i / 3) * 70;
@@ -228,7 +241,7 @@ function roomContent(a) {
 }
 function sprite(n, x, y, c, i) {
   const state = i % 4 === 1 ? "idle" : "working";
-  return `<div class="desk" style="left:${x - 14}px;top:${y - 13}px"></div><div class="agent ${state}" data-agent="${n}" data-state="${state}" style="left:${x}px;top:${y}px;--room-color:${c};--sprite:url('assets/characters/char_${i % 8}.png')"><i class="head"></i><i class="body"></i><i class="legs"></i><span class="agent-name">${n}</span></div>`;
+  return `<div class="desk" style="left:${x - 14}px;top:${y - 13}px"></div><div class="agent ${state}" data-agent="${esc(n)}" data-state="${state}" style="left:${x}px;top:${y}px;--room-color:${esc(c)};--sprite:url('assets/characters/char_${i % 8}.png')"><i class="head"></i><i class="body"></i><i class="legs"></i><span class="agent-name">${esc(n)}</span></div>`;
 }
 areas.forEach((a, i) => {
   a.status = i === 3 ? "alert" : i === 1 || i === 7 ? "thinking" : "active";
@@ -252,7 +265,7 @@ areas.forEach((a, i) => {
   let n = document.createElement("div");
   n.className = "nav-item";
   n.style.setProperty("--room-color", a.color);
-  n.innerHTML = `<span class="nav-num">${String(a.id).padStart(2, "0")}</span><span class="nav-name">${a.name}</span><span class="nav-count"><i class="status ${a.status}"></i>${a.agents.length}</span>`;
+  n.innerHTML = `<span class="nav-num">${esc(String(a.id).padStart(2, "0"))}</span><span class="nav-name">${esc(a.name)}</span><span class="nav-count"><i class="status ${esc(a.status)}"></i>${esc(a.agents.length)}</span>`;
   n.onclick = () => {
     focusRoom(a);
     selectArea(a);
@@ -678,7 +691,7 @@ function selectArea(a) {
   document.querySelector("#agentList").innerHTML = a.agents
     .map(
       (x) =>
-        `<div class="agent-chip" data-agent="${x}" style="--accent:${a.color}">● ${x}</div>`,
+        `<div class="agent-chip" data-agent="${esc(x)}" style="--accent:${esc(a.color)}">● ${esc(x)}</div>`,
     )
     .join("");
   document
@@ -944,7 +957,7 @@ async function openDesks() {
     document.querySelector("#deskTabs").innerHTML = deskState.desks
       .map(
         (x) =>
-          `<button data-asset="${x.asset}" class="${x.asset === deskState.asset ? "active" : ""}"><b>${x.asset}</b><small>${x.product}</small></button>`,
+          `<button data-asset="${esc(x.asset)}" class="${x.asset === deskState.asset ? "active" : ""}"><b>${esc(x.asset)}</b><small>${esc(x.product)}</small></button>`,
       )
       .join("");
     document.querySelectorAll("#deskTabs button").forEach(
@@ -990,7 +1003,7 @@ function renderDesk(report) {
   document.querySelector("#deskAgents").innerHTML = report.agents
     .map(
       (x) =>
-        `<article class="desk-agent" style="--agent-color:${x.signal >= 0 ? "#b9f34a" : "#ff5864"}"><div><b>${x.agent}</b><i>${x.signal >= 0 ? "+" : ""}${x.signal.toFixed(3)} · ${(x.confidence * 100).toFixed(0)}%</i></div><meter min="-1" max="1" value="${x.signal}"></meter><small>${x.evidence.join(" · ")}</small></article>`,
+        `<article class="desk-agent" style="--agent-color:${x.signal >= 0 ? "#b9f34a" : "#ff5864"}"><div><b>${esc(x.agent)}</b><i>${x.signal >= 0 ? "+" : ""}${esc(x.signal.toFixed(3))} · ${esc((x.confidence * 100).toFixed(0))}%</i></div><meter min="-1" max="1" value="${esc(x.signal)}"></meter><small>${esc(x.evidence.join(" · "))}</small></article>`,
     )
     .join("");
   document.querySelector("#deskPolicy").textContent = report.blockers.length
@@ -1077,7 +1090,7 @@ function renderPipeline(run) {
   document.querySelector("#pipelineStages").innerHTML = run.stages
     .map(
       (x, i) =>
-        `<li class="${x.status}"><b>${String(i + 1).padStart(2, "0")} · ${x.name.toUpperCase()}</b>${x.status.toUpperCase()}</li>`,
+        `<li class="${esc(x.status)}"><b>${esc(String(i + 1).padStart(2, "0"))} · ${esc(x.name.toUpperCase())}</b>${esc(x.status.toUpperCase())}</li>`,
     )
     .join("");
   document.querySelector("#pipelineMessage").textContent =
@@ -1169,7 +1182,7 @@ function drawEquity(points) {
 }
 function inspectRun(run) {
   document.querySelector("#runInspector").innerHTML =
-    `<b>${run.id}</b> · ${run.asset} · ${run.status.toUpperCase()}<br>Signal ${Number(run.desk?.signal || 0).toFixed(3)} / ${(Number(run.desk?.confidence || 0) * 100).toFixed(1)}% · Risk ${run.risk?.decision || "N/A"} · ${run.stages.map((x) => x.name + ":" + x.status).join(" → ")}`;
+    `<b>${esc(run.id)}</b> · ${esc(run.asset)} · ${esc(run.status.toUpperCase())}<br>Signal ${esc(Number(run.desk?.signal || 0).toFixed(3))} / ${esc((Number(run.desk?.confidence || 0) * 100).toFixed(1))}% · Risk ${esc(run.risk?.decision || "N/A")} · ${esc(run.stages.map((x) => x.name + ":" + x.status).join(" → "))}`;
 }
 function renderDashboard(x) {
   dashboardData = x;
@@ -1192,14 +1205,14 @@ function renderDashboard(x) {
     ? x.alerts
         .map(
           (a) =>
-            `<div class="dash-alert ${a.severity}"><b>${a.code}</b>${a.message}</div>`,
+            `<div class="dash-alert ${esc(a.severity)}"><b>${esc(a.code)}</b>${esc(a.message)}</div>`,
         )
         .join("")
     : '<div class="dash-alert"><b>SIN ALERTAS</b>Sistema dentro de límites.</div>';
   document.querySelector("#dashRuns").innerHTML = x.recentRuns
     .map(
       (r, i) =>
-        `<div class="dash-run" data-run="${i}"><b>${r.asset}</b><span>${r.status}</span><span>${r.desk?.action || "—"}</span><span>${new Date(r.finishedAt).toLocaleTimeString()}</span></div>`,
+        `<div class="dash-run" data-run="${i}"><b>${esc(r.asset)}</b><span>${esc(r.status)}</span><span>${esc(r.desk?.action || "—")}</span><span>${esc(new Date(r.finishedAt).toLocaleTimeString())}</span></div>`,
     )
     .join("");
   document
@@ -1260,13 +1273,13 @@ function renderResearch(x) {
   document.querySelector("#researchGates").innerHTML = Object.entries(x.checks)
     .map(
       ([k, v]) =>
-        `<div class="research-gate ${v ? "pass" : ""}"><b>${k}</b><span>${v ? "PASS" : "FAIL"}</span></div>`,
+        `<div class="research-gate ${v ? "pass" : ""}"><b>${esc(k)}</b><span>${v ? "PASS" : "FAIL"}</span></div>`,
     )
     .join("");
   document.querySelector("#researchFolds").innerHTML = x.foldMetrics
     .map(
       (f) =>
-        `<div class="research-fold"><b>F${f.fold + 1}</b><span>IS ${f.trainSharpe.toFixed(2)}</span><span>OOS ${f.oosSharpe.toFixed(2)}</span></div>`,
+        `<div class="research-fold"><b>F${esc(f.fold + 1)}</b><span>IS ${esc(f.trainSharpe.toFixed(2))}</span><span>OOS ${esc(f.oosSharpe.toFixed(2))}</span></div>`,
     )
     .join("");
   document.querySelector("#researchPromote").disabled = x.status !== "eligible";
@@ -1368,7 +1381,7 @@ function renderRisk(x) {
   document.querySelector("#riskLimits").innerHTML = Object.entries(x.limits)
     .map(
       ([k, v]) =>
-        `<div class="risk-limit"><b>${k}</b><span>${typeof v === "number" && v < 1 ? (v * 100).toFixed(2) + "%" : v}</span></div>`,
+        `<div class="risk-limit"><b>${esc(k)}</b><span>${esc(typeof v === "number" && v < 1 ? (v * 100).toFixed(2) + "%" : v)}</span></div>`,
     )
     .join("");
   const r = x.lastReview;
@@ -1376,7 +1389,7 @@ function renderRisk(x) {
     ? r.checks
         .map(
           (c) =>
-            `<div class="risk-check ${c.pass ? "pass" : ""}"><b>${c.name}</b><span>${c.pass ? "PASS" : "VETO"}</span></div>`,
+            `<div class="risk-check ${c.pass ? "pass" : ""}"><b>${esc(c.name)}</b><span>${c.pass ? "PASS" : "VETO"}</span></div>`,
         )
         .join("")
     : "Sin evaluaciones.";
@@ -1483,7 +1496,7 @@ function renderPortfolio(plan, status = {}) {
     ? plan.allocations
         .map(
           (x) =>
-            `<div class="allocation-row"><b>${x.asset}</b><span>${pct(x.currentWeight)}</span><span>${pct(x.targetWeight)}</span><span>${pct(x.riskContribution)}</span><span class="${x.tradeWeight >= 0 ? "buy" : "sell"}">${x.tradeWeight >= 0 ? "BUY" : "SELL"} ${money(Math.abs(x.tradeNotional))}</span></div>`,
+            `<div class="allocation-row"><b>${esc(x.asset)}</b><span>${esc(pct(x.currentWeight))}</span><span>${esc(pct(x.targetWeight))}</span><span>${esc(pct(x.riskContribution))}</span><span class="${x.tradeWeight >= 0 ? "buy" : "sell"}">${x.tradeWeight >= 0 ? "BUY" : "SELL"} ${esc(money(Math.abs(x.tradeNotional)))}</span></div>`,
         )
         .join("")
     : "";
@@ -1564,7 +1577,7 @@ function renderExecution(x) {
   document.querySelector("#executionRows").innerHTML = x.parents
     .map(
       (p) =>
-        `<div class="execution-row"><b>${p.id.slice(0, 8)}</b><span>${p.asset}</span><span>${p.algorithm}</span><span class="${p.state}">${p.state.toUpperCase()}</span><span>${money(p.residualNotional)}</span></div>`,
+        `<div class="execution-row"><b>${esc(p.id.slice(0, 8))}</b><span>${esc(p.asset)}</span><span>${esc(p.algorithm)}</span><span class="${esc(p.state)}">${esc(p.state.toUpperCase())}</span><span>${esc(money(p.residualNotional))}</span></div>`,
     )
     .join("");
   document.querySelector("#executionStatus").textContent =
@@ -1665,14 +1678,14 @@ function renderSre(x) {
   document.querySelector("#sreServices").innerHTML = Object.entries(x.services)
     .map(
       ([k, v]) =>
-        `<div class="sre-service ${/halted|disabled|degraded|stopped/.test(v) ? "bad" : ""}"><b>${k}</b><span>${String(v).toUpperCase()}</span></div>`,
+        `<div class="sre-service ${/halted|disabled|degraded|stopped/.test(v) ? "bad" : ""}"><b>${esc(k)}</b><span>${esc(String(v).toUpperCase())}</span></div>`,
     )
     .join("");
   document.querySelector("#sreIncidents").innerHTML = x.incidents.length
     ? x.incidents
         .map(
           (i) =>
-            `<div class="sre-incident"><span><b>${i.code}</b><br>${i.state} · ${i.occurrences}×</span>${i.state === "open" ? `<button data-incident="${i.id}">ACK</button>` : ""}</div>`,
+            `<div class="sre-incident"><span><b>${esc(i.code)}</b><br>${esc(i.state)} · ${esc(i.occurrences)}×</span>${i.state === "open" ? `<button data-incident="${esc(i.id)}">ACK</button>` : ""}</div>`,
         )
         .join("")
     : "Sin incidentes.";
@@ -1910,7 +1923,7 @@ function runTrace() {
     setTimeout(() => {
       const li = document.createElement("li");
       li.className = s[0] === "veto" ? "veto" : s[0] === "exec" ? "exec" : "";
-      li.innerHTML = `<b>${String(i + 1).padStart(2, "0")}</b> · ${s[1]}`;
+      li.innerHTML = `<b>${esc(String(i + 1).padStart(2, "0"))}</b> · ${esc(s[1])}`;
       list.append(li);
       if (i === traceSteps.length - 1)
         document.querySelector("#signal").textContent =
