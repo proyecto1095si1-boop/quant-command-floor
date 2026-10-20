@@ -108,6 +108,40 @@ const desk = {
   assert.equal(recovery.recovered, true);
   assert.equal(restored.ledger.fills.length, 1);
   assert.equal(restored.audit.verify().valid, true);
+  await durable.halt("manual-test", "risk-officer");
+  await store.flush();
+  const haltedAfterRestart = new TradingPipeline({
+    dataService: durableData,
+    desks: desk,
+  });
+  await haltedAfterRestart.recover();
+  assert.equal(haltedAfterRestart.risk.halted, true);
+  assert.equal(haltedAfterRestart.risk.reason, "manual-test");
+  assert.equal(haltedAfterRestart.audit.verify().valid, true);
+  await haltedAfterRestart.resume("second-risk-officer");
+  await store.flush();
+  const resumedAfterRestart = new TradingPipeline({
+    dataService: durableData,
+    desks: desk,
+  });
+  await resumedAfterRestart.recover();
+  assert.equal(resumedAfterRestart.risk.halted, false);
+  assert.equal(resumedAfterRestart.audit.verify().valid, true);
+  const failedResume = new TradingPipeline({
+    dataService: {
+      record: async () => {
+        throw new Error("checkpoint-offline");
+      },
+    },
+    desks: desk,
+  });
+  failedResume.risk.halt("operator-halt");
+  await assert.rejects(
+    () => failedResume.resume("risk-officer"),
+    /checkpoint-offline/,
+  );
+  assert.equal(failedResume.risk.halted, true);
+  assert.equal(failedResume.risk.reason, "operator-halt");
   fs.rmSync(dir, { recursive: true });
   let release;
   const slowData = {

@@ -2057,11 +2057,31 @@ document.querySelector("#engineToggle").onclick = () => {
   if (engine.state === "halted") return;
   transitionEngine(engine.state === "paused" ? "running" : "paused");
 };
-document.querySelector("#killSwitch").onclick = () => {
-  const next = engine.state === "halted" ? "paused" : "halted";
-  riskEngine.halt(next === "halted");
-  auditChain.append("kill-switch", { state: next });
-  transitionEngine(next);
+document.querySelector("#killSwitch").onclick = async () => {
+  if (engine.state === "halted") return;
+  const status = document.querySelector("#opsStatus");
+  riskEngine.halt(true);
+  auditChain.append("kill-switch", {
+    state: "halted",
+    confirmation: "pending",
+  });
+  transitionEngine("halted");
+  try {
+    if (typeof fetch !== "function") throw new Error("backend-unavailable");
+    const response = await fetch(
+      platformConfig.backendBaseUrl + "/v1/pipeline/halt",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: '{"reason":"human-director-kill-switch"}',
+      },
+    );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    auditChain.append("kill-switch-confirmed", { state: "halted" });
+    status.textContent = "HALT confirmado por el backend";
+  } catch (error) {
+    status.textContent = `HALT LOCAL · confirmación backend falló: ${error.message}`;
+  }
 };
 document.querySelector("#scenario").onchange = (e) => {
   engine.scenario = e.target.value;

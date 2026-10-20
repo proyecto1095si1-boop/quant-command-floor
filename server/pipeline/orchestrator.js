@@ -191,8 +191,13 @@ class TradingPipeline {
     run.finishedAt = new Date().toISOString();
     run.audit = this.audit.verify();
     await this.dataService?.record?.("pipeline.runs", run);
+    await this.checkpoint(run.finishedAt);
+    this.publish({ type: "pipeline.finished", run });
+    return run;
+  }
+  async checkpoint(receivedAt = new Date().toISOString()) {
     await this.dataService?.record?.("pipeline.checkpoints", {
-      receivedAt: run.finishedAt,
+      receivedAt,
       ledger: this.ledger.export(),
       audit: this.audit.export(),
       metrics: this.metrics,
@@ -202,8 +207,41 @@ class TradingPipeline {
         highWater: this.risk.highWater,
       },
     });
-    this.publish({ type: "pipeline.finished", run });
-    return run;
+  }
+  async halt(reason = "manual", actor = "system") {
+    this.risk.halt(String(reason));
+    const event = {
+      action: "halt",
+      reason: this.risk.reason,
+      actor: String(actor || "system"),
+      at: new Date().toISOString(),
+      paperOnly: true,
+    };
+    this.audit.append("pipeline.control", event);
+    await this.dataService?.record?.("pipeline.controls", event);
+    await this.checkpoint(event.at);
+    this.publish({ type: "pipeline.control", event });
+    return this.status();
+  }
+  async resume(actor = "system") {
+    const previousReason = this.risk.reason || "resume-persistence-failed";
+    this.risk.resume();
+    const event = {
+      action: "resume",
+      actor: String(actor || "system"),
+      at: new Date().toISOString(),
+      paperOnly: true,
+    };
+    try {
+      this.audit.append("pipeline.control", event);
+      await this.dataService?.record?.("pipeline.controls", event);
+      await this.checkpoint(event.at);
+      this.publish({ type: "pipeline.control", event });
+      return this.status();
+    } catch (error) {
+      this.risk.halt(previousReason);
+      throw error;
+    }
   }
   async recover() {
     const rows = await this.dataService?.store?.tail?.(

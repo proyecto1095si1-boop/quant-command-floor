@@ -45,6 +45,10 @@ impacto por participación, y registra explícitamente `fillModel: "impact"`.
 
 Cada checkpoint contiene ledger, métricas, estado de Riesgo y cadena SHA-256. Al reiniciar, la recuperación verifica la cadena antes de habilitar el pipeline; una corrupción coloca Risk Gate en halt.
 
+Los controles manuales `halt` y `resume` también generan un evento auditable y
+un checkpoint inmediato. Por eso un halt confirmado sobrevive un reinicio del
+proceso.
+
 ## API
 
 - `GET /v1/pipeline/status`
