@@ -251,8 +251,13 @@ class TradingPipeline {
       ),
       checkpoint = rows?.at(-1);
     if (!checkpoint) return { recovered: false };
-    this.ledger.restore(checkpoint.ledger);
-    this.audit.restore(checkpoint.audit);
+    try {
+      this.ledger.restore(checkpoint.ledger);
+      this.audit.restore(checkpoint.audit);
+    } catch (error) {
+      this.risk.halt("recovery-integrity-failed");
+      throw error;
+    }
     this.metrics = { ...this.metrics, ...checkpoint.metrics };
     if (checkpoint.risk?.halted) this.risk.halt(checkpoint.risk.reason);
     this.risk.highWater = checkpoint.risk?.highWater || this.ledger.initialCash;

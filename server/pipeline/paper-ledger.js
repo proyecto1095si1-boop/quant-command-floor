@@ -2,6 +2,7 @@
 
 const { PAPER_ONLY } = require("../config/trading-mode.js"),
   { walkBook } = require("../execution/book.js"),
+  { DoubleEntryJournal } = require("./journal.js"),
   {
     decimalString,
     divideRounded,
@@ -37,6 +38,8 @@ class PaperLedger {
     this.atomicPositions = new Map();
     this.fills = [];
     this.totalFeesAtoms = 0n;
+    this.journal = new DoubleEntryJournal();
+    this.journal.anchorGenesis(this.initialCashAtoms);
     this.ids = new Set();
     this.snapshotUsage = new Map();
     this.objectUsage = new WeakMap();
@@ -184,26 +187,31 @@ class PaperLedger {
       feeAtoms = multiplyAtoms(notionalAtoms, toAtoms(feeRate)),
       notional = fromAtoms(notionalAtoms),
       fee = fromAtoms(feeAtoms),
-      atomicPos = this.atomicPositions.get(order.symbol) || {
-        qty: 0n,
-        avgPrice: 0n,
-        costBasis: 0n,
-        realizedPnl: 0n,
-      },
-      pos = this.positions.get(order.symbol) || {
-        qty: 0,
-        avgPrice: 0,
-        realizedPnl: 0,
-      };
+      storedAtomicPos = this.atomicPositions.get(order.symbol),
+      atomicPos = storedAtomicPos
+        ? { ...storedAtomicPos }
+        : {
+            qty: 0n,
+            avgPrice: 0n,
+            costBasis: 0n,
+            realizedPnl: 0n,
+          },
+      storedPosition = this.positions.get(order.symbol),
+      pos = storedPosition
+        ? { ...storedPosition }
+        : {
+            qty: 0,
+            avgPrice: 0,
+            realizedPnl: 0,
+          };
     if (side === "buy" && notionalAtoms + feeAtoms > this.cashAtoms)
       return { status: "rejected", reason: "insufficient-cash" };
 
     qty = fromAtoms(qtyAtoms);
     price = fromAtoms(priceAtoms);
 
-    for (const [key, value] of stagedUsed) used.set(key, value);
-    this.ids.add(order.id);
-    const oldAbsolute = atomicPos.qty < 0n ? -atomicPos.qty : atomicPos.qty,
+    const oldCostBasis = atomicPos.costBasis,
+      oldAbsolute = atomicPos.qty < 0n ? -atomicPos.qty : atomicPos.qty,
       signedQtyAtoms = BigInt(sign) * qtyAtoms,
       newQtyAtoms = atomicPos.qty + signedQtyAtoms;
     let realizedAtoms = 0n;
@@ -237,14 +245,9 @@ class PaperLedger {
               : atomicPos.costBasis,
             atomicPos.qty < 0n ? -atomicPos.qty : atomicPos.qty,
           );
-    this.cashAtoms -= BigInt(sign) * notionalAtoms + feeAtoms;
-    this.totalFeesAtoms += feeAtoms;
-    this.cash = fromAtoms(this.cashAtoms);
     pos.qty = fromAtoms(atomicPos.qty);
     pos.avgPrice = fromAtoms(atomicPos.avgPrice);
     pos.realizedPnl = fromAtoms(atomicPos.realizedPnl);
-    this.atomicPositions.set(order.symbol, atomicPos);
-    this.positions.set(order.symbol, pos);
     const realized = fromAtoms(realizedAtoms);
     const fill = {
       id: order.id,
@@ -277,6 +280,20 @@ class PaperLedger {
       paper: PAPER_ONLY,
       at: new Date().toISOString(),
     };
+    const journalRow = this.journal.append(fill, {
+      cash: -BigInt(sign) * notionalAtoms - feeAtoms,
+      inventory: atomicPos.costBasis - oldCostBasis,
+      realizedPnl: realizedAtoms,
+      fees: feeAtoms,
+    });
+    fill.journal = { seq: journalRow.seq, hash: journalRow.hash };
+    for (const [key, value] of stagedUsed) used.set(key, value);
+    this.ids.add(order.id);
+    this.cashAtoms -= BigInt(sign) * notionalAtoms + feeAtoms;
+    this.totalFeesAtoms += feeAtoms;
+    this.cash = fromAtoms(this.cashAtoms);
+    this.atomicPositions.set(order.symbol, atomicPos);
+    this.positions.set(order.symbol, pos);
     this.fills.push(fill);
     const requestedQtyAtoms = toAtoms(order.qty);
     return {
@@ -330,6 +347,7 @@ class PaperLedger {
       fees: fromAtoms(this.totalFeesAtoms),
       fills: this.fills.length,
       positions,
+      journal: this.verifyJournal(),
       accounting: {
         scale: 8,
         balanced: residualAtoms === 0n,
@@ -345,6 +363,11 @@ class PaperLedger {
     };
   }
   export() {
+    const journalCheck = this.verifyJournal();
+    if (!journalCheck.valid)
+      throw new Error(
+        `journal-integrity-failed:${journalCheck.reason}:${journalCheck.account || journalCheck.brokenAt || "unknown"}`,
+      );
     return {
       initialCash: this.initialCash,
       cash: this.cash,
@@ -373,6 +396,7 @@ class PaperLedger {
       impactBps: this.impactBps,
       positions: Object.fromEntries(this.positions),
       fills: this.fills,
+      journal: this.journal.export(),
       ids: [...this.ids],
       paperOnly: PAPER_ONLY,
     };
@@ -386,6 +410,8 @@ class PaperLedger {
       !Array.isArray(x.ids)
     )
       throw new Error("invalid-ledger-checkpoint");
+    const restoredJournal = new DoubleEntryJournal();
+    if (x.journal) restoredJournal.restore(x.journal, x.fills);
     this.initialCashAtoms = x.monetaryAtoms?.initialCash
       ? BigInt(x.monetaryAtoms.initialCash)
       : toAtoms(x.initialCash);
@@ -434,10 +460,56 @@ class PaperLedger {
       ]),
     );
     this.fills = x.fills;
+    if (x.journal) this.journal = restoredJournal;
+    else {
+      this.journal = restoredJournal;
+      this.journal.anchorLegacy(
+        this.fills,
+        this.journalBalances(),
+        this.initialCashAtoms,
+      );
+    }
     this.ids = new Set(x.ids);
     this.snapshotUsage = new Map();
     this.objectUsage = new WeakMap();
+    const journalCheck = this.verifyJournal();
+    if (!journalCheck.valid)
+      throw new Error(
+        `journal-state-corrupt:${journalCheck.reason}:${journalCheck.account || "unknown"}`,
+      );
     return this;
+  }
+
+  journalBalances() {
+    const balances = {
+      cash: String(this.cashAtoms - this.initialCashAtoms),
+      "realized-pnl": String(
+        -[...this.atomicPositions.values()].reduce(
+          (sum, position) => sum + position.realizedPnl,
+          0n,
+        ),
+      ),
+      fees: String(this.totalFeesAtoms),
+    };
+    for (const [symbol, position] of this.atomicPositions)
+      balances[`inventory:${symbol}`] = String(position.costBasis);
+    return balances;
+  }
+
+  verifyJournal() {
+    const chain = this.journal.verify(this.fills);
+    if (!chain.valid) return chain;
+    if (
+      this.journal.legacyAnchor?.initialCash !== String(this.initialCashAtoms)
+    )
+      return { valid: false, reason: "initial-cash", account: "initialCash" };
+    const expected = this.journalBalances(),
+      actual = this.journal.balances(),
+      accounts = new Set([...Object.keys(expected), ...actual.keys()]);
+    for (const account of accounts)
+      if (BigInt(expected[account] || 0) !== (actual.get(account) || 0n))
+        return { valid: false, reason: "state-balance", account };
+    return { ...chain, balancesVerified: true };
   }
 }
 
