@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- La cobertura mínima de líneas del servidor sube de 80 % a 84 %, respaldada
+  por pruebas de los clientes HTTP directo/proxy y del conector público Kraken.
 - Las herramientas de desarrollo ahora requieren una línea soportada de Node.js
   (`^20.19.0`, `^22.13.0` o `>=24`) y CI verifica las tres líneas.
 - ESLint, c8, jsdom y el runtime de GitHub Actions fueron actualizados sin
