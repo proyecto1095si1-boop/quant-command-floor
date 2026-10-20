@@ -1,6 +1,7 @@
 "use strict";
 const crypto = require("node:crypto"),
   M = require("./math.js"),
+  Tail = require("../risk/tail.js"),
   { returns } = require("../risk/math.js");
 class PortfolioService {
   constructor({
@@ -20,6 +21,10 @@ class PortfolioService {
       rebalanceBand: 0.02,
       maxTurnover: 0.2,
       varConfidence: 0.95,
+      tailConfidence: 0.99,
+      tailLambda: 0.94,
+      tailThresholdQuantile: 0.9,
+      tailBacktestWindow: 100,
       maxFactorShare: 0.8,
       ...policy,
     };
@@ -89,6 +94,22 @@ class PortfolioService {
           (asset) => asset.factor || asset.riskClass || asset.asset,
         ),
       }),
+      portfolioReturns = Array.from({ length: n }, (_, observation) =>
+        target.reduce(
+          (sum, weight, asset) => sum + weight * aligned[asset][observation],
+          0,
+        ),
+      ),
+      tailOptions = {
+        confidence: this.policy.tailConfidence,
+        lambda: this.policy.tailLambda,
+        thresholdQuantile: this.policy.tailThresholdQuantile,
+      },
+      tailRisk = Tail.tailRisk(portfolioReturns, tailOptions),
+      tailBacktest = Tail.rollingFhsBacktest(portfolioReturns, {
+        ...tailOptions,
+        window: Math.min(this.policy.tailBacktestWindow, n - 1),
+      }),
       rows = assets.map((x, i) => ({
         ...x,
         currentWeight: current[i],
@@ -126,6 +147,8 @@ class PortfolioService {
           factorBreaches: Object.entries(diagnostics.factorConcentration.shares)
             .filter(([, share]) => share > this.policy.maxFactorShare + 1e-12)
             .map(([factor, share]) => ({ factor, share })),
+          tailRisk,
+          tailBacktest,
         },
         rebalancing: {
           turnover: rebalancing.turnover,

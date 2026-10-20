@@ -165,6 +165,20 @@ const assets = {
   assert.ok(plan.diagnostics.covarianceMinEigenvalue > 0);
   assert.ok(plan.diagnostics.valueAtRisk > 0);
   assert.ok(plan.diagnostics.valueAtRiskNotional > 0);
+  assert.equal(plan.diagnostics.tailRisk.confidence, 0.99);
+  assert.equal(plan.diagnostics.tailRisk.fhs.available, true);
+  assert.equal(plan.diagnostics.tailRisk.evt.available, true);
+  assert.ok(
+    plan.diagnostics.tailRisk.conservative.expectedShortfall >=
+      plan.diagnostics.tailRisk.conservative.valueAtRisk,
+  );
+  assert.equal(plan.diagnostics.tailBacktest.available, true);
+  assert.equal(plan.diagnostics.tailBacktest.observations, 140);
+  assert.ok(
+    ["green", "yellow", "red"].includes(
+      plan.diagnostics.tailBacktest.trafficLight.zone,
+    ),
+  );
   assert.ok(
     Math.abs(plan.diagnostics.componentVaRSum - plan.diagnostics.valueAtRisk) <
       1e-14,
