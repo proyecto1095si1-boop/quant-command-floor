@@ -1,4 +1,32 @@
-const assert=require('node:assert/strict');const {DataPlane}=require('../dist/data-plane.js');const {StrategyCatalog,backtest,walkForward,monteCarlo}=require('../dist/research.js');
-const dp=new DataPlane({maxAgeMs:1000});dp.ingest({price:100,timestamp:1000},'A');dp.ingest({price:101,timestamp:1100},'B');assert.equal(dp.health('BTCUSDT',1200).status,'healthy');assert.deepEqual(dp.replay(x=>x.source),['A','B']);
-const candles=Array.from({length:140},(_,i)=>({close:100+i*.3+Math.sin(i/4)*2})),catalog=new StrategyCatalog(),strategy=catalog.register({id:'trend',signal:(c,i)=>i<8?0:c[i].close>c[i-8].close?1:-1});
-const result=backtest(candles,strategy);assert.ok(Number.isFinite(result.sharpe));assert.ok(result.trades>0);const wf=walkForward(candles,strategy);assert.ok(wf.windows.length>0);const mc=monteCarlo([.01,-.005,.003],50,7);assert.equal(mc.runs,50);console.log('data + research tests: ok');
+const assert = require("node:assert/strict");
+const { DataPlane } = require("../dist/data-plane.js");
+const {
+  StrategyCatalog,
+  backtest,
+  walkForward,
+  monteCarlo,
+} = require("../dist/research.js");
+const dp = new DataPlane({ maxAgeMs: 1000 });
+dp.ingest({ price: 100, timestamp: 1000 }, "A");
+dp.ingest({ price: 101, timestamp: 1100 }, "B");
+assert.equal(dp.health("BTCUSDT", 1200).status, "healthy");
+assert.deepEqual(
+  dp.replay((x) => x.source),
+  ["A", "B"],
+);
+const candles = Array.from({ length: 140 }, (_, i) => ({
+    close: 100 + i * 0.3 + Math.sin(i / 4) * 2,
+  })),
+  catalog = new StrategyCatalog(),
+  strategy = catalog.register({
+    id: "trend",
+    signal: (c, i) => (i < 8 ? 0 : c[i].close > c[i - 8].close ? 1 : -1),
+  });
+const result = backtest(candles, strategy);
+assert.ok(Number.isFinite(result.sharpe));
+assert.ok(result.trades > 0);
+const wf = walkForward(candles, strategy);
+assert.ok(wf.windows.length > 0);
+const mc = monteCarlo([0.01, -0.005, 0.003], 50, 7);
+assert.equal(mc.runs, 50);
+console.log("data + research tests: ok");

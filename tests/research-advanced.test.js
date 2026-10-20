@@ -1,3 +1,46 @@
-'use strict';
-const assert=require('node:assert/strict'),S=require('../server/research/statistics.js'),V=require('../server/research/validation.js'),{ResearchLab,seededReturns}=require('../server/research/lab.js');
-(async()=>{const returns=seededReturns(7,.001,320),folds=V.purgedKFold(returns.length,{folds:5,purge:3,embargo:2});for(const f of folds)assert.ok(f.train.every(i=>i<f.start-3||i>=f.end+3));const one=S.deflatedSharpeRatio(returns,1),many=S.deflatedSharpeRatio(returns,100);assert.ok(many.probability<=one.probability);const matrix=Array.from({length:8},(_,i)=>seededReturns(10+i,.0002+i*.00005));const pbo=V.probabilityBacktestOverfitting(matrix);assert.ok(pbo.probability>=0&&pbo.probability<=1);const lab=new ResearchLab({policy:{minDsr:0,maxPbo:1,maxDrawdown:1,minStability:0,minOosSharpe:-99}}),report=await lab.evaluate({candidateId:'challenger-a',returns,returnsMatrix:matrix,trials:8});assert.equal(report.status,'eligible');await assert.rejects(()=>lab.promote(report.id,''),/human-approval-required/);const promoted=await lab.promote(report.id,'Human Director');assert.equal(promoted.champion.id,'challenger-a');assert.equal(lab.catalog().champion.approvedBy,'Human Director');console.log('advanced research tests: ok')})().catch(e=>{console.error(e);process.exit(1)});
+"use strict";
+const assert = require("node:assert/strict"),
+  S = require("../server/research/statistics.js"),
+  V = require("../server/research/validation.js"),
+  { ResearchLab, seededReturns } = require("../server/research/lab.js");
+(async () => {
+  const returns = seededReturns(7, 0.001, 320),
+    folds = V.purgedKFold(returns.length, { folds: 5, purge: 3, embargo: 2 });
+  for (const f of folds)
+    assert.ok(f.train.every((i) => i < f.start - 3 || i >= f.end + 3));
+  const one = S.deflatedSharpeRatio(returns, 1),
+    many = S.deflatedSharpeRatio(returns, 100);
+  assert.ok(many.probability <= one.probability);
+  const matrix = Array.from({ length: 8 }, (_, i) =>
+    seededReturns(10 + i, 0.0002 + i * 0.00005),
+  );
+  const pbo = V.probabilityBacktestOverfitting(matrix);
+  assert.ok(pbo.probability >= 0 && pbo.probability <= 1);
+  const lab = new ResearchLab({
+      policy: {
+        minDsr: 0,
+        maxPbo: 1,
+        maxDrawdown: 1,
+        minStability: 0,
+        minOosSharpe: -99,
+      },
+    }),
+    report = await lab.evaluate({
+      candidateId: "challenger-a",
+      returns,
+      returnsMatrix: matrix,
+      trials: 8,
+    });
+  assert.equal(report.status, "eligible");
+  await assert.rejects(
+    () => lab.promote(report.id, ""),
+    /human-approval-required/,
+  );
+  const promoted = await lab.promote(report.id, "Human Director");
+  assert.equal(promoted.champion.id, "challenger-a");
+  assert.equal(lab.catalog().champion.approvedBy, "Human Director");
+  console.log("advanced research tests: ok");
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

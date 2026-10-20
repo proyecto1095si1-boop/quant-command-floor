@@ -1,2 +1,16 @@
-const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{loadEnv}=require('../server/env.js');
-(()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qcf-env-')),file=path.join(dir,'.env');fs.writeFileSync(file,'QCF_TEST_VALUE="loaded"\nINVALID-KEY=no\n');delete process.env.QCF_TEST_VALUE;assert.equal(loadEnv(file),true);assert.equal(process.env.QCF_TEST_VALUE,'loaded');delete process.env.QCF_TEST_VALUE;fs.rmSync(dir,{recursive:true});console.log('env tests: ok')})();
+const assert = require("node:assert/strict"),
+  fs = require("node:fs"),
+  os = require("node:os"),
+  path = require("node:path"),
+  { loadEnv } = require("../server/env.js");
+(() => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qcf-env-")),
+    file = path.join(dir, ".env");
+  fs.writeFileSync(file, 'QCF_TEST_VALUE="loaded"\nINVALID-KEY=no\n');
+  delete process.env.QCF_TEST_VALUE;
+  assert.equal(loadEnv(file), true);
+  assert.equal(process.env.QCF_TEST_VALUE, "loaded");
+  delete process.env.QCF_TEST_VALUE;
+  fs.rmSync(dir, { recursive: true });
+  console.log("env tests: ok");
+})();
