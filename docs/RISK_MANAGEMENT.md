@@ -8,10 +8,12 @@ La cantidad final es el mínimo de cuatro límites:
 
 1. **Stop/ATR:** `risk budget / max(2×ATR, price×max(0.8%, 1.5×daily vol))`. El presupuesto por operación predeterminado es 0.5% del equity.
 2. **Mandato:** `equity × max asset weight / price`.
-3. **Volatility targeting:** `equity × 15% target vol / EWMA annual vol / price`. EWMA usa `λ=0.94`.
+3. **Volatility targeting:** `equity × 15% target vol / EWMA annual vol / price`. EWMA usa `λ=0.94` y anualiza retornos diarios con `√365`, porque el mercado cripto opera todos los días. `periodsPerYear` permite sobrescribir el horizonte cuando la frecuencia de la serie es otra.
 4. **Kelly fraccional:** `max(0, p − (1−p)/payoff) × 0.25`; limita el Kelly completo al 25%.
 
 El reporte conserva los cuatro techos y marca cuál fue vinculante.
+También expone `annualizationPeriods`, de modo que una decisión pueda auditarse
+sin inferir la frecuencia aplicada.
 
 ## Gates de veto
 

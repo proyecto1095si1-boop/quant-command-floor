@@ -1,5 +1,6 @@
 "use strict";
 const crypto = require("node:crypto"),
+  { PERIODS_PER_YEAR } = require("../config/annualization.js"),
   S = require("./statistics.js"),
   V = require("./validation.js");
 const DEFAULT_POLICY = {
@@ -44,7 +45,7 @@ class ResearchLab {
   }
   async evaluate(input = {}) {
     const id = String(input.candidateId || `strategy-${Date.now()}`),
-      periods = Number(input.periods || 252),
+      periods = Number(input.periods || PERIODS_PER_YEAR.daily),
       trials = Math.max(2, Math.min(1000, Number(input.trials || 20))),
       matrix =
         input.returnsMatrix ||
@@ -99,6 +100,7 @@ class ResearchLab {
       status: Object.values(checks).every(Boolean) ? "eligible" : "rejected",
       observations: returns.length,
       metrics: {
+        annualizationPeriods: periods,
         sharpe: dsr.sharpe,
         deflatedSharpeProbability: dsr.probability,
         deflatedBenchmark: dsr.benchmark,

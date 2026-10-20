@@ -1,4 +1,6 @@
 "use strict";
+const { PERIODS_PER_YEAR } = require("../config/annualization.js");
+
 function mean(x) {
   return x.length ? x.reduce((a, b) => a + b, 0) / x.length : 0;
 }
@@ -23,7 +25,7 @@ function moments(x) {
     kurtosis: mean(x.map((v) => ((v - m) / s) ** 4)),
   };
 }
-function sharpe(x, periods = 252) {
+function sharpe(x, periods = PERIODS_PER_YEAR.daily) {
   const s = std(x);
   return s ? (mean(x) / s) * Math.sqrt(periods) : 0;
 }
@@ -43,7 +45,11 @@ function erf(x) {
 function normalCdf(x) {
   return 0.5 * (1 + erf(x / Math.SQRT2));
 }
-function probabilisticSharpeRatio(returns, benchmark = 0, periods = 252) {
+function probabilisticSharpeRatio(
+  returns,
+  benchmark = 0,
+  periods = PERIODS_PER_YEAR.daily,
+) {
   const n = returns.length,
     m = moments(returns),
     sr = sharpe(returns, periods),
@@ -57,7 +63,11 @@ function probabilisticSharpeRatio(returns, benchmark = 0, periods = 252) {
     );
   return normalCdf(((sr - benchmark) * Math.sqrt(Math.max(1, n - 1))) / den);
 }
-function deflatedSharpeRatio(returns, trials = 1, periods = 252) {
+function deflatedSharpeRatio(
+  returns,
+  trials = 1,
+  periods = PERIODS_PER_YEAR.daily,
+) {
   const n = Math.max(2, returns.length),
     penalty =
       Math.sqrt((2 * Math.log(Math.max(1, trials))) / (n - 1)) *
