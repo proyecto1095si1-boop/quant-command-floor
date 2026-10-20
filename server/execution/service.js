@@ -1,6 +1,7 @@
 "use strict";
 const crypto = require("node:crypto"),
-  { schedule } = require("./router.js");
+  { schedule } = require("./router.js"),
+  { fromAtoms, toAtoms } = require("../math/fixed-decimal.js");
 class ExecutionService {
   constructor({
     pipeline,
@@ -201,8 +202,12 @@ class ExecutionService {
       child.executedAt = new Date().toISOString();
       if (["filled", "partial"].includes(execution.status)) {
         this.metrics.fills++;
-        this.metrics.notional += execution.fill.notional;
-        this.metrics.fees += execution.fill.fee;
+        this.metrics.notional = fromAtoms(
+          toAtoms(this.metrics.notional) + toAtoms(execution.fill.notional),
+        );
+        this.metrics.fees = fromAtoms(
+          toAtoms(this.metrics.fees) + toAtoms(execution.fill.fee),
+        );
       } else this.metrics.rejected++;
       results.push(child);
     }

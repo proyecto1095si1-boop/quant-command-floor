@@ -14,6 +14,7 @@ implementación, evidencia y aprobación formal del propietario y de seguridad.
 | R-006 | La latencia paper no reproduce selección adversa ni el libro futuro observado después del retardo. | Medio: backtests o simulaciones pueden sobreestimar la calidad del fill. | Registrar `latencyMs`, aplicar slippage/impact cuando no existe L2 y exigir un modelo event-driven antes de calibración operativa. | **Aceptado para simulación paper; abierto para mayor fidelidad.** |
 | R-007 | La cobertura de líneas cae por debajo del margen actual sobre 80 %. | Medio: CI bloqueado o código nuevo insuficientemente probado. | Umbral c8 obligatorio sobre `server/**/*.js`, incluido código no ejecutado mediante `--all`; agregar tests con cada cambio. | **Controlado por CI.** |
 | R-008 | El repositorio carece de licencia explícita. | Medio: incertidumbre sobre uso, modificación y distribución. | El propietario debe elegir MIT, Apache-2.0 o una licencia propietaria según `DECISIONES_PENDIENTES.md`. | **Pendiente de decisión del propietario.** |
+| R-009 | La escala fija paper de ocho decimales no coincide con el tick/lot o la moneda de liquidación de un venue futuro. | Alto: rechazo, redondeo distinto o divergencia con el estado externo. | Mantener aritmética exacta e invariantes en paper; antes de cualquier adaptador real, cargar escalas por instrumento desde metadata autenticada, validar límites de enteros y reconciliar átomos propios contra los del venue. | **Controlado en paper · bloqueante para un adaptador real.** |
 
 ## Condición de frontera
 
