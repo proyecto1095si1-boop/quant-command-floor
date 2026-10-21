@@ -21,6 +21,13 @@ MARKET_PRODUCTS=BTC-USD,ETH-USD,SOL-USD,BNB-USD
 MARKET_POLL_MS=5000
 MARKET_CLOCK_MAX_DRIFT_MS=2000
 MARKET_EVENT_MAX_FUTURE_MS=2000
+MARKET_MIN_SOURCES=2
+MARKET_RECONCILIATION_MAX_AGE_MS=15000
+MARKET_RECONCILIATION_MAX_DIVERGENCE_BPS=25
+MARKET_MAX_SPREAD_BPS=100
+MARKET_MIN_TRADE_COVERAGE=0.98
+MARKET_QUARANTINE_AFTER=2
+MARKET_RECOVER_AFTER=3
 OUTCOME_MAX_STALENESS_MS=30000
 OUTCOME_MAX_LAG_MS=30000
 OUTCOME_FINALITY_DELAY_MS=30000
@@ -458,6 +465,11 @@ su sesión segura en una identidad verificable para el upgrade.
 `/v1/data/health` incluye `provenance`: algoritmo, alcance diario, heads,
 secuencias, gaps detectados y estado del reloj monotónico. Un reloj no saludable
 degrada el Data Plane y la ingesta nueva falla cerrada.
+
+También incluye `reconciliation`, con referencia mediana multifonte, desviación
+por fuente, frescura, spread/profundidad L2, cobertura de secuencias y estado de
+cuarentena por producto. `eligible=false` impide que el contexto llegue como
+saludable a las mesas, incluso antes de que la histéresis declare cuarentena.
 
 ### Agentes y mesas
 
