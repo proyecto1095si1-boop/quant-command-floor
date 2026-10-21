@@ -69,7 +69,8 @@ const assert = require("node:assert/strict"),
   assert.ok(burnIncident.resolvedAt);
   const backup = await sre.backup("SRE Operator");
   assert.equal(backup.digest.length, 64);
-  assert.equal(written[0][0], "sre.backups");
+  assert.ok(written.some(([stream]) => stream === "sre.slo-telemetry"));
+  assert.ok(written.some(([stream]) => stream === "sre.backups"));
   sre.journal.rows[0].payload.message = "tampered";
   assert.equal(sre.journal.verify().valid, false);
   console.log("sre tests: ok");

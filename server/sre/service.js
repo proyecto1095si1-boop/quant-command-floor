@@ -1,7 +1,8 @@
 "use strict";
 const crypto = require("node:crypto"),
   { Sha256AuditChain } = require("../pipeline/audit.js"),
-  { SloMonitor } = require("./slo.js");
+  { SloMonitor } = require("./slo.js"),
+  { SloTelemetry } = require("./telemetry.js");
 function percentile(xs, p) {
   if (!xs.length) return 0;
   const a = [...xs].sort((x, y) => x - y),
@@ -21,6 +22,9 @@ class SreService {
     clock = Date.now,
     sloWindowMs = 30 * 86400000,
     alertPolicies,
+    telemetry = null,
+    telemetryBucketMs = 60000,
+    requireTelemetryRecovery = false,
   } = {}) {
     this.gatewayMetrics = gatewayMetrics;
     this.pipeline = pipeline;
@@ -63,6 +67,19 @@ class SreService {
         audit: { target: this.slos.auditIntegrity, windowMs: sloWindowMs },
       },
     });
+    this.telemetry =
+      telemetry ||
+      new SloTelemetry({
+        record,
+        clock,
+        bucketMs: telemetryBucketMs,
+        retentionMs: sloWindowMs,
+        policy: {
+          objectives: this.sloMonitor.objectives,
+          alerts: this.sloMonitor.alerts,
+        },
+      });
+    this.telemetryReady = !requireTelemetryRecovery;
   }
   open(code, severity, message) {
     const existing = this.incidents.find(
@@ -103,6 +120,7 @@ class SreService {
     return x;
   }
   async snapshot() {
+    if (!this.telemetryReady) throw new Error("slo-telemetry-not-recovered");
     const data = this.dataService.health(),
       audit = this.pipeline.audit.verify(),
       m = this.gatewayMetrics,
@@ -135,20 +153,38 @@ class SreService {
             at: now,
             good: latencyMs <= this.slos.p95LatencyMs,
           }));
-    this.sloMonitor.observe(
+    this.telemetry.ingestHttp(m.observations, this.slos.p95LatencyMs);
+    this.telemetry.observe(
       "freshness",
       freshness === null || freshness <= this.slos.dataFreshnessMs,
-      freshness,
+      now,
     );
-    this.sloMonitor.observe("audit", audit.valid, audit.brokenAt);
+    this.telemetry.observe("audit", audit.valid, now);
+    await this.telemetry.flush();
+    const hasSequencedHttp = (m.observations || []).some((event) =>
+        Number.isInteger(event.seq),
+      ),
+      objectiveEvents = {
+        availability: hasSequencedHttp
+          ? this.telemetry.events("availability")
+          : availabilityEvents,
+        latency: hasSequencedHttp
+          ? this.telemetry.events("latency")
+          : latencyEvents,
+        freshness: this.telemetry.events("freshness"),
+        audit: this.telemetry.events("audit"),
+      };
     const objectives = {
         availability: this.sloMonitor.evaluate(
           "availability",
-          availabilityEvents,
+          objectiveEvents.availability,
         ),
-        latency: this.sloMonitor.evaluate("latency", latencyEvents),
-        freshness: this.sloMonitor.evaluate("freshness"),
-        audit: this.sloMonitor.evaluate("audit"),
+        latency: this.sloMonitor.evaluate("latency", objectiveEvents.latency),
+        freshness: this.sloMonitor.evaluate(
+          "freshness",
+          objectiveEvents.freshness,
+        ),
+        audit: this.sloMonitor.evaluate("audit", objectiveEvents.audit),
       },
       firing = Object.values(objectives).flatMap((objective) =>
         objective.alerts
@@ -180,15 +216,19 @@ class SreService {
           code: incident.code,
         });
       }
-    const checks = {
-      availability: availability >= this.slos.availability,
-      latency: p95 <= this.slos.p95LatencyMs,
-      data: data.status === "healthy",
-      freshness: freshness === null || freshness <= this.slos.dataFreshnessMs,
-      audit: audit.valid,
-      risk: !this.pipeline.risk.halted,
-      stream: data.stream?.status !== "error",
-    };
+    const telemetryStatus = this.telemetry.status(),
+      checks = {
+        availability: availability >= this.slos.availability,
+        latency: p95 <= this.slos.p95LatencyMs,
+        data: data.status === "healthy",
+        freshness: freshness === null || freshness <= this.slos.dataFreshnessMs,
+        audit: audit.valid,
+        risk: !this.pipeline.risk.halted,
+        stream: data.stream?.status !== "error",
+        telemetry:
+          telemetryStatus.gaps.length === 0 &&
+          telemetryStatus.httpGaps.length === 0,
+      };
     if (!checks.availability)
       this.open(
         "SLO_AVAILABILITY",
@@ -212,6 +252,12 @@ class SreService {
         "critical",
         this.pipeline.risk.reason || "Risk halt",
       );
+    if (!checks.telemetry)
+      this.open(
+        "SLO_TELEMETRY_GAP",
+        "critical",
+        `${telemetryStatus.gaps.length} probe gaps; ${telemetryStatus.httpGaps.length} HTTP gaps`,
+      );
     const passed = Object.values(checks).filter(Boolean).length,
       status =
         passed === Object.keys(checks).length
@@ -233,6 +279,7 @@ class SreService {
       },
       objectives,
       burnAlerts: firing,
+      telemetry: telemetryStatus,
       checks,
       services: {
         data: data.status,
@@ -279,6 +326,11 @@ class SreService {
       actor,
       journal: this.journal.verify(),
     };
+  }
+  recoverTelemetry(checkpoints) {
+    const recovered = this.telemetry.recover(checkpoints);
+    this.telemetryReady = true;
+    return recovered;
   }
 }
 module.exports = { SreService, percentile };

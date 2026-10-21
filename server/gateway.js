@@ -130,6 +130,7 @@ function createGateway(options = {}) {
       latencies: [],
       statuses: {},
       observations: [],
+      observationSeq: 0,
     },
     desks = options.desks || new DeskRegistry(),
     security = options.security || new SecurityManager();
@@ -161,7 +162,12 @@ function createGateway(options = {}) {
       if (metrics.latencies.length > 2000) metrics.latencies.shift();
       metrics.statuses[res.statusCode] =
         (metrics.statuses[res.statusCode] || 0) + 1;
-      metrics.observations.push({ at, status: res.statusCode, latencyMs });
+      metrics.observations.push({
+        seq: ++metrics.observationSeq,
+        at,
+        status: res.statusCode,
+        latencyMs,
+      });
       if (metrics.observations.length > 10000) metrics.observations.shift();
     });
     const headers = cors(req.headers.origin, allowedOrigin);
