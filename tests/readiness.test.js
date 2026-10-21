@@ -40,6 +40,12 @@ const assert = require("node:assert/strict"),
     },
     governanceState = { ready: true, recoveryError: null, champions: [] },
     readyState = { ready: true },
+    providerState = {
+      configured: true,
+      observed: true,
+      state: "CLOSED",
+      healthy: true,
+    },
     written = [],
     build = (overrides = {}) =>
       new ReadinessService({
@@ -53,7 +59,9 @@ const assert = require("node:assert/strict"),
         calibrationGovernance: {
           status: () => structuredClone(readyState),
         },
-        llmConfigured: true,
+        aiProviderHealth: {
+          status: () => structuredClone(providerState),
+        },
         clock: () => new Date("2026-10-21T12:00:00Z"),
         record: async (stream, event) => written.push([stream, event]),
         ...overrides,
@@ -139,10 +147,14 @@ const assert = require("node:assert/strict"),
   );
   governanceState.ready = true;
 
-  const withoutAi = await build({ llmConfigured: false }).evaluate();
+  providerState.healthy = false;
+  providerState.state = "OPEN";
+  const withoutAi = await build().evaluate();
   assert.equal(withoutAi.state, STATES.DEGRADED);
   assert.equal(withoutAi.capabilities.aiSignals, false);
   assert.equal(withoutAi.capabilities.paperExecution, true);
+  providerState.healthy = true;
+  providerState.state = "CLOSED";
 
   dataState.status = "degraded";
   const halted = await build().evaluate();

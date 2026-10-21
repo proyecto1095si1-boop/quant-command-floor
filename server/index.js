@@ -9,6 +9,7 @@ const { PortfolioService } = require("./portfolio/service.js");
 const { ExecutionService } = require("./execution/service.js");
 const { SreService } = require("./sre/service.js");
 const { ReadinessService } = require("./sre/readiness.js");
+const { AiProviderHealth } = require("./ai/provider-health.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -32,7 +33,20 @@ if (
   sreSampleMs > sreBucketMs
 )
   throw new Error("invalid-sre-retention-or-sampling-policy");
-const gateway = createGateway(),
+const aiProviderHealth = new AiProviderHealth({
+    configured: Boolean(process.env.LLM_BASE_URL),
+    policy: {
+      windowSize: Number(process.env.LLM_HEALTH_WINDOW || 20),
+      minSamples: Number(process.env.LLM_HEALTH_MIN_SAMPLES || 5),
+      failureRate: Number(process.env.LLM_HEALTH_FAILURE_RATE || 0.5),
+      consecutiveFailures: Number(
+        process.env.LLM_HEALTH_CONSECUTIVE_FAILURES || 3,
+      ),
+      latencyP95Ms: Number(process.env.LLM_HEALTH_P95_MS || 5000),
+      cooldownMs: Number(process.env.LLM_HEALTH_COOLDOWN_MS || 30000),
+    },
+  }),
+  gateway = createGateway({ aiProviderHealth }),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
     .map((x) => x.trim())
@@ -142,7 +156,7 @@ const regime = new RegimeService({
     experiments,
     aiEvaluation,
     calibrationGovernance,
-    llmConfigured: Boolean(process.env.LLM_BASE_URL),
+    aiProviderHealth,
     record: (stream, event) => data.record(stream, event),
     requireRecovery: true,
     policy: {

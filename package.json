@@ -4,7 +4,7 @@
   "private": true,
   "description": "Pixel multi-agent crypto hedge fund command floor",
   "scripts": {
-    "pretest": "node tests/readiness.test.js && node tests/slo-telemetry.test.js && node tests/slo-budgets.test.js && node tests/historical-backfill.test.js && node tests/operational-state.test.js && node tests/microstructure-tca.test.js && node tests/market-reconciliation.test.js && node tests/market-provenance.test.js && node tests/outcome-oracle.test.js && node tests/label-integrity.test.js",
+    "pretest": "node tests/ai-provider-health.test.js && node tests/readiness.test.js && node tests/slo-telemetry.test.js && node tests/slo-budgets.test.js && node tests/historical-backfill.test.js && node tests/operational-state.test.js && node tests/microstructure-tca.test.js && node tests/market-reconciliation.test.js && node tests/market-provenance.test.js && node tests/outcome-oracle.test.js && node tests/label-integrity.test.js",
     "format": "prettier --write server dist tests",
     "format:check": "prettier --check server dist tests",
     "lint": "eslint server dist tests",
