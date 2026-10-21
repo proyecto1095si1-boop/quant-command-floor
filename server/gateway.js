@@ -367,6 +367,23 @@ function createGateway(options = {}) {
         return json(res, e.status || 422, { error: e.message }, headers);
       }
     }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/research/consensus-calibration"
+    ) {
+      if (!research)
+        return json(res, 503, { error: "research-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await research.calibrateConsensus(await body(req)),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "POST" && req.url === "/v1/research/promote") {
       if (!research)
         return json(res, 503, { error: "research-disabled" }, headers);
