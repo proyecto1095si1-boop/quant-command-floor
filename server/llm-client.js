@@ -30,12 +30,20 @@ async function executeLLM(
     baseUrl = process.env.LLM_BASE_URL,
     apiKey = process.env.LLM_API_KEY,
     defaultModel = process.env.LLM_MODEL || "local-model",
+    providerHealth = null,
+    clock = () => Date.now(),
   } = {},
 ) {
   if (!ALLOWED_AGENTS.has(payload.agent_id)) return null;
   const base = safeBase(baseUrl);
   if (!base) return null;
+  const permit = providerHealth?.acquire() || { allowed: true };
+  if (!permit.allowed)
+    throw Object.assign(new Error(permit.reason), {
+      providerUnavailable: true,
+    });
   const model = payload.model || {},
+    startedAt = clock(),
     controller = new AbortController(),
     timeout = Math.max(
       500,
@@ -74,6 +82,7 @@ async function executeLLM(
     if (!response.ok) throw new Error(`llm-http-${response.status}`);
     const data = await response.json(),
       normalized = extract(data.choices?.[0]?.message?.content);
+    providerHealth?.success(clock() - startedAt);
     return {
       agent_id: payload.agent_id,
       version: `llm:${model.name || defaultModel}`,
@@ -82,6 +91,9 @@ async function executeLLM(
       latency_ms: 0,
       at: new Date().toISOString(),
     };
+  } catch (error) {
+    providerHealth?.failure(error, clock() - startedAt);
+    throw Object.assign(error, { providerUnavailable: true });
   } finally {
     clearTimeout(timer);
   }

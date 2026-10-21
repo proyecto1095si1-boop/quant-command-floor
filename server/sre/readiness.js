@@ -116,7 +116,7 @@ class ReadinessService {
     experiments,
     aiEvaluation,
     calibrationGovernance,
-    llmConfigured = false,
+    aiProviderHealth,
     record = async () => {},
     clock = () => new Date(),
     policy = {},
@@ -130,7 +130,7 @@ class ReadinessService {
     this.experiments = experiments;
     this.aiEvaluation = aiEvaluation;
     this.calibrationGovernance = calibrationGovernance;
-    this.llmConfigured = !!llmConfigured;
+    this.aiProviderHealth = aiProviderHealth;
     this.record = record;
     this.clock = clock;
     if (
@@ -141,7 +141,8 @@ class ReadinessService {
       typeof governance?.status !== "function" ||
       typeof experiments?.list !== "function" ||
       typeof aiEvaluation?.status !== "function" ||
-      typeof calibrationGovernance?.status !== "function"
+      typeof calibrationGovernance?.status !== "function" ||
+      typeof aiProviderHealth?.status !== "function"
     )
       throw new Error("invalid-readiness-dependencies");
     this.policy = {
@@ -188,6 +189,7 @@ class ReadinessService {
       experiments = this.experiments.list(),
       aiEvaluation = this.aiEvaluation.status(),
       calibration = this.calibrationGovernance.status(),
+      providerHealth = this.aiProviderHealth.status(),
       executions = execution.metrics.children || 0,
       rejectionRate = executions ? execution.metrics.rejected / executions : 0,
       enoughExecutions = executions >= this.policy.minExecutionsForRate,
@@ -335,9 +337,9 @@ class ReadinessService {
           "ai.provider",
           "ai",
           "degrade",
-          this.llmConfigured,
-          this.llmConfigured ? "configured" : "missing",
-          "configured",
+          providerHealth.healthy,
+          providerHealth,
+          "configured-observed-closed-within-latency-policy",
           ["aiSignals"],
         ),
         check(

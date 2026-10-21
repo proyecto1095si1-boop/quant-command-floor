@@ -218,6 +218,15 @@ function createGateway(options = {}) {
       );
     if (req.method === "GET" && req.url === "/v1/security/status")
       return json(res, 200, security.status(), headers);
+    if (req.method === "GET" && req.url === "/v1/ai/provider-health")
+      return json(
+        res,
+        options.aiProviderHealth ? 200 : 503,
+        options.aiProviderHealth?.status() || {
+          error: "ai-provider-health-disabled",
+        },
+        headers,
+      );
     if (req.method === "GET" && req.url === "/v1/readiness") {
       if (!readiness)
         return json(res, 503, { error: "readiness-disabled" }, headers);
@@ -1084,11 +1093,32 @@ function createGateway(options = {}) {
             { error: "invalid-request", fields: errors },
             headers,
           );
-        const llmStarted = Date.now(),
-          external = await executeLLM(payload, options.llm || {}),
-          result = external
-            ? { ...external, latency_ms: Date.now() - llmStarted }
-            : execute(payload.agent_id, payload.input);
+        const llmStarted = Date.now();
+        let external = null,
+          fallbackReason = null;
+        try {
+          external = await executeLLM(payload, {
+            ...(options.llm || {}),
+            providerHealth: options.aiProviderHealth || null,
+          });
+        } catch (error) {
+          if (!error.providerUnavailable) throw error;
+          fallbackReason = error.message;
+        }
+        const result = external
+          ? { ...external, latency_ms: Date.now() - llmStarted }
+          : {
+              ...execute(payload.agent_id, payload.input),
+              ...(fallbackReason
+                ? {
+                    fallback: {
+                      used: true,
+                      engine: "local-math",
+                      reason: fallbackReason,
+                    },
+                  }
+                : {}),
+            };
         metrics.executions++;
         publish({
           type: "agent.result",
