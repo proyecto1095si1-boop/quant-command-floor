@@ -1,5 +1,11 @@
 "use strict";
 
+const {
+  digest,
+  openCheckpoint,
+  sealCheckpoint,
+} = require("../config/checkpoint.js");
+
 function median(values) {
   const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
   if (!sorted.length) return null;
@@ -126,7 +132,7 @@ class MarketReconciliation {
         : null,
       midpoint = (bestBid + bestAsk) / 2,
       spreadBps =
-        midpoint > 0 ? ((bestAsk - bestBid) / midpoint) * 10_000 : Infinity,
+        midpoint > 0 ? ((bestAsk - bestBid) / midpoint) * 10_000 : null,
       coverage = tradeCoverage(trades),
       reasons = [];
     if (fresh.length < this.policy.minSources)
@@ -209,6 +215,36 @@ class MarketReconciliation {
       metrics: { ...this.metrics },
       policy: { ...this.policy },
     };
+  }
+
+  checkpoint() {
+    return sealCheckpoint("market-reconciliation", {
+      policy: this.policy,
+      products: [...this.products],
+      metrics: this.metrics,
+    });
+  }
+
+  restore(checkpoint) {
+    const payload = openCheckpoint(checkpoint, "market-reconciliation");
+    if (digest(payload.policy) !== digest(this.policy))
+      throw new Error("market-reconciliation-policy-mismatch");
+    if (!Array.isArray(payload.products) || !payload.metrics)
+      throw new Error("invalid-market-reconciliation-state");
+    const products = new Map();
+    for (const entry of payload.products) {
+      if (
+        !Array.isArray(entry) ||
+        typeof entry[0] !== "string" ||
+        !entry[1] ||
+        entry[1].product !== entry[0]
+      )
+        throw new Error("invalid-market-reconciliation-state");
+      products.set(entry[0], structuredClone(entry[1]));
+    }
+    this.products = products;
+    this.metrics = { ...payload.metrics };
+    return this.snapshot();
   }
 }
 

@@ -160,6 +160,10 @@ gateway.listen().then(async (address) => {
     console.error(`Model governance recovery blocked: ${e.message}`);
   }
   try {
+    const tcaCheckpoints = await data.store.tail("execution.tca", 1),
+      tcaRecovery = execution.recoverTca(tcaCheckpoints);
+    if (tcaRecovery.recovered)
+      console.log(`Execution TCA recovered: ${tcaRecovery.records} records`);
     const recovered = await pipeline.recover();
     if (recovered.recovered)
       console.log(`Pipeline recovered: ${recovered.fills} fills`);

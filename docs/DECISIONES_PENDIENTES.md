@@ -156,3 +156,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** usar T32 para seleccionar un broker/router real o
   afirmar best execution sin datos externos independientes.
 
+## Migración de checkpoints operativos
+
+- **Estado:** pendiente cuando exista un cambio de política o schema.
+- **Decisión necesaria:** definir aprobación, herramienta de migración,
+  rollback, retención del original y evidencia firmada de equivalencia.
+- **Acción bloqueada:** editar hashes, borrar cuarentenas o convertir
+  checkpoints incompatibles automáticamente.
+

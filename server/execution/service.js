@@ -236,7 +236,6 @@ class ExecutionService {
           book,
         });
         child.tca = tca;
-        await this.record("execution.tca", tca);
       } else this.metrics.rejected++;
       results.push(child);
     }
@@ -259,9 +258,15 @@ class ExecutionService {
       paperOnly: true,
       tca: this.tca.snapshot(),
     };
+    await this.record("execution.tca", this.tca.checkpoint());
     await this.record("execution.reconciliations", reconciliation);
     this.publish({ type: "execution.reconciled", reconciliation });
     return reconciliation;
+  }
+  recoverTca(rows = []) {
+    if (!rows.length) return { recovered: false, records: 0 };
+    const state = this.tca.restore(rows.at(-1));
+    return { recovered: true, records: state.fills };
   }
 }
 module.exports = { ExecutionService };

@@ -186,10 +186,15 @@ const { MarketReconciliation } = require("../server/data/reconciliation.js");
     secondary,
     store: new JsonlStore(serviceRoot),
     products: ["BTC-USD"],
+    reconciliation: new MarketReconciliation({
+      clock: () => Date.now(),
+      maxSpreadBps: 250,
+    }),
   });
   const recovered = await restarted.recover();
   assert.ok(recovered.trades >= 2);
   assert.equal(restarted.seenTrades.get("BTC-USD"), "2");
+  assert.equal(recovered.reconciliation, true);
   const retention = await store.enforceRetention({
     days: 30,
     now: new Date("2027-01-01T00:00:00Z"),
