@@ -140,6 +140,11 @@ class MarketDataService {
   }
   async recover() {
     const recovered = { trades: 0, products: [] };
+    const reconciliation = await this.store.tail("data.reconciliation", 1);
+    if (reconciliation[0]) {
+      this.reconciliation.restore(reconciliation[0]);
+      recovered.reconciliation = true;
+    }
     if (
       typeof this.store.inventory === "function" &&
       typeof this.store.replay === "function"
@@ -219,6 +224,10 @@ class MarketDataService {
           book,
           trades,
         });
+        await this.record(
+          "data.reconciliation",
+          this.reconciliation.checkpoint(),
+        );
         this.publish({
           type: "market.snapshot",
           symbol: product,

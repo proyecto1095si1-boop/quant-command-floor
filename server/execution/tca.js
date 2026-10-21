@@ -1,6 +1,11 @@
 "use strict";
 
 const { bookMetrics } = require("./microstructure.js");
+const {
+  digest,
+  openCheckpoint,
+  sealCheckpoint,
+} = require("../config/checkpoint.js");
 
 class ExecutionTca {
   constructor({
@@ -99,6 +104,34 @@ class ExecutionTca {
       horizonsMs: [...this.horizonsMs],
       records: this.records.slice(-100).map((row) => structuredClone(row)),
     };
+  }
+
+  checkpoint() {
+    return sealCheckpoint("execution-tca", {
+      horizonsMs: this.horizonsMs,
+      records: this.records,
+    });
+  }
+
+  restore(checkpoint) {
+    const payload = openCheckpoint(checkpoint, "execution-tca");
+    if (digest(payload.horizonsMs) !== digest(this.horizonsMs))
+      throw new Error("execution-tca-policy-mismatch");
+    if (!Array.isArray(payload.records))
+      throw new Error("invalid-execution-tca-state");
+    const ids = new Set();
+    for (const record of payload.records) {
+      if (
+        !record ||
+        typeof record.fillId !== "string" ||
+        ids.has(record.fillId) ||
+        !Number.isFinite(record.filledAtMs)
+      )
+        throw new Error("invalid-execution-tca-state");
+      ids.add(record.fillId);
+    }
+    this.records = structuredClone(payload.records);
+    return this.snapshot();
   }
 }
 
