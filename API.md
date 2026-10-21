@@ -93,6 +93,11 @@ La respuesta incluye `sequential.overall`, resultados por régimen, e-values,
 estadístico Newey–West y breaches. Un breach always-valid realiza rollback del
 experimento paper y fija tráfico en cero. Véase `docs/SEQUENTIAL_MONITORING.md`.
 
+`POST /v1/governance/experiments/graduate` recibe `experimentId` y `reason`, y
+requiere dos aprobadores. Solo genera un artefacto si pasan no inferioridad,
+muestra, regímenes y guardrails. Model Governance exige ese artefacto para
+reemplazar un champion de consenso. Véase `docs/EXPERIMENT_GRADUATION.md`.
+
 ## 2. APIs externas implementadas
 
 ### Coinbase Exchange — mercado primario

@@ -106,3 +106,11 @@ propietario del repositorio. No se adoptan valores por omisión.
   promoción o capital real.
 - **Implicación actual:** los breaches solo revierten experimentos paper.
 
+## Margen económico de graduación
+
+- **Estado:** pendiente por activo y horizonte.
+- **Decisión necesaria:** margen máximo de log-loss, mejora objetivo para
+  potencia, tamaño mínimo y regímenes obligatorios.
+- **Acción bloqueada:** interpretar una graduación T27 como autorización para
+  capital real.
+

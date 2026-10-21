@@ -702,6 +702,33 @@ function createGateway(options = {}) {
         return json(res, e.status || 422, { error: e.message }, headers);
       }
     }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/experiments/graduate"
+    ) {
+      if (!experiments)
+        return json(res, 503, { error: "experiments-disabled" }, headers);
+      try {
+        const approvals = fourEyes(req) || {
+            primary: req.auth.sub,
+            secondary: String(req.headers["x-second-approver"] || ""),
+          },
+          input = await body(req);
+        return json(
+          res,
+          200,
+          await experiments.graduate(
+            input.experimentId,
+            req.auth.sub,
+            input.reason,
+            approvals,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/governance/ai-evaluation")
       return json(
         res,
