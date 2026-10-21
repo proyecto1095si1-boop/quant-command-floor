@@ -29,12 +29,19 @@ violación de PAPER_ONLY bloquea todas las capacidades.
 - ausencia de burn slow;
 - cola y tasa de rechazo de ejecución dentro de política;
 - recuperación sana de modelos, experimentos, evaluaciones y calibración IA;
-- proveedor LLM configurado;
+- proveedor LLM configurado, observado, con circuito cerrado y p95 dentro de
+  política;
 - champion IA cuando la política lo exige.
 
 La tasa de rechazo sólo se activa con muestra suficiente:
 
 `rejectionRate = rejectedChildren / totalChildren`
+
+La salud IA no se infiere de una URL configurada. Usa una ventana rodante,
+`failureRate = failures / samples`, p95 nearest-rank y dos disparadores del
+circuito: tasa de fallos con muestra mínima o fallos consecutivos. Tras el
+cooldown pasa a `HALF_OPEN` y admite una sola prueba. Éxito cierra; fallo reabre.
+Antes de la primera observación `aiSignals=false`.
 
 ## Aplicación
 

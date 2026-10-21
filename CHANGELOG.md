@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Readiness ahora usa salud activa del proveedor IA —muestra rodante, tasa de
+  fallos, p95 y circuit breaker— y el gateway cae explícitamente al motor
+  matemático local cuando el proveedor no está disponible.
 - El monitoreo secuencial separa pronóstico y resultado: impone madurez causal,
   revisiones inmutables y gates de completitud/censura antes de graduar.
 - Portfolio Desk estima covarianza con shrinkage OAS y proyección PSD, calcula

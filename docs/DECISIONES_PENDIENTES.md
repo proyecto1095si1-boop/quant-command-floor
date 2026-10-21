@@ -189,3 +189,13 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** reutilizar estos defaults como autorización para capital
   real o interpretar `READY` como certificación de producción.
 
+## Política de salud del proveedor IA
+
+- **Estado:** defaults operacionales implementados para paper; calibración y
+  persistencia pendientes.
+- **Decisión necesaria:** aprobar ventana, muestra mínima, tasa de fallos,
+  fallos consecutivos, p95, cooldown, estrategia multi-proveedor y retención
+  del estado del circuito entre reinicios.
+- **Acción bloqueada:** considerar estos defaults un SLA contractual, habilitar
+  señales IA para capital real o ocultar el fallback matemático al usuario.
+

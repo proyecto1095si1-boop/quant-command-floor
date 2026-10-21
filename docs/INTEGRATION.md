@@ -9,11 +9,22 @@ PORT=8787
 ALLOWED_ORIGIN=http://localhost:8080
 LLM_BASE_URL=http://localhost:11434/v1
 LLM_API_KEY=server-side-only
+LLM_HEALTH_WINDOW=20
+LLM_HEALTH_MIN_SAMPLES=5
+LLM_HEALTH_FAILURE_RATE=0.5
+LLM_HEALTH_CONSECUTIVE_FAILURES=3
+LLM_HEALTH_P95_MS=5000
+LLM_HEALTH_COOLDOWN_MS=30000
 EXCHANGE_BASE_URL=https://api.exchange.example
 EXCHANGE_API_KEY=server-side-only
 EXCHANGE_API_SECRET=server-side-only
 PAPER_ONLY=true
 ```
+
+El estado activo se consulta en `GET /v1/ai/provider-health`. Hasta observar un
+éxito, o cuando el circuito está abierto o supera el p95 permitido, readiness
+deshabilita únicamente `aiSignals`. Las fallas usan el motor matemático local y
+la respuesta identifica el fallback sin exponer secretos.
 
 ## Endpoints mínimos
 

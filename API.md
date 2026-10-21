@@ -63,6 +63,12 @@ Para conectar agentes IA OpenAI-compatible:
 LLM_BASE_URL=http://localhost:11434/v1
 LLM_API_KEY=
 LLM_MODEL=local-model
+LLM_HEALTH_WINDOW=20
+LLM_HEALTH_MIN_SAMPLES=5
+LLM_HEALTH_FAILURE_RATE=0.5
+LLM_HEALTH_CONSECUTIVE_FAILURES=3
+LLM_HEALTH_P95_MS=5000
+LLM_HEALTH_COOLDOWN_MS=30000
 ```
 
 Para producción controlada:
@@ -197,6 +203,12 @@ Compatible con un servidor local Ollama/vLLM o un proveedor que implemente el co
 - Salida obligatoria: JSON estructurado.
 
 Las claves viven únicamente en el backend.
+
+El proveedor se observa con una ventana rodante de éxitos, fallos y latencia.
+El circuito abre por tasa de error o fallos consecutivos, espera
+`LLM_HEALTH_COOLDOWN_MS` y permite una única prueba `HALF_OPEN`. Si la llamada
+falla o el circuito no la admite, la respuesta usa el motor matemático local e
+incluye `fallback.used=true`; nunca reintenta una orden ni habilita trading real.
 
 ## 3. APIs externas necesarias para completar todos los agentes
 
@@ -625,6 +637,7 @@ reproducibilidad, ECE, Brier e intervalos Wilson 95%.
 |---|---|---|
 | GET | `/v1/sre/status` | viewer |
 | GET | `/v1/readiness` | viewer |
+| GET | `/v1/ai/provider-health` | viewer |
 | POST | `/v1/sre/backup` | admin |
 | POST | `/v1/sre/incidents/{id}/ack` | admin |
 
@@ -651,6 +664,13 @@ validar sellos, política, decisiones derivadas y continuidad interna,
 `GET /v1/readiness` responde 503 y ejecución permanece bloqueada. Un corte del
 inicio por retención se informa como `boundaryTruncated`; una ruptura dentro del
 historial disponible detiene el Risk Gate.
+
+`GET /v1/ai/provider-health` devuelve `CLOSED`, `OPEN` o `HALF_OPEN`, tamaño de
+muestra, éxitos, fallos, tasa de error, fallos consecutivos, p95, cooldown y
+última causa sanitizada. No expone URL, token ni cabeceras. Readiness sólo
+habilita `aiSignals` cuando el proveedor está configurado, fue observado,
+permanece `CLOSED` y su p95 está dentro de política. Esta degradación no bloquea
+la ejecución paper independiente de IA.
 
 ## 5. Ejemplos internos
 
