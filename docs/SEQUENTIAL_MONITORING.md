@@ -12,10 +12,11 @@ repetir un test fijo ni inflar silenciosamente su tasa de falso positivo.
 - `championProbability` y `challengerProbability` de evento alcista;
 - `regime` observado y `horizonMs` predeclarado.
 
-El outcome no se admite en esta operación. Tras vencer el horizonte,
-`POST /v1/governance/experiments/label` recibe `requestId`, `outcome` y
-`outcomeAt`. El servidor verifica
-`predictedAt <= maturesAt <= outcomeAt <= observedAt` antes de calcular pérdida.
+El outcome no se admite en esta operación. Tras vencer horizonte y finalidad,
+`POST /v1/governance/experiments/label` recibe solo `requestId`. El Outcome
+Oracle deriva el resultado desde precios point-in-time Coinbase/Kraken y el
+servidor verifica `predictedAt <= maturesAt = outcomeAt <= observedAt` antes de
+calcular pérdida.
 
 Las probabilidades se recortan por default a `[0,01; 0,99]`. Para cada modelo:
 
