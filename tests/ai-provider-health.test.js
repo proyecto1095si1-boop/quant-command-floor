@@ -145,6 +145,9 @@ const assert = require("node:assert/strict"),
   assert.equal(restored.status().samples, 2);
   assert.equal(restored.status().lastFailure, "provider-request-failed");
   assert.equal(restored.status().recovery.recovered, true);
+  restored.recover([]);
+  assert.equal(restored.status().samples, 0);
+  assert.equal(restored.status().recovery.revision, 0);
   const truncated = new AiProviderHealth({
     configured: true,
     requireRecovery: true,

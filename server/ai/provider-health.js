@@ -227,6 +227,13 @@ class AiProviderHealth {
   }
 
   recover(checkpoints = []) {
+    this.recoveryReady = false;
+    this.recovery = {
+      recovered: false,
+      checkpoints: 0,
+      boundaryTruncated: false,
+      error: "recovery-in-progress",
+    };
     let previous = null;
     for (const checkpoint of checkpoints) {
       const payload = openCheckpoint(checkpoint, "ai-provider-health"),
@@ -297,6 +304,19 @@ class AiProviderHealth {
       this.transitions = previous.transitions;
       this.revision = previous.revision;
       this.lastCheckpointId = previous.id;
+      this.halfOpenProbe = false;
+    } else {
+      this.state = STATES.CLOSED;
+      this.samples = [];
+      this.consecutiveFailureCount = 0;
+      this.openedAt = null;
+      this.lastSuccessAt = null;
+      this.lastFailureAt = null;
+      this.lastFailure = null;
+      this.openReason = null;
+      this.transitions = 0;
+      this.revision = 0;
+      this.lastCheckpointId = null;
       this.halfOpenProbe = false;
     }
     this.recoveryReady = true;
