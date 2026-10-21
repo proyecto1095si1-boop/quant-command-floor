@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Recuperación fail-closed del historial de readiness con validación semántica,
+  continuidad de transiciones y frontera de retención explícita.
 - Readiness operacional explicable con estados READY/DEGRADED/HALTED,
   capacidades independientes, bloqueo previo a ejecución paper y estado real
   del Data Plane en cada revalidación de orden hija.

@@ -1,9 +1,18 @@
 "use strict";
 
 const assert = require("node:assert/strict"),
-  { openCheckpoint } = require("../server/config/checkpoint.js"),
+  {
+    digest,
+    openCheckpoint,
+    sealCheckpoint,
+  } = require("../server/config/checkpoint.js"),
   { createGateway } = require("../server/gateway.js"),
-  { ReadinessService, STATES, decide } = require("../server/sre/readiness.js");
+  {
+    ReadinessService,
+    STATES,
+    decide,
+    decisionSignature,
+  } = require("../server/sre/readiness.js");
 
 (async () => {
   const dataState = {
@@ -71,6 +80,63 @@ const assert = require("node:assert/strict"),
   governanceState.ready = false;
   await service.evaluate();
   assert.equal(written.length, 3);
+  const history = written.slice(0, 3).map(([, event]) => event),
+    recoveredWrites = [],
+    recoveredService = build({
+      requireRecovery: true,
+      record: async (stream, event) => recoveredWrites.push([stream, event]),
+    });
+  await assert.rejects(() => recoveredService.evaluate(), /not-recovered/);
+  const recovery = recoveredService.recover(history);
+  assert.equal(recovery.transitions, 3);
+  assert.equal(recovery.lastState, STATES.DEGRADED);
+  assert.equal(recovery.boundaryTruncated, false);
+  assert.equal(recoveredService.status().ready, true);
+  await recoveredService.evaluate();
+  assert.equal(recoveredWrites.length, 0);
+  const truncated = build({ requireRecovery: true }).recover(history.slice(1));
+  assert.equal(truncated.boundaryTruncated, true);
+
+  const brokenPayload = openCheckpoint(history[1], "operational-readiness");
+  brokenPayload.previousState = STATES.HALTED;
+  assert.throws(
+    () =>
+      build({ requireRecovery: true }).recover([
+        history[0],
+        sealCheckpoint("operational-readiness", brokenPayload),
+      ]),
+    /continuity/,
+  );
+  const invalidDecision = openCheckpoint(history[0], "operational-readiness");
+  invalidDecision.capabilities.paperExecution = false;
+  const {
+    id: ignoredId,
+    signature: ignoredSignature,
+    previousState: ignoredPreviousState,
+    previousId: ignoredPreviousId,
+    ...invalidBody
+  } = invalidDecision;
+  void ignoredId;
+  void ignoredSignature;
+  void ignoredPreviousState;
+  void ignoredPreviousId;
+  invalidDecision.id = digest(invalidBody);
+  invalidDecision.signature = decisionSignature(invalidBody);
+  assert.throws(
+    () =>
+      build({ requireRecovery: true }).recover([
+        sealCheckpoint("operational-readiness", invalidDecision),
+      ]),
+    /invalid-readiness-transition/,
+  );
+  assert.throws(
+    () =>
+      build({
+        requireRecovery: true,
+        policy: { maxExecutionQueue: 99 },
+      }).recover(history),
+    /invalid-readiness-transition/,
+  );
   governanceState.ready = true;
 
   const withoutAi = await build({ llmConfigured: false }).evaluate();
