@@ -45,6 +45,7 @@ Todos son obligatorios:
 - observaciones operativas del experimento suficientes;
 - cero breaches de schema, grounding, política, error o latencia;
 - experimento nunca revertido;
+- todos los pronósticos resueltos y tasa de censura no mayor al 5 %;
 - dos aprobadores distintos.
 
 `POST /v1/governance/experiments/graduate` pone tráfico en cero, cambia el estado

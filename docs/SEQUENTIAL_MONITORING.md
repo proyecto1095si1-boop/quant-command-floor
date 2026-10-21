@@ -10,8 +10,12 @@ repetir un test fijo ni inflar silenciosamente su tasa de falso positivo.
 
 - `experimentId` y `requestId` único;
 - `championProbability` y `challengerProbability` de evento alcista;
-- `outcome` realizado, 0 o 1;
-- `regime` observado.
+- `regime` observado y `horizonMs` predeclarado.
+
+El outcome no se admite en esta operación. Tras vencer el horizonte,
+`POST /v1/governance/experiments/label` recibe `requestId`, `outcome` y
+`outcomeAt`. El servidor verifica
+`predictedAt <= maturesAt <= outcomeAt <= observedAt` antes de calcular pérdida.
 
 Las probabilidades se recortan por default a `[0,01; 0,99]`. Para cada modelo:
 
@@ -20,10 +24,11 @@ L(p,y) = -y log(p) - (1-y) log(1-p)
 d_t = L(challenger_t,y_t) - L(champion_t,y_t)
 ```
 
-Un `d_t` positivo significa degradación del challenger. El label se incorpora
-después de ambos pronósticos; el productor debe garantizar esa temporalidad.
-Solo se persiste el hash del request, probabilidades, label, régimen y métricas,
-no el request original.
+Un `d_t` positivo significa degradación del challenger. T28 impone la
+temporalidad en el servidor y mantiene revisiones encadenadas; ya no depende de
+una promesa del productor. Solo se persiste el hash del request, probabilidades,
+label, régimen y métricas, no el request original. Véase
+`docs/LABEL_LIFECYCLE.md`.
 
 ## E-process always-valid
 
@@ -78,14 +83,15 @@ opcionales repetidas.
 
 ## Recuperación y límites
 
-Los eventos `forecast` se guardan en `governance.experiments`. Durante recovery
-se recalculan log-loss y diferencial desde probabilidades/label; una divergencia
-falla cerrada. También se verifica que un rollback secuencial corresponda a los
-breaches recalculados.
+Los eventos `forecast`, `label` y `censor` se guardan en
+`governance.experiments`. Durante recovery se validan transiciones, tiempo
+causal y cadena de revisiones; se recalculan log-loss y diferencial desde la
+revisión activa. Una divergencia falla cerrada. También se verifica que un
+rollback secuencial corresponda a los breaches recalculados.
 
 Supuestos aún abiertos:
 
-- labels tardíos, revisados o no independientes requieren una política formal;
+- el horizonte, gracia y límite de censura requieren calibración por activo;
 - el e-process exige el bound y la hipótesis condicional declarados;
 - un régimen mal clasificado puede diluir evidencia local;
 - los parámetros necesitan calibración por horizonte y activo;

@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- El monitoreo secuencial separa pronóstico y resultado: impone madurez causal,
+  revisiones inmutables y gates de completitud/censura antes de graduar.
 - Portfolio Desk estima covarianza con shrinkage OAS y proyección PSD, calcula
   VaR Euler por activo y factor, y Risk Gate limita exposición factorial.
 - Cada fill paper genera postings de doble entrada encadenados con SHA-256; los

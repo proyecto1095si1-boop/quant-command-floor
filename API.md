@@ -75,8 +75,8 @@ contrato completo de firma y gates se encuentra en
 
 ### Monitoreo secuencial del experimento
 
-`POST /v1/governance/experiments/forecast` registra un pronóstico pareado ya
-resuelto:
+`POST /v1/governance/experiments/forecast` registra un pronóstico pareado
+pendiente, sin outcome:
 
 ```json
 {
@@ -84,14 +84,17 @@ resuelto:
   "requestId": "id-estable",
   "championProbability": 0.61,
   "challengerProbability": 0.58,
-  "outcome": 1,
-  "regime": "risk_on_low_vol"
+  "regime": "risk_on_low_vol",
+  "horizonMs": 3600000
 }
 ```
 
-La respuesta incluye `sequential.overall`, resultados por régimen, e-values,
-estadístico Newey–West y breaches. Un breach always-valid realiza rollback del
-experimento paper y fija tráfico en cero. Véase `docs/SEQUENTIAL_MONITORING.md`.
+Después de `maturesAt`, `POST /v1/governance/experiments/label` recibe
+`experimentId`, `requestId`, `outcome` (0/1) y `outcomeAt` ISO. Una corrección
+agrega `correctionReason` y exige el header `x-second-approver`. Para resultados ausentes,
+`POST /v1/governance/experiments/censor` recibe `reason` una vez agotada la
+gracia. La respuesta incluye estado de labels, e-values y breaches. Véanse
+`docs/LABEL_LIFECYCLE.md` y `docs/SEQUENTIAL_MONITORING.md`.
 
 `POST /v1/governance/experiments/graduate` recibe `experimentId` y `reason`, y
 requiere dos aprobadores. Solo genera un artefacto si pasan no inferioridad,
@@ -521,6 +524,10 @@ Todas las órdenes son paper. `submit` necesita un plan existente y aprobación 
 | POST | `/v1/governance/experiments/start` | admin |
 | POST | `/v1/governance/experiments/assign` | admin |
 | POST | `/v1/governance/experiments/observe` | admin |
+| POST | `/v1/governance/experiments/forecast` | admin |
+| POST | `/v1/governance/experiments/label` | admin |
+| POST | `/v1/governance/experiments/censor` | admin |
+| POST | `/v1/governance/experiments/graduate` | admin |
 | POST | `/v1/governance/experiments/stop` | admin |
 | GET | `/v1/governance/ai-evaluation` | viewer |
 | POST | `/v1/governance/ai-evaluation/datasets` | admin |
