@@ -139,3 +139,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** considerar las cadenas SHA-256 locales como evidencia de
   autoría, existencia temporal o integridad frente a compromiso total del host.
 
+## Política económica de reconciliación
+
+- **Estado:** pendiente por activo, venue y horario.
+- **Decisión necesaria:** aprobar fuentes mínimas, freshness, divergencia,
+  spread, cobertura secuencial, ciclos de cuarentena y recuperación; contratar
+  una tercera fuente independiente para atribuir discrepancias.
+- **Acción bloqueada:** interpretar los defaults T31 como límites calibrados
+  para ejecución real o liberar manualmente un producto en cuarentena.
+

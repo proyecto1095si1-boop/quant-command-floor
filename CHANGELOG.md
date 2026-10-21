@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Reconciliación multifonte con mediana, frescura, cobertura de trades,
+  validación L2 y cuarentena con histéresis por producto.
 - Cadena SHA-256 diaria por stream de mercado, restauración de heads, detección
   de regresiones/gaps y reloj civil contrastado con tiempo monotónico.
 - Outcome Oracle point-in-time multifonte: mediana robusta, staleness, finalidad,

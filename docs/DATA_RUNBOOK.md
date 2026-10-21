@@ -2,7 +2,10 @@
 
 ## Criterios de operación
 
-El servicio está sano cuando Coinbase responde, el último ciclo tiene menos de tres intervalos, la calidad no informa datos stale/outlier y la divergencia Coinbase–Kraken es menor a 25 bps. Kraken puede degradarse temporalmente sin detener la fuente primaria, pero debe generar alerta.
+El servicio está sano cuando Coinbase responde, el último ciclo tiene menos de
+tres intervalos, la calidad no informa datos stale/outlier y la reconciliación
+por producto es elegible. Una fuente secundaria ausente bloquea la elegibilidad:
+no se degrada silenciosamente a una única observación.
 
 ## Arranque y verificación
 
@@ -44,5 +47,23 @@ Los datos legacy no son elegibles para el Outcome Oracle.
 - `quality.status = degraded`: stale, gap u outlier.
 - `source.errorRate ≥ 0.20`: proveedor primario degradado.
 - `stream.ageMs > 15000`: WebSocket sin mensajes.
+- `reconciliation.status = degraded`: primer ciclo inválido; el producto ya no
+  es elegible para análisis.
+- `reconciliation.status = quarantined`: dos ciclos inválidos consecutivos; no
+  liberar manualmente. Se requieren tres ciclos sanos consecutivos.
+
+## Reconciliación y respuesta
+
+La referencia de precio es la mediana de fuentes únicas y frescas. Cada fuente
+se diagnostica mediante `|pᵢ-mediana|/mediana × 10 000` y el gate usa la máxima
+distancia pareada sobre el midpoint. También se exige un libro
+no cruzado, niveles positivos, spread dentro de política y cobertura de IDs de
+trades `observados/(maxId-minId+1)` no inferior al mínimo configurado.
+
+Ante `insufficient-sources`, `stale-source`, `source-divergence`, `empty-book`,
+`crossed-book`, `wide-spread` o `trade-sequence-coverage`, conservar evidencia,
+comparar contra el proveedor y reingerir desde una fuente confiable. La
+cuarentena no autoriza a corregir registros ni a relajar umbrales durante el
+incidente.
 
 Nunca habilitar trading real basándose solamente en el estado HTTP del proveedor. La puerta de riesgo debe consumir el estado combinado del Data Plane.
