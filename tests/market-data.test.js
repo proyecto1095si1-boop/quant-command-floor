@@ -9,6 +9,7 @@ const N = require("../server/data/normalizers.js"),
   { CoinbaseConnector } = require("../server/data/coinbase.js"),
   { MarketDataService } = require("../server/data/service.js");
 const { DataQualityMonitor } = require("../server/data/quality.js");
+const { MarketReconciliation } = require("../server/data/reconciliation.js");
 (async () => {
   const bookEvent = N.coinbaseBook(
     "BTC-USD",
@@ -152,7 +153,7 @@ const { DataQualityMonitor } = require("../server/data/quality.js");
         symbol: product,
         price: 100.1,
         exchangeAt: null,
-        receivedAt: "2026-10-19T00:00:03Z",
+        receivedAt: new Date().toISOString(),
       }),
       health: () => ({ source: "kraken", status: "healthy" }),
     },
@@ -165,6 +166,10 @@ const { DataQualityMonitor } = require("../server/data/quality.js");
       products: ["BTC-USD"],
       pollMs: 999999,
       publish: (x) => events.push(x),
+      reconciliation: new MarketReconciliation({
+        clock: () => Date.now(),
+        maxSpreadBps: 250,
+      }),
     });
   await service.bootstrap("BTC-USD");
   await service.cycle();
@@ -172,6 +177,8 @@ const { DataQualityMonitor } = require("../server/data/quality.js");
   assert.ok(service.snapshot("BTC-USD").divergenceBps > 0);
   assert.equal(service.health().secondary.source, "kraken");
   assert.equal(service.health().provenance.algorithm, "SHA-256");
+  assert.equal(service.snapshot("BTC-USD").reconciliation.status, "healthy");
+  assert.equal(service.health().reconciliation.status, "healthy");
   assert.ok(events.some((x) => x.type === "market.snapshot"));
   await service.stop();
   const restarted = new MarketDataService({

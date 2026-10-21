@@ -8,6 +8,7 @@ const path = require("node:path"),
   { CandleAggregator } = require("./candles.js"),
   { JsonlStore } = require("./jsonl-store.js"),
   { DataQualityMonitor } = require("./quality.js"),
+  { MarketReconciliation } = require("./reconciliation.js"),
   { TrustedClock } = require("./trusted-clock.js"),
   { MarketDataProvenance } = require("./provenance.js");
 const MARKET_STREAM = /^(ticker|book|trades|candles)\./;
@@ -23,6 +24,17 @@ class MarketDataService {
     publish = () => {},
     divergenceLimitBps = 25,
     quality = new DataQualityMonitor(),
+    reconciliation = new MarketReconciliation({
+      minSources: Number(process.env.MARKET_MIN_SOURCES || 2),
+      maxAgeMs: Number(process.env.MARKET_RECONCILIATION_MAX_AGE_MS || 15000),
+      maxDivergenceBps: Number(
+        process.env.MARKET_RECONCILIATION_MAX_DIVERGENCE_BPS || 25,
+      ),
+      maxSpreadBps: Number(process.env.MARKET_MAX_SPREAD_BPS || 100),
+      minTradeCoverage: Number(process.env.MARKET_MIN_TRADE_COVERAGE || 0.98),
+      quarantineAfter: Number(process.env.MARKET_QUARANTINE_AFTER || 2),
+      recoverAfter: Number(process.env.MARKET_RECOVER_AFTER || 3),
+    }),
     stream = null,
     trustedClock = new TrustedClock({
       maxDriftMs: Number(process.env.MARKET_CLOCK_MAX_DRIFT_MS || 2000),
@@ -37,6 +49,7 @@ class MarketDataService {
     this.publish = publish;
     this.divergenceLimitBps = divergenceLimitBps;
     this.quality = quality;
+    this.reconciliation = reconciliation;
     this.trustedClock = trustedClock;
     this.provenance =
       provenance ||
@@ -200,6 +213,11 @@ class MarketDataService {
         ]);
         for (const trade of [...trades].reverse())
           await this.ingestTrade(trade);
+        const reconciliation = this.reconciliation.evaluate(product, {
+          tickers: [ticker, secondary].filter(Boolean),
+          book,
+          trades,
+        });
         this.publish({
           type: "market.snapshot",
           symbol: product,
@@ -207,6 +225,7 @@ class MarketDataService {
           secondary,
           divergenceBps: this.divergence.get(product),
           book: this.books.get(product).snapshot(10),
+          reconciliation,
         });
       }
       this.metrics.cycles++;
@@ -250,6 +269,7 @@ class MarketDataService {
       divergenceBps: this.divergence.get(product) ?? null,
       book: this.books.get(product)?.snapshot(50) || null,
       candles: this.candles.snapshots(product),
+      reconciliation: this.reconciliation.product(product),
       health: this.health(),
     };
   }
@@ -263,12 +283,14 @@ class MarketDataService {
         : Infinity,
       maxDivergence = Math.max(0, ...this.divergence.values()),
       provenance = this.provenance.status(),
+      reconciliation = this.reconciliation.snapshot(),
       healthy =
         this.running &&
         source.status !== "down" &&
         cycleAge < this.pollMs * 3 &&
         maxDivergence <= this.divergenceLimitBps &&
         quality.status === "healthy" &&
+        reconciliation.status === "healthy" &&
         provenance.clock.healthy;
     return {
       status: healthy ? "healthy" : this.running ? "degraded" : "stopped",
@@ -283,6 +305,7 @@ class MarketDataService {
       quality,
       metrics: { ...this.metrics },
       provenance,
+      reconciliation,
     };
   }
   replay(stream, options) {
@@ -300,11 +323,23 @@ class MarketDataService {
         persisted.length >= 20
           ? persisted
           : await this.connector.trades(product, 200);
+    const baseQuality = this.quality.snapshot(),
+      reconciliation = this.reconciliation.product(product),
+      quality = {
+        ...baseQuality,
+        status:
+          baseQuality.status === "healthy" && reconciliation?.eligible
+            ? "healthy"
+            : reconciliation?.quarantined
+              ? "quarantined"
+              : "degraded",
+        reconciliation,
+      };
     return {
       candles,
       trades,
       book: this.books.get(product)?.snapshot(100) || null,
-      quality: this.quality.snapshot(),
+      quality,
       ticker: this.tickers.get(product) || null,
     };
   }
