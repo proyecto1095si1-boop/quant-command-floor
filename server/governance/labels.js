@@ -77,6 +77,7 @@ function addLabel(forecast, input, context) {
       previousHash: previous?.hash || null,
       correctionReason: corrected ? reason : null,
       approvedBy,
+      evidence: input.evidence || null,
     },
     revision = { ...content, hash: fingerprint(content) };
   forecast.revisions.push(revision);

@@ -2,7 +2,11 @@
 
 const assert = require("node:assert/strict"),
   { ModelGovernanceService } = require("../server/governance/service.js"),
-  { ExperimentService } = require("../server/governance/experiments.js");
+  {
+    ExperimentService,
+    requestKey,
+  } = require("../server/governance/experiments.js"),
+  { testOracle } = require("./helpers/outcome-oracle.js");
 
 (async () => {
   const events = [],
@@ -63,8 +67,11 @@ const assert = require("node:assert/strict"),
   );
 
   let now = Date.parse("2026-01-01T00:00:00.000Z");
-  const experiments = new ExperimentService({
+  const outcomes = new Map(),
+    outcomeOracle = testOracle(() => now, outcomes),
+    experiments = new ExperimentService({
       governance,
+      outcomeOracle,
       record,
       clock: () => now,
       policy: {
@@ -107,8 +114,11 @@ const assert = require("node:assert/strict"),
         grounded: true,
       },
     });
+    const forecastId = `forecast-${index}`;
+    outcomes.set(requestKey(forecastId), outcome);
     await experiments.observeForecast(experiment.id, {
-      requestId: `forecast-${index}`,
+      requestId: forecastId,
+      symbol: "BTC-USD",
       regime,
       horizonMs: 1,
       championProbability: outcome ? 0.01 : 0.99,
@@ -116,9 +126,7 @@ const assert = require("node:assert/strict"),
     });
     now += 1;
     await experiments.labelForecast(experiment.id, {
-      requestId: `forecast-${index}`,
-      outcome,
-      outcomeAt: new Date(now).toISOString(),
+      requestId: forecastId,
     });
   }
   const graduation = await experiments.graduate(
@@ -158,6 +166,7 @@ const assert = require("node:assert/strict"),
   assert.equal(recoveredGovernance.champion("consensus-btc").version, "2");
   const recoveredExperiments = new ExperimentService({
     governance: recoveredGovernance,
+    outcomeOracle,
     clock: () => now,
     policy: {
       minimumObservations: 20,

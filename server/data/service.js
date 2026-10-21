@@ -273,5 +273,35 @@ class MarketDataService {
       ticker: this.tickers.get(product) || null,
     };
   }
+  async pointInTimeQuotes(product, targetAt, phase, options = {}) {
+    const targetMs = Date.parse(targetAt),
+      sources = options.sources || ["coinbase", "kraken"],
+      streams = {
+        coinbase: `ticker.${product}`,
+        kraken: `ticker.kraken.${product}`,
+      },
+      observations = [];
+    if (!Number.isFinite(targetMs)) throw new Error("invalid-point-in-time");
+    for (const source of sources) {
+      const stream = streams[source];
+      if (!stream) continue;
+      const rows = await this.store.tail(stream, 10000),
+        eligible = rows.filter((row) => {
+          const eventMs = Date.parse(row.exchangeAt || row.receivedAt);
+          return phase === "anchor"
+            ? eventMs <= targetMs &&
+                targetMs - eventMs <= Number(options.maxStalenessMs)
+            : eventMs >= targetMs &&
+                eventMs - targetMs <= Number(options.maxOutcomeLagMs);
+        });
+      eligible.sort((a, b) => {
+        const left = Date.parse(a.exchangeAt || a.receivedAt),
+          right = Date.parse(b.exchangeAt || b.receivedAt);
+        return phase === "anchor" ? right - left : left - right;
+      });
+      if (eligible[0]) observations.push(eligible[0]);
+    }
+    return observations;
+  }
 }
 module.exports = { MarketDataService };
