@@ -35,6 +35,8 @@ if (
   throw new Error("invalid-sre-retention-or-sampling-policy");
 const aiProviderHealth = new AiProviderHealth({
     configured: Boolean(process.env.LLM_BASE_URL),
+    record: (stream, event) => data.record(stream, event),
+    requireRecovery: true,
     policy: {
       windowSize: Number(process.env.LLM_HEALTH_WINDOW || 20),
       minSamples: Number(process.env.LLM_HEALTH_MIN_SAMPLES || 5),
@@ -255,6 +257,19 @@ gateway.listen().then(async (address) => {
   } catch (e) {
     console.error(`Pipeline recovery blocked: ${e.message}`);
     pipeline.risk.halt("recovery-failed");
+  }
+  try {
+    const providerCheckpoints = await data.store.tail(
+        "sre.ai-provider-health",
+        10000,
+      ),
+      providerRecovery = aiProviderHealth.recover(providerCheckpoints);
+    if (providerRecovery.checkpoints)
+      console.log(
+        `AI provider health recovered: ${providerRecovery.checkpoints} checkpoints`,
+      );
+  } catch (e) {
+    console.error(`AI provider health recovery blocked: ${e.message}`);
   }
   try {
     const transitions = await data.store.tail(

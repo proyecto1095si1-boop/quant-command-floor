@@ -37,7 +37,7 @@ async function executeLLM(
   if (!ALLOWED_AGENTS.has(payload.agent_id)) return null;
   const base = safeBase(baseUrl);
   if (!base) return null;
-  const permit = providerHealth?.acquire() || { allowed: true };
+  const permit = (await providerHealth?.acquire()) || { allowed: true };
   if (!permit.allowed)
     throw Object.assign(new Error(permit.reason), {
       providerUnavailable: true,
@@ -82,7 +82,7 @@ async function executeLLM(
     if (!response.ok) throw new Error(`llm-http-${response.status}`);
     const data = await response.json(),
       normalized = extract(data.choices?.[0]?.message?.content);
-    providerHealth?.success(clock() - startedAt);
+    await providerHealth?.success(clock() - startedAt);
     return {
       agent_id: payload.agent_id,
       version: `llm:${model.name || defaultModel}`,
@@ -92,8 +92,14 @@ async function executeLLM(
       at: new Date().toISOString(),
     };
   } catch (error) {
-    providerHealth?.failure(error, clock() - startedAt);
-    throw Object.assign(error, { providerUnavailable: true });
+    let providerError = error;
+    if (!error.providerHealthPersistence)
+      try {
+        await providerHealth?.failure(error, clock() - startedAt);
+      } catch (persistenceError) {
+        providerError = persistenceError;
+      }
+    throw Object.assign(providerError, { providerUnavailable: true });
   } finally {
     clearTimeout(timer);
   }
