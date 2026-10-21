@@ -1,6 +1,7 @@
 "use strict";
 const crypto = require("node:crypto"),
   { schedule } = require("./router.js"),
+  { ExecutionTca } = require("./tca.js"),
   { fromAtoms, toAtoms } = require("../math/fixed-decimal.js");
 class ExecutionService {
   constructor({
@@ -9,6 +10,7 @@ class ExecutionService {
     record = async () => {},
     publish = () => {},
     policy = {},
+    tca = new ExecutionTca(),
   } = {}) {
     this.pipeline = pipeline;
     this.portfolio = portfolio;
@@ -21,6 +23,7 @@ class ExecutionService {
       intervalMs: 60000,
       ...policy,
     };
+    this.tca = tca;
     this.parents = [];
     this.children = [];
     this.idempotency = new Map();
@@ -42,6 +45,7 @@ class ExecutionService {
       queue: this.children.filter((x) => x.state === "queued").length,
       lastChildren: this.children.slice(-30).reverse(),
       portfolio: this.pipeline.ledger.snapshot(this.pipeline.marks()),
+      tca: this.tca.snapshot(),
     };
   }
   async submit({
@@ -136,6 +140,8 @@ class ExecutionService {
   }
   async drain({ spreadBps = 8, depthNotional = 250000, books = {} } = {}) {
     const results = [];
+    for (const [symbol, book] of Object.entries(books))
+      this.tca.observe(symbol, Number(book.mid), Date.now());
     for (const child of this.children.filter((x) => x.state === "queued")) {
       const parent = this.parents.find((x) => x.id === child.parentId),
         book =
@@ -143,6 +149,9 @@ class ExecutionService {
           books[parent.asset] ||
           this.pipeline.dataService?.books?.get(parent.symbol)?.snapshot(100) ||
           null,
+        observedMarkouts = book?.mid
+          ? this.tca.observe(parent.symbol, Number(book.mid), Date.now())
+          : 0,
         effectiveSpreadBps = Number(book?.spreadBps ?? spreadBps),
         portfolio = this.pipeline.ledger.snapshot(this.pipeline.marks()),
         spec = this.pipeline.desks.assets[parent.asset],
@@ -195,6 +204,7 @@ class ExecutionService {
           ),
         });
       child.risk = review;
+      child.observedMarkouts = observedMarkouts;
       if (!review.approved) {
         child.state = "rejected";
         child.reason = review.failed.join(",");
@@ -221,6 +231,12 @@ class ExecutionService {
         this.metrics.fees = fromAtoms(
           toAtoms(this.metrics.fees) + toAtoms(execution.fill.fee),
         );
+        const tca = this.tca.record(execution.fill, {
+          arrivalMid: Number(book?.mid || parent.price),
+          book,
+        });
+        child.tca = tca;
+        await this.record("execution.tca", tca);
       } else this.metrics.rejected++;
       results.push(child);
     }
@@ -241,6 +257,7 @@ class ExecutionService {
       rejected: results.filter((x) => x.state === "rejected").length,
       portfolio: this.pipeline.ledger.snapshot(this.pipeline.marks()),
       paperOnly: true,
+      tca: this.tca.snapshot(),
     };
     await this.record("execution.reconciliations", reconciliation);
     this.publish({ type: "execution.reconciled", reconciliation });
