@@ -96,3 +96,13 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** cargar datasets mayores al límite del gateway o tratar el
   journal local como evidencia externa inmutable.
 
+## Política secuencial por horizonte
+
+- **Estado:** pendiente por activo y frecuencia.
+- **Decisión necesaria:** alpha, margen de degradación tolerable, clipping,
+  fracción de apuesta, muestras mínimas, taxonomía de regímenes y tratamiento de
+  labels tardíos/corregidos.
+- **Acción bloqueada:** interpretar los defaults T26 como límites aprobados para
+  promoción o capital real.
+- **Implicación actual:** los breaches solo revierten experimentos paper.
+
