@@ -142,7 +142,8 @@ function createGateway(options = {}) {
     regime = options.regime || null,
     governance = options.governance || null,
     experiments = options.experiments || null,
-    aiEvaluation = options.aiEvaluation || null;
+    aiEvaluation = options.aiEvaluation || null,
+    calibrationGovernance = options.calibrationGovernance || null;
   const publish = (event) => {
     const frame = wsFrame(JSON.stringify(event));
     for (const socket of clients) {
@@ -460,6 +461,93 @@ function createGateway(options = {}) {
         governance ? governance.status() : { error: "governance-disabled" },
         headers,
       );
+    if (req.method === "GET" && req.url === "/v1/governance/calibration")
+      return json(
+        res,
+        calibrationGovernance ? 200 : 503,
+        calibrationGovernance
+          ? calibrationGovernance.status()
+          : { error: "calibration-governance-disabled" },
+        headers,
+      );
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/calibration/datasets"
+    ) {
+      if (!calibrationGovernance)
+        return json(
+          res,
+          503,
+          { error: "calibration-governance-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await calibrationGovernance.registerDataset(
+            await body(req),
+            req.auth.sub,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/calibration/evaluate"
+    ) {
+      if (!calibrationGovernance)
+        return json(
+          res,
+          503,
+          { error: "calibration-governance-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await calibrationGovernance.evaluate(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/calibration/approve-experiment"
+    ) {
+      if (!calibrationGovernance)
+        return json(
+          res,
+          503,
+          { error: "calibration-governance-disabled" },
+          headers,
+        );
+      try {
+        const approvals = fourEyes(req) || {
+            primary: req.auth.sub,
+            secondary: String(req.headers["x-second-approver"] || ""),
+          },
+          input = await body(req);
+        return json(
+          res,
+          200,
+          await calibrationGovernance.approveExperiment(
+            input,
+            approvals,
+            req.auth.sub,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/governance/models")
       return json(
         res,
@@ -939,6 +1027,9 @@ function createGateway(options = {}) {
     },
     setAiEvaluation(value) {
       aiEvaluation = value;
+    },
+    setCalibrationGovernance(value) {
+      calibrationGovernance = value;
     },
     listen(port = Number(process.env.PORT || 8787), host = "127.0.0.1") {
       return new Promise((resolve) =>

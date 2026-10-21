@@ -12,6 +12,7 @@ const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
 const { AiEvaluationService } = require("./governance/ai-evaluation.js");
+const { CalibrationGovernanceService } = require("./governance/calibration.js");
 const { parseTrustedReviewers } = require("./governance/provenance.js");
 const gateway = createGateway(),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
@@ -61,6 +62,14 @@ const regime = new RegimeService({
       process.env.AI_EVALUATION_TRUSTED_REVIEWERS,
     ),
   }),
+  calibrationGovernance = new CalibrationGovernanceService({
+    governance,
+    experiments,
+    record: (stream, event) => data.record(stream, event),
+    trustedReviewers: parseTrustedReviewers(
+      process.env.CALIBRATION_TRUSTED_REVIEWERS,
+    ),
+  }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,
     pipeline,
@@ -81,6 +90,7 @@ gateway.setRegime(regime);
 gateway.setGovernance(governance);
 gateway.setExperiments(experiments);
 gateway.setAiEvaluation(aiEvaluation);
+gateway.setCalibrationGovernance(calibrationGovernance);
 gateway.listen().then(async (address) => {
   console.log(
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
@@ -113,6 +123,21 @@ gateway.listen().then(async (address) => {
     });
     if (aiRecovery.datasets)
       console.log(`AI evaluation recovered: ${aiRecovery.datasets} datasets`);
+    const [calibrationDatasets, calibrationRuns, calibrationApprovals] =
+      await Promise.all([
+        data.store.tail("governance.calibration-datasets", 1000),
+        data.store.tail("governance.calibration-runs", 1000),
+        data.store.tail("governance.calibration-approvals", 1000),
+      ]);
+    const calibrationRecovery = calibrationGovernance.recover({
+      datasets: calibrationDatasets,
+      runs: calibrationRuns,
+      approvals: calibrationApprovals,
+    });
+    if (calibrationRecovery.datasets)
+      console.log(
+        `Calibration governance recovered: ${calibrationRecovery.datasets} datasets`,
+      );
   } catch (e) {
     console.error(`Model governance recovery blocked: ${e.message}`);
   }
