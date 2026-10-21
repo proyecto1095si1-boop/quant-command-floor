@@ -40,6 +40,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Readiness operacional explicable con estados READY/DEGRADED/HALTED,
+  capacidades independientes, bloqueo previo a ejecución paper y estado real
+  del Data Plane en cada revalidación de orden hija.
 - Telemetría SLO durable en buckets sellados, recuperación fail-closed,
   detección de gaps y muestreo autónomo.
 - SLO por eventos con ventanas móviles, presupuesto de error matemáticamente
