@@ -6,6 +6,7 @@ const assert = require("node:assert/strict"),
     effectiveSampleSize,
     validateSignals,
   } = require("../server/decision/consensus.js");
+require("./dependence.test.js");
 
 (() => {
   const engine = new ConsensusEngine(),
