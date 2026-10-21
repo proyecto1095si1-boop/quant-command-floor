@@ -1,6 +1,7 @@
 "use strict";
 const crypto = require("node:crypto"),
-  { Sha256AuditChain } = require("../pipeline/audit.js");
+  { Sha256AuditChain } = require("../pipeline/audit.js"),
+  { SloMonitor } = require("./slo.js");
 function percentile(xs, p) {
   if (!xs.length) return 0;
   const a = [...xs].sort((x, y) => x - y),
@@ -17,6 +18,9 @@ class SreService {
     execution,
     record = async () => {},
     slos = {},
+    clock = Date.now,
+    sloWindowMs = 30 * 86400000,
+    alertPolicies,
   } = {}) {
     this.gatewayMetrics = gatewayMetrics;
     this.pipeline = pipeline;
@@ -25,9 +29,12 @@ class SreService {
     this.portfolio = portfolio;
     this.execution = execution;
     this.record = record;
+    this.clock = clock;
     this.slos = {
       availability: 0.999,
+      latencyTarget: 0.95,
       p95LatencyMs: 500,
+      freshnessTarget: 0.99,
       dataFreshnessMs: 15000,
       auditIntegrity: 1,
       ...slos,
@@ -35,6 +42,27 @@ class SreService {
     this.incidents = [];
     this.journal = new Sha256AuditChain();
     this.backups = [];
+    this.sloMonitor = new SloMonitor({
+      clock,
+      ...(alertPolicies ? { alerts: alertPolicies } : {}),
+      objectives: {
+        availability: {
+          target: this.slos.availability,
+          windowMs: sloWindowMs,
+        },
+        latency: {
+          target: this.slos.latencyTarget,
+          thresholdMs: this.slos.p95LatencyMs,
+          windowMs: sloWindowMs,
+        },
+        freshness: {
+          target: this.slos.freshnessTarget,
+          thresholdMs: this.slos.dataFreshnessMs,
+          windowMs: sloWindowMs,
+        },
+        audit: { target: this.slos.auditIntegrity, windowMs: sloWindowMs },
+      },
+    });
   }
   open(code, severity, message) {
     const existing = this.incidents.find(
@@ -85,9 +113,73 @@ class SreService {
       availability = total ? 1 - serverErrors / total : 1,
       latencies = m.latencies || [],
       p95 = percentile(latencies, 0.95),
-      freshness = data.cycleAgeMs === Infinity ? null : data.cycleAgeMs,
-      errorBudget = 1 - this.slos.availability,
-      burnRate = errorBudget ? Math.max(0, 1 - availability) / errorBudget : 0;
+      freshness = data.cycleAgeMs === Infinity ? null : data.cycleAgeMs;
+    const now = this.clock(),
+      observations = m.observations?.length
+        ? m.observations
+        : Object.entries(m.statuses || {}).map(([status, weight]) => ({
+            at: now,
+            good: Number(status) < 500,
+            weight,
+          })),
+      availabilityEvents = observations.map((event) => ({
+        ...event,
+        good: event.good ?? Number(event.status) < 500,
+      })),
+      latencyEvents = m.observations?.length
+        ? m.observations.map((event) => ({
+            ...event,
+            good: event.latencyMs <= this.slos.p95LatencyMs,
+          }))
+        : latencies.map((latencyMs) => ({
+            at: now,
+            good: latencyMs <= this.slos.p95LatencyMs,
+          }));
+    this.sloMonitor.observe(
+      "freshness",
+      freshness === null || freshness <= this.slos.dataFreshnessMs,
+      freshness,
+    );
+    this.sloMonitor.observe("audit", audit.valid, audit.brokenAt);
+    const objectives = {
+        availability: this.sloMonitor.evaluate(
+          "availability",
+          availabilityEvents,
+        ),
+        latency: this.sloMonitor.evaluate("latency", latencyEvents),
+        freshness: this.sloMonitor.evaluate("freshness"),
+        audit: this.sloMonitor.evaluate("audit"),
+      },
+      firing = Object.values(objectives).flatMap((objective) =>
+        objective.alerts
+          .filter((alert) => alert.firing)
+          .map((alert) => ({ objective: objective.name, ...alert })),
+      );
+    for (const alert of firing)
+      this.open(
+        `SLO_BURN_${alert.objective.toUpperCase()}_${alert.name.toUpperCase()}`,
+        alert.name === "fast" ? "critical" : "warning",
+        `${alert.objective} burn ${alert.long.burnRate.toFixed(2)}x/${alert.short.burnRate.toFixed(2)}x`,
+      );
+    const firingCodes = new Set(
+      firing.map(
+        (alert) =>
+          `SLO_BURN_${alert.objective.toUpperCase()}_${alert.name.toUpperCase()}`,
+      ),
+    );
+    for (const incident of this.incidents)
+      if (
+        incident.code.startsWith("SLO_BURN_") &&
+        incident.state !== "resolved" &&
+        !firingCodes.has(incident.code)
+      ) {
+        incident.state = "resolved";
+        incident.resolvedAt = new Date(this.clock()).toISOString();
+        this.journal.append("incident.resolved", {
+          id: incident.id,
+          code: incident.code,
+        });
+      }
     const checks = {
       availability: availability >= this.slos.availability,
       latency: p95 <= this.slos.p95LatencyMs,
@@ -135,10 +227,12 @@ class SreService {
         availability,
         p95LatencyMs: p95,
         dataFreshnessMs: freshness,
-        burnRate,
-        errorBudgetRemaining: Math.max(0, 1 - burnRate),
+        burnRate: objectives.availability.period.burnRate,
+        errorBudgetRemaining: objectives.availability.period.budgetRemaining,
         audit,
       },
+      objectives,
+      burnAlerts: firing,
       checks,
       services: {
         data: data.status,

@@ -129,6 +129,7 @@ function createGateway(options = {}) {
       errors: 0,
       latencies: [],
       statuses: {},
+      observations: [],
     },
     desks = options.desks || new DeskRegistry(),
     security = options.security || new SecurityManager();
@@ -154,10 +155,14 @@ function createGateway(options = {}) {
   const handleRequest = async (req, res) => {
     const requestStarted = Date.now();
     res.on("finish", () => {
-      metrics.latencies.push(Date.now() - requestStarted);
+      const at = Date.now(),
+        latencyMs = at - requestStarted;
+      metrics.latencies.push(latencyMs);
       if (metrics.latencies.length > 2000) metrics.latencies.shift();
       metrics.statuses[res.statusCode] =
         (metrics.statuses[res.statusCode] || 0) + 1;
+      metrics.observations.push({ at, status: res.statusCode, latencyMs });
+      if (metrics.observations.length > 10000) metrics.observations.shift();
     });
     const headers = cors(req.headers.origin, allowedOrigin);
     if (req.method === "OPTIONS") {
