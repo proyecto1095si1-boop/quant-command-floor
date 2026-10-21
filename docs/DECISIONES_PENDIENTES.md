@@ -164,3 +164,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** editar hashes, borrar cuarentenas o convertir
   checkpoints incompatibles automáticamente.
 
+## Promoción de backfills históricos
+
+- **Estado:** no implementada.
+- **Decisión necesaria:** definir revisores independientes, fuentes de contraste,
+  tolerancias OHLCV, tratamiento de revisiones del venue y retención WORM.
+- **Acción bloqueada:** mover `backfill.candles.*` a streams confiables, usarlos
+  en Outcome Oracle o reemplazar observaciones existentes.
+
