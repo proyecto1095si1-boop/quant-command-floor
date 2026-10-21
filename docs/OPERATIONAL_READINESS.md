@@ -51,5 +51,23 @@ Cada cambio material de estado, capacidades o razones se sella como
 `operational-readiness` y se guarda en `sre.readiness-transitions`. El payload
 declara siempre `paperOnly=true` y `liveTrading=false`.
 
+## Recuperación
+
+El arranque permanece fail-closed hasta abrir el historial disponible. Por cada
+transición se verifican:
+
+- sello SHA-256 y `policyHash`;
+- `id = SHA256(cuerpo de decisión)`;
+- firma semántica de estado, capacidades y conjunto de fallos;
+- estado, resumen, razones y capacidades recalculados desde los checks;
+- tiempo no decreciente y continuidad `previousState`/`previousId`;
+- invariantes `paperOnly=true` y `liveTrading=false`.
+
+La retención puede eliminar el comienzo del historial; si el primer registro
+conservado tiene predecessor se marca `boundaryTruncated=true`. Esto no permite
+ignorar una ruptura entre dos registros que sí están presentes. Ante cualquier
+error, readiness no queda disponible y el Risk Gate recibe
+`readiness-recovery-failed`.
+
 `READY` sólo significa aptitud para las capacidades paper indicadas. No prueba
 salud de un broker real, custodia, secretos, compliance ni conectividad privada.

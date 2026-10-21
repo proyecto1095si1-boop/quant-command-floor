@@ -646,6 +646,12 @@ las razones no compensables. `HALTED` responde HTTP 503. La ruta
 `POST /v1/execution/submit` y `/v1/execution/drain` vuelven a evaluar readiness
 y responden 409 sin llamar al ejecutor cuando `paperExecution=false`.
 
+Durante el arranque, readiness recupera `sre.readiness-transitions`. Hasta
+validar sellos, política, decisiones derivadas y continuidad interna,
+`GET /v1/readiness` responde 503 y ejecución permanece bloqueada. Un corte del
+inicio por retención se informa como `boundaryTruncated`; una ruptura dentro del
+historial disponible detiene el Risk Gate.
+
 ## 5. Ejemplos internos
 
 ### Ejecutar una mesa

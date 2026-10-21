@@ -70,6 +70,15 @@ Para recuperación, conservar el stream original, corregir primero la causa de
 configuración o almacenamiento y reiniciar con la misma política. Un cambio de
 política requiere una migración aprobada; no se acepta recalcular hashes.
 
+## Historial de readiness
+
+- Stream: `sre.readiness-transitions`.
+- Validar `previousState`, `previousId`, `policyHash`, ID y firma semántica.
+- `boundaryTruncated=true` sólo admite que retención haya eliminado el prefijo;
+  no admite saltos internos.
+- Ante `readiness-recovery-failed`, conservar evidencia y no reanudar Risk Gate
+  editando o eliminando la transición conflictiva.
+
 ## Alertas
 
 - `cycleAgeMs > 3 × MARKET_POLL_MS`: feed estancado.
