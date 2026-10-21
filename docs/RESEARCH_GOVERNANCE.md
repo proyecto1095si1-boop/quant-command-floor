@@ -40,4 +40,10 @@ usado queda registrado como `metrics.annualizationPeriods`.
   embargada de parámetros T22/T23; produce un ranking paper-only y nunca aplica
   automáticamente la recomendación. Véase `CONSENSUS_CALIBRATION.md`.
 
+La validación final gobernada se realiza por las rutas
+`/v1/governance/calibration/*`: exige procedencia Ed25519, fija el split antes de
+buscar, consume el holdout una sola vez y requiere dos aprobadores para iniciar
+un shadow/canary paper. No promueve el modelo. Véase
+`CALIBRATION_GOVERNANCE.md`.
+
 Los reportes y eventos se guardan en los streams SHA-256 `research.evaluation` y `research.promotion`. El generador determinista incluido sirve para demos y pruebas; una investigación operativa debe enviar retornos netos de fees y slippage desde un dataset versionado.

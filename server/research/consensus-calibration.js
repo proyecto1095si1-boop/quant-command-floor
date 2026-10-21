@@ -342,6 +342,7 @@ module.exports = {
   DEFAULT_GRID,
   calibrateConsensus,
   candidates,
+  evaluateCandidate,
   metrics,
   normalizeObservations,
   walkForwardFolds,
