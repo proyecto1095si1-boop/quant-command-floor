@@ -123,3 +123,11 @@ propietario del repositorio. No se adoptan valores por omisión.
   conservadores operativos para paper; no constituyen calibración económica ni
   autorización para capital real.
 
+## Política económica del Outcome Oracle
+
+- **Estado:** pendiente por activo, venue y horizonte.
+- **Decisión necesaria:** aprobar fuentes, threshold neto de fees/spread,
+  staleness, demora de finalidad, clock skew y divergencia máxima.
+- **Acción bloqueada:** interpretar el outcome paper como benchmark regulatorio
+  o usarlo para promoción vinculada a capital real.
+

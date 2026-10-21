@@ -1,8 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict"),
-  { ExperimentService } = require("../server/governance/experiments.js"),
-  { validateRevisionChain } = require("../server/governance/labels.js");
+  {
+    ExperimentService,
+    requestKey,
+  } = require("../server/governance/experiments.js"),
+  { validateRevisionChain } = require("../server/governance/labels.js"),
+  { testOracle } = require("./helpers/outcome-oracle.js");
 
 const governance = {
   champion: () => ({ modelId: "consensus", version: "1", kind: "consensus" }),
@@ -17,8 +21,11 @@ const governance = {
 (async () => {
   let now = Date.parse("2026-01-01T00:00:00.000Z");
   const events = [],
+    outcomes = new Map([[requestKey("prediction-1"), 1]]),
+    outcomeOracle = testOracle(() => now, outcomes),
     service = new ExperimentService({
       governance,
+      outcomeOracle,
       clock: () => now,
       record: async (...event) => events.push(structuredClone(event)),
       policy: { forecastHorizonMs: 1_000, labelGraceMs: 500 },
@@ -29,6 +36,7 @@ const governance = {
     }),
     prediction = {
       requestId: "prediction-1",
+      symbol: "BTC-USD",
       horizonMs: 1_000,
       regime: "risk-on",
       championProbability: 0.6,
@@ -53,28 +61,22 @@ const governance = {
       service.labelForecast(experiment.id, {
         requestId: prediction.requestId,
         outcome: 1,
-        outcomeAt: new Date(now).toISOString(),
       }),
-    /label-before-horizon/,
+    /manual-outcome-not-allowed/,
   );
-
+  await assert.rejects(
+    () =>
+      service.labelForecast(experiment.id, {
+        requestId: prediction.requestId,
+      }),
+    /oracle-outcome-not-final/,
+  );
   now += 1_000;
   await assert.rejects(
     () =>
       service.labelForecast(experiment.id, {
         requestId: prediction.requestId,
-        outcome: 1,
-        outcomeAt: new Date(now + 1).toISOString(),
-      }),
-    /label-from-future/,
-  );
-  await assert.rejects(
-    () =>
-      service.labelForecast(experiment.id, {
-        requestId: prediction.requestId,
         horizonMs: 2_000,
-        outcome: 1,
-        outcomeAt: new Date(now).toISOString(),
       }),
     /label-horizon-mismatch/,
   );
@@ -82,52 +84,19 @@ const governance = {
   state = await service.labelForecast(experiment.id, {
     requestId: prediction.requestId,
     horizonMs: 1_000,
-    outcome: 1,
-    outcomeAt: new Date(now).toISOString(),
   });
   assert.equal(state.labels.labeled, 1);
   assert.equal(state.sequential.overall.observations, 1);
   assert.equal(validateRevisionChain(state.forecasts[0]), true);
-  const originalOutcomeAt = state.forecasts[0].activeLabel.outcomeAt;
+  assert.equal(state.forecasts[0].activeLabel.evidence.outcome, 1);
   now += 1;
+  outcomes.set(requestKey(prediction.requestId), 0);
   await assert.rejects(
     () =>
       service.labelForecast(
         experiment.id,
         {
           requestId: prediction.requestId,
-          outcome: 0,
-          outcomeAt: new Date(now + 1).toISOString(),
-          correctionReason: "wrong target time",
-          secondApprover: "reviewer",
-        },
-        "operator",
-      ),
-    /label-from-future/,
-  );
-  await assert.rejects(
-    () =>
-      service.labelForecast(
-        experiment.id,
-        {
-          requestId: prediction.requestId,
-          outcome: 0,
-          outcomeAt: new Date(now).toISOString(),
-          correctionReason: "wrong target time",
-          secondApprover: "reviewer",
-        },
-        "operator",
-      ),
-    /label-correction-target-mismatch/,
-  );
-  await assert.rejects(
-    () =>
-      service.labelForecast(
-        experiment.id,
-        {
-          requestId: prediction.requestId,
-          outcome: 0,
-          outcomeAt: originalOutcomeAt,
           correctionReason: "source correction",
           secondApprover: "operator",
         },
@@ -139,8 +108,6 @@ const governance = {
     experiment.id,
     {
       requestId: prediction.requestId,
-      outcome: 0,
-      outcomeAt: originalOutcomeAt,
       correctionReason: "exchange corrected close",
       secondApprover: "reviewer",
     },
@@ -153,6 +120,16 @@ const governance = {
     state.forecasts[0].revisions[0].hash,
   );
   assert.equal(validateRevisionChain(state.forecasts[0]), true);
+
+  await assert.rejects(
+    () =>
+      service.observeForecast(experiment.id, {
+        ...prediction,
+        requestId: "different-target",
+        symbol: "ETH-USD",
+      }),
+    /experiment-target-mismatch/,
+  );
 
   await service.observeForecast(experiment.id, {
     ...prediction,
@@ -198,8 +175,6 @@ const governance = {
     () =>
       service.labelForecast(experiment.id, {
         requestId: "prediction-2",
-        outcome: 1,
-        outcomeAt: new Date(now).toISOString(),
       }),
     /censored-forecast-is-terminal/,
   );
@@ -209,6 +184,7 @@ const governance = {
       .map(([, event]) => event),
     recovered = new ExperimentService({
       governance,
+      outcomeOracle,
       clock: () => now,
       policy: { forecastHorizonMs: 1_000, labelGraceMs: 500 },
     });
@@ -220,9 +196,23 @@ const governance = {
     () =>
       new ExperimentService({
         governance,
+        outcomeOracle,
         clock: () => now,
         policy: { forecastHorizonMs: 1_000, labelGraceMs: 500 },
       }).recover(tampered),
+    /experiment-recovery-failed/,
+  );
+  const poisonedAnchor = structuredClone(eventRows),
+    forecastEvent = poisonedAnchor.find((event) => event.action === "forecast");
+  forecastEvent.forecast.oracleAnchor.observations[0].price *= 2;
+  assert.throws(
+    () =>
+      new ExperimentService({
+        governance,
+        outcomeOracle,
+        clock: () => now,
+        policy: { forecastHorizonMs: 1_000, labelGraceMs: 500 },
+      }).recover(poisonedAnchor),
     /experiment-recovery-failed/,
   );
   console.log("label integrity tests: ok");

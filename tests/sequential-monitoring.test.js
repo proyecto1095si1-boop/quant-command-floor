@@ -1,8 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict"),
-  { ExperimentService } = require("../server/governance/experiments.js"),
-  { logLoss, neweyWest } = require("../server/governance/sequential.js");
+  {
+    ExperimentService,
+    requestKey,
+  } = require("../server/governance/experiments.js"),
+  { logLoss, neweyWest } = require("../server/governance/sequential.js"),
+  { testOracle } = require("./helpers/outcome-oracle.js");
 
 const governance = {
     champion: () => ({ modelId: "consensus", version: "1", kind: "consensus" }),
@@ -18,6 +22,7 @@ const governance = {
     return {
       requestId,
       expectedOutcome: outcome,
+      symbol: "BTC-USD",
       horizonMs: 1,
       regime: index % 4 < 2 ? "risk-on" : "risk-off",
       championProbability: outcome ? 0.9 : 0.1,
@@ -39,20 +44,22 @@ const governance = {
 
   let now = Date.parse("2026-01-01T00:00:00.000Z");
   const events = [],
+    outcomes = new Map(),
+    outcomeOracle = testOracle(() => now, outcomes),
     service = new ExperimentService({
       governance,
+      outcomeOracle,
       record: async (...event) => events.push(event),
       clock: () => now,
       policy: { forecastHorizonMs: 1, labelGraceMs: 0 },
     }),
     observe = async (id, input) => {
       const outcome = input.expectedOutcome;
+      outcomes.set(requestKey(input.requestId), outcome);
       await service.observeForecast(id, input);
       now += 1;
       return service.labelForecast(id, {
         requestId: input.requestId,
-        outcome,
-        outcomeAt: new Date(now).toISOString(),
       });
     },
     healthy = await service.start({
@@ -101,6 +108,7 @@ const governance = {
       .map(([, event]) => structuredClone(event)),
     recovered = new ExperimentService({
       governance,
+      outcomeOracle,
       clock: () => now,
       policy: { forecastHorizonMs: 1, labelGraceMs: 0 },
     });
@@ -119,6 +127,7 @@ const governance = {
     () =>
       new ExperimentService({
         governance,
+        outcomeOracle,
         clock: () => now,
         policy: { forecastHorizonMs: 1, labelGraceMs: 0 },
       }).recover(corrupted),

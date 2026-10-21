@@ -19,6 +19,11 @@ PAPER_ONLY=true
 MARKET_DATA_ENABLED=true
 MARKET_PRODUCTS=BTC-USD,ETH-USD,SOL-USD,BNB-USD
 MARKET_POLL_MS=5000
+OUTCOME_MAX_STALENESS_MS=30000
+OUTCOME_MAX_LAG_MS=30000
+OUTCOME_FINALITY_DELAY_MS=30000
+OUTCOME_MAX_CLOCK_SKEW_MS=2000
+OUTCOME_MAX_DIVERGENCE_BPS=25
 MARKET_WS_ENABLED=false
 DATA_DIR=./var/data
 ```
@@ -82,19 +87,25 @@ pendiente, sin outcome:
 {
   "experimentId": "uuid",
   "requestId": "id-estable",
+  "symbol": "BTC-USD",
   "championProbability": 0.61,
   "challengerProbability": 0.58,
   "regime": "risk_on_low_vol",
-  "horizonMs": 3600000
+  "horizonMs": 3600000,
+  "thresholdBps": 0
 }
 ```
 
-Después de `maturesAt`, `POST /v1/governance/experiments/label` recibe
-`experimentId`, `requestId`, `outcome` (0/1) y `outcomeAt` ISO. Una corrección
-agrega `correctionReason` y exige el header `x-second-approver`. Para resultados ausentes,
+El servidor sella un anchor Coinbase/Kraken en esa llamada. Después de
+`maturesAt` y la demora de finalidad,
+`POST /v1/governance/experiments/label` recibe únicamente `experimentId` y
+`requestId`: el Outcome Oracle deriva el resultado desde el retorno point-in-time.
+Enviar `outcome` u `outcomeAt` se rechaza. Una corrección agrega
+`correctionReason` y exige el header `x-second-approver`. Para resultados ausentes,
 `POST /v1/governance/experiments/censor` recibe `reason` una vez agotada la
 gracia. La respuesta incluye estado de labels, e-values y breaches. Véanse
-`docs/LABEL_LIFECYCLE.md` y `docs/SEQUENTIAL_MONITORING.md`.
+`docs/OUTCOME_ORACLE.md`, `docs/LABEL_LIFECYCLE.md` y
+`docs/SEQUENTIAL_MONITORING.md`.
 
 `POST /v1/governance/experiments/graduate` recibe `experimentId` y `reason`, y
 requiere dos aprobadores. Solo genera un artefacto si pasan no inferioridad,

@@ -11,6 +11,7 @@ const { SreService } = require("./sre/service.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
+const { OutcomeOracle } = require("./governance/outcome-oracle.js");
 const { AiEvaluationService } = require("./governance/ai-evaluation.js");
 const { CalibrationGovernanceService } = require("./governance/calibration.js");
 const { parseTrustedReviewers } = require("./governance/provenance.js");
@@ -51,8 +52,19 @@ const regime = new RegimeService({
   governance = new ModelGovernanceService({
     record: (stream, event) => data.record(stream, event),
   }),
+  outcomeOracle = new OutcomeOracle({
+    provider: data,
+    policy: {
+      maxStalenessMs: Number(process.env.OUTCOME_MAX_STALENESS_MS || 30000),
+      maxOutcomeLagMs: Number(process.env.OUTCOME_MAX_LAG_MS || 30000),
+      finalityDelayMs: Number(process.env.OUTCOME_FINALITY_DELAY_MS || 30000),
+      maxClockSkewMs: Number(process.env.OUTCOME_MAX_CLOCK_SKEW_MS || 2000),
+      maxDivergenceBps: Number(process.env.OUTCOME_MAX_DIVERGENCE_BPS || 25),
+    },
+  }),
   experiments = new ExperimentService({
     governance,
+    outcomeOracle,
     record: (stream, event) => data.record(stream, event),
   }),
   aiEvaluation = new AiEvaluationService({

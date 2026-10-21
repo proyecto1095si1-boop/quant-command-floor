@@ -16,11 +16,10 @@ maturesAt = predictedAt + horizonMs
 el hash del request, régimen y probabilidades champion/challenger. El default de
 `forecastHorizonMs` es una hora.
 
-`POST /v1/governance/experiments/label` exige `outcomeAt`. El label se rechaza
-si `outcomeAt < maturesAt` o si el resultado dice provenir del futuro respecto
-del reloj de recepción. `horizonMs`, cuando se repite en el request, debe ser
-idéntico al del pronóstico. La pérdida se calcula recién después de estas
-validaciones:
+`POST /v1/governance/experiments/label` ya no acepta outcomes manuales. T29
+deriva `outcomeAt=maturesAt` y el resultado desde evidencia Coinbase/Kraken
+point-in-time. `horizonMs`, cuando se repite en el request, debe ser idéntico al
+del pronóstico. La pérdida se calcula recién después de validar:
 
 ```text
 predictedAt <= maturesAt <= outcomeAt <= observedAt
@@ -28,6 +27,9 @@ predictedAt <= maturesAt <= outcomeAt <= observedAt
 
 Así, una fila no puede aportar log-loss antes de que venza el horizonte que se
 declaró sin conocer el resultado.
+
+El contrato de precios, ventanas, consenso y finalidad está en
+`docs/OUTCOME_ORACLE.md`.
 
 ## Correcciones inmutables
 

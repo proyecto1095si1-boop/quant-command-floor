@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Outcome Oracle point-in-time multifonte: mediana robusta, staleness, finalidad,
+  clock skew, divergencia, evidencia hasheada y labels sin outcomes manuales.
 - Graduación de experimentos con evidencia positiva de no inferioridad global y
   por régimen, diseño de muestra, cuatro ojos y vínculo obligatorio al promover
   reemplazos del champion de consenso.

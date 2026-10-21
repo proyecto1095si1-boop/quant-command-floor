@@ -14,6 +14,7 @@ const {
   labelSummary,
   validateRevisionChain,
 } = require("./labels.js");
+const { validateArtifact, validateResolution } = require("./outcome-oracle.js");
 
 function percentile(values, probability) {
   if (!values.length) return 0;
@@ -142,11 +143,13 @@ function summarize(observations) {
 class ExperimentService {
   constructor({
     governance,
+    outcomeOracle = null,
     record = async () => {},
     policy = {},
     clock,
   } = {}) {
     this.governance = governance;
+    this.outcomeOracle = outcomeOracle;
     this.record = record;
     this.clock = clock || (() => Date.now());
     this.policy = {
@@ -322,6 +325,7 @@ class ExperimentService {
       startedBy: actor,
       observations: [],
       forecasts: [],
+      target: null,
       labels: labelSummary([], this.now(), this.policy.labelGraceMs),
       summary: summarize([]),
       sequential: summarizeForecasts([], this.sequentialPolicy),
@@ -459,13 +463,45 @@ class ExperimentService {
         status: 422,
       });
     const nowMs = this.now(),
+      symbol = String(input.symbol || "")
+        .trim()
+        .toUpperCase(),
+      thresholdBps = Number(input.thresholdBps ?? 0),
+      target = { symbol, horizonMs, thresholdBps };
+    if (!/^[A-Z0-9]+-[A-Z0-9]+$/.test(symbol))
+      throw Object.assign(new Error("forecast-symbol-required"), {
+        status: 422,
+      });
+    if (
+      !Number.isFinite(thresholdBps) ||
+      (experiment.target &&
+        JSON.stringify(experiment.target) !== JSON.stringify(target))
+    )
+      throw Object.assign(new Error("experiment-target-mismatch"), {
+        status: 422,
+      });
+    if (!this.outcomeOracle)
+      throw Object.assign(new Error("outcome-oracle-required"), {
+        status: 503,
+      });
+    const predictedAt = new Date(nowMs).toISOString(),
+      maturesAt = new Date(nowMs + horizonMs).toISOString(),
+      oracleAnchor = await this.outcomeOracle.anchor({
+        requestKey: key,
+        symbol,
+        predictedAt,
+        maturesAt,
+        thresholdBps,
+      }),
       forecast = {
         id: crypto.randomUUID(),
         requestKey: key,
-        at: new Date(nowMs).toISOString(),
-        predictedAt: new Date(nowMs).toISOString(),
-        maturesAt: new Date(nowMs + horizonMs).toISOString(),
+        at: predictedAt,
+        predictedAt,
+        maturesAt,
         horizonMs,
+        symbol,
+        oracleAnchor,
         ...cleanPrediction(input, this.sequentialPolicy),
         status: "pending",
         revisions: [],
@@ -480,6 +516,7 @@ class ExperimentService {
       throw Object.assign(new Error("sequential-regime-limit-exceeded"), {
         status: 422,
       });
+    experiment.target = target;
     experiment.forecasts.push(forecast);
     this.refreshSequential(experiment);
     await this.record("governance.experiments", {
@@ -503,10 +540,25 @@ class ExperimentService {
       forecast = experiment.forecasts.find((row) => row.requestKey === key);
     if (!forecast)
       throw Object.assign(new Error("forecast-not-found"), { status: 404 });
-    const revision = addLabel(forecast, input, {
-      actor,
-      nowMs: this.now(),
-    });
+    if (input.outcome !== undefined || input.outcomeAt !== undefined)
+      throw Object.assign(new Error("manual-outcome-not-allowed"), {
+        status: 422,
+      });
+    if (!this.outcomeOracle)
+      throw Object.assign(new Error("outcome-oracle-required"), {
+        status: 503,
+      });
+    const evidence = await this.outcomeOracle.resolve(forecast),
+      revision = addLabel(
+        forecast,
+        {
+          ...input,
+          outcome: evidence.outcome,
+          outcomeAt: forecast.maturesAt,
+          evidence,
+        },
+        { actor, nowMs: this.now() },
+      );
     this.refreshSequential(experiment);
     await this.record("governance.experiments", {
       action: "label",
@@ -608,6 +660,7 @@ class ExperimentService {
         championVersion: experiment.championVersion,
         challengerVersion: experiment.challengerVersion,
         mode: experiment.mode,
+        target: experiment.target,
         observations: experiment.summary.observations,
         forecasts: experiment.forecasts.length,
         labels: experiment.labels,
@@ -688,6 +741,7 @@ class ExperimentService {
             ...structuredClone(event.experiment),
             observations: [],
             forecasts: [],
+            target: event.experiment.target || null,
             labels: labelSummary([], this.now(), this.policy.labelGraceMs),
             summary: summarize([]),
             sequential: summarizeForecasts([], this.sequentialPolicy),
@@ -711,9 +765,14 @@ class ExperimentService {
           experiment.summary = summarize(experiment.observations);
         } else if (event.action === "forecast") {
           const recalculated = cleanPrediction(
-            event.forecast || {},
-            this.sequentialPolicy,
-          );
+              event.forecast || {},
+              this.sequentialPolicy,
+            ),
+            target = {
+              symbol: event.forecast?.symbol,
+              horizonMs: event.forecast?.horizonMs,
+              thresholdBps: event.forecast?.oracleAnchor?.thresholdBps,
+            };
           if (
             experiment.state !== "running" ||
             !event.forecast?.requestKey ||
@@ -728,9 +787,23 @@ class ExperimentService {
             Date.parse(event.forecast.maturesAt) -
               Date.parse(event.forecast.predictedAt) !==
               event.forecast.horizonMs ||
+            !this.outcomeOracle ||
+            !validateArtifact(
+              event.forecast.oracleAnchor,
+              "anchor",
+              this.outcomeOracle.policy,
+            ) ||
+            event.forecast.oracleAnchor.symbol !== event.forecast.symbol ||
+            event.forecast.oracleAnchor.targetAt !==
+              event.forecast.predictedAt ||
+            event.forecast.oracleAnchor.maturesAt !==
+              event.forecast.maturesAt ||
+            (experiment.target &&
+              JSON.stringify(experiment.target) !== JSON.stringify(target)) ||
             !validateRevisionChain(event.forecast)
           )
             throw new Error("invalid-experiment-forecast-event");
+          experiment.target = target;
           experiment.forecasts.push(structuredClone(event.forecast));
           this.refreshSequential(experiment);
         } else if (event.action === "label") {
@@ -747,6 +820,14 @@ class ExperimentService {
             content.previousHash !== (previous?.hash || null) ||
             hash !== fingerprint(content) ||
             ![0, 1].includes(content.outcome) ||
+            content.outcomeAt !== forecast.maturesAt ||
+            !this.outcomeOracle ||
+            !validateResolution(
+              forecast.oracleAnchor,
+              content.evidence,
+              this.outcomeOracle.policy,
+            ) ||
+            content.outcome !== content.evidence.outcome ||
             Date.parse(content.outcomeAt) < Date.parse(forecast.maturesAt) ||
             Date.parse(content.outcomeAt) > Date.parse(content.observedAt) ||
             (!previous &&
@@ -803,6 +884,8 @@ class ExperimentService {
             hash !== fingerprint(content) ||
             content.experimentId !== experiment.id ||
             content.paperOnly !== true ||
+            JSON.stringify(content.target) !==
+              JSON.stringify(experiment.target) ||
             content.forecasts !== experiment.forecasts.length ||
             JSON.stringify(content.labels) !==
               JSON.stringify(experiment.labels) ||
