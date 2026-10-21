@@ -11,6 +11,7 @@ const path = require("node:path"),
   { MarketReconciliation } = require("./reconciliation.js"),
   { TrustedClock } = require("./trusted-clock.js"),
   { MarketDataProvenance } = require("./provenance.js");
+const { microstructure } = require("../execution/microstructure.js");
 const MARKET_STREAM = /^(ticker|book|trades|candles)\./;
 class MarketDataService {
   constructor({
@@ -341,6 +342,10 @@ class MarketDataService {
       book: this.books.get(product)?.snapshot(100) || null,
       quality,
       ticker: this.tickers.get(product) || null,
+      microstructure: microstructure(
+        this.books.get(product)?.snapshot(100) || null,
+        trades,
+      ),
     };
   }
   async pointInTimeQuotes(product, targetAt, phase, options = {}) {

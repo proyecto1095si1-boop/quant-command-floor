@@ -148,3 +148,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** interpretar los defaults T31 como límites calibrados
   para ejecución real o liberar manualmente un producto en cuarentena.
 
+## Calibración de microestructura y TCA
+
+- **Estado:** pendiente por instrumento, venue y régimen.
+- **Decisión necesaria:** aprobar ventanas de Amihud/Kyle, taxonomía de lado,
+  horizontes de markout, benchmark de arrival price y tolerancias de shortfall.
+- **Acción bloqueada:** usar T32 para seleccionar un broker/router real o
+  afirmar best execution sin datos externos independientes.
+

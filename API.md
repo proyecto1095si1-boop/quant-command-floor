@@ -538,6 +538,11 @@ fuera de shocks, liquidez, venues inaccesibles y haircuts de contraparte.
 | POST | `/v1/execution/submit` | operator + cuatro ojos opcional |
 | POST | `/v1/execution/drain` | operator |
 
+`GET /v1/execution/status` incluye `tca`: costo de precio, fees,
+implementation shortfall ponderado por notional, effective spread y markouts
+pendientes/resueltos. Los markouts solo se resuelven al observar un snapshot
+posterior al horizonte; nunca reutilizan el precio contemporáneo del fill.
+
 Todas las órdenes son paper. `submit` necesita un plan existente y aprobación humana.
 
 ### Gobierno de modelos

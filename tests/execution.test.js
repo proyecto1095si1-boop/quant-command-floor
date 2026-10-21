@@ -63,6 +63,10 @@ const assert = require("node:assert/strict"),
   assert.equal(ledger.fills.length, 6);
   assert.equal(riskReviews, 6);
   assert.ok(svc.metrics.fees > 0);
+  assert.equal(svc.status().tca.fills, 6);
+  assert.ok(
+    Number.isFinite(svc.status().tca.weightedImplementationShortfallBps),
+  );
   const qtyBeforeReduction = ledger.positions.get("BTC-USD").qty,
     reductionPlan = {
       id: "plan-reduce",
