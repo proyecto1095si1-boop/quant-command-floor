@@ -138,7 +138,15 @@ class ConsensusEngine {
       });
   }
 
-  combine(signals, { weights = {}, regime = null, blockers = [] } = {}) {
+  combine(
+    signals,
+    {
+      weights = {},
+      regime = null,
+      blockers = [],
+      correlations = this.correlations,
+    } = {},
+  ) {
     const normalized = validateSignals(signals),
       regimeName = String(regime?.regime || "unclassified"),
       regimeProbability = clamp(regime?.probability ?? 1),
@@ -154,7 +162,7 @@ class ConsensusEngine {
                 sum +
                 (peer.agent === row.agent
                   ? 0
-                  : correlation(row.agent, peer.agent, this.correlations)),
+                  : correlation(row.agent, peer.agent, correlations)),
               0,
             ),
           weight = (baseWeight * regimeWeight * row.confidence) / redundancy;
@@ -193,7 +201,7 @@ class ConsensusEngine {
             ),
           }
         : { lower: 0, upper: 1 },
-      effectiveAgents = effectiveSampleSize(weighted, this.correlations),
+      effectiveAgents = effectiveSampleSize(weighted, correlations),
       maximumWeightShare = totalWeight
         ? Math.max(0, ...weighted.map((row) => row.weight / totalWeight))
         : 1,

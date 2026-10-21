@@ -1,7 +1,12 @@
 "use strict";
 const A = require("./agents.js"),
   M = require("./math.js"),
-  { ConsensusEngine } = require("../decision/consensus.js");
+  {
+    ConsensusEngine,
+    DEFAULT_CORRELATIONS,
+  } = require("../decision/consensus.js"),
+  { DynamicCorrelationEstimator } = require("../decision/dependence.js"),
+  { fingerprint } = require("../governance/service.js");
 const DEFAULT_WEIGHTS = {
   Technical: 1.25,
   Volume: 0.9,
@@ -43,12 +48,15 @@ class DeskRegistry {
     minCandles = 50,
     minTrades = 20,
     consensus = new ConsensusEngine(),
+    dependencePolicy = {},
   } = {}) {
     this.assets = assets;
     this.weights = weights;
     this.minCandles = minCandles;
     this.minTrades = minTrades;
     this.consensus = consensus;
+    this.dependencePolicy = structuredClone(dependencePolicy);
+    this.dependencies = new Map();
   }
   list() {
     return Object.entries(this.assets).map(([asset, x]) => ({
@@ -82,11 +90,15 @@ class DeskRegistry {
       ],
       dispersion = M.std(results.map((x) => x.signal)),
       agreement = Math.max(0, 1 - dispersion),
+      estimator = this.dependenceFor(asset),
+      dependence = estimator.current(DEFAULT_CORRELATIONS),
       consensus = this.consensus.combine(results, {
         weights: this.weights,
         regime: context.regime,
         blockers,
+        correlations: dependence.correlations,
       });
+    dependence.afterObservation = estimator.observe(results);
     return {
       asset,
       product: spec.product,
@@ -97,6 +109,7 @@ class DeskRegistry {
       confidence: M.clamp(consensus.confidence, 0, 1),
       agreement,
       consensus,
+      dependence,
       blockers,
       agents: results,
       inputSummary: {
@@ -114,6 +127,51 @@ class DeskRegistry {
       },
       formula: "logit(p*) = logit(prior) + Σ(weightᵢ × logit(pᵢ))",
     };
+  }
+
+  exportDecisionState() {
+    const state = {
+      version: 1,
+      assets: Object.fromEntries(
+        [...this.dependencies].map(([asset, estimator]) => [
+          asset,
+          estimator.export(),
+        ]),
+      ),
+    };
+    return { ...state, hash: fingerprint(state) };
+  }
+
+  restoreDecisionState(state) {
+    const { hash, ...body } = state || {};
+    if (
+      body.version !== 1 ||
+      hash !== fingerprint(body) ||
+      !body.assets ||
+      typeof body.assets !== "object" ||
+      Array.isArray(body.assets) ||
+      Object.keys(body.assets).some((asset) => !this.assets[asset])
+    )
+      throw new Error("invalid-decision-checkpoint");
+    const restored = new Map();
+    for (const [asset, checkpoint] of Object.entries(body.assets)) {
+      const estimator = new DynamicCorrelationEstimator(this.dependencePolicy);
+      estimator.restore(checkpoint);
+      restored.set(asset, estimator);
+    }
+    this.dependencies = restored;
+    return Object.fromEntries(
+      [...restored].map(([asset, estimator]) => [asset, estimator.status()]),
+    );
+  }
+
+  dependenceFor(asset) {
+    if (!this.dependencies.has(asset))
+      this.dependencies.set(
+        asset,
+        new DynamicCorrelationEstimator(this.dependencePolicy),
+      );
+    return this.dependencies.get(asset);
   }
 }
 module.exports = { DeskRegistry, ASSETS, DEFAULT_WEIGHTS };

@@ -87,6 +87,7 @@ class TradingPipeline {
         confidence: desk.confidence,
         blockers: desk.blockers,
         ...(desk.consensus ? { consensus: desk.consensus } : {}),
+        ...(desk.dependence ? { dependence: desk.dependence } : {}),
       });
       if (desk.action === "NO_TRADE" || desk.action === "FLAT") {
         run.status = "no-trade";
@@ -225,6 +226,7 @@ class TradingPipeline {
         reason: this.risk.reason,
         highWater: this.risk.highWater,
       },
+      decision: this.desks.exportDecisionState?.() || null,
     });
   }
   async halt(reason = "manual", actor = "system") {
@@ -272,6 +274,11 @@ class TradingPipeline {
     try {
       this.ledger.restore(checkpoint.ledger);
       this.audit.restore(checkpoint.audit);
+      if (checkpoint.decision) {
+        if (typeof this.desks.restoreDecisionState !== "function")
+          throw new Error("decision-recovery-unavailable");
+        this.desks.restoreDecisionState(checkpoint.decision);
+      }
     } catch (error) {
       this.risk.halt("recovery-integrity-failed");
       throw error;

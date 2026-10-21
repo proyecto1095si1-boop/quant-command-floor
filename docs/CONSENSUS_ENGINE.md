@@ -29,6 +29,10 @@ La matriz inicial descuenta Technical/Market Structure/Order Block y, en menor
 grado, Volume/Whale y Liquidity/Volume. Solo usa correlaciones positivas: una
 relación negativa no se interpreta automáticamente como diversificación.
 
+T23 reemplaza esa matriz por una estimación EWMA regularizada cuando existe
+historia suficiente y estable. La matriz estática sigue siendo el fallback. Los
+detalles y el checkpoint se documentan en `DYNAMIC_DEPENDENCE.md`.
+
 El tamaño efectivo informa cuántas fuentes independientes equivalen al comité:
 
 ```text

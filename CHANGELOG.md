@@ -38,6 +38,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Correlaciones dinámicas EWMA con shrinkage adaptativo, condition number,
+  detección de cambio, fallback estático y checkpoint verificable.
 - Consenso multiagente por log-odds con descuento de correlación, pesos por
   régimen, tamaño efectivo, intervalo 95% y abstención obligatoria.
 - Procedencia firmada Ed25519, linaje por hashes, identidad reproducible,
