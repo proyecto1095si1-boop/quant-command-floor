@@ -181,3 +181,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** declarar cumplimiento contractual o disponibilidad real
   basándose únicamente en archivos del mismo host.
 
+## Umbrales de readiness operacional
+
+- **Estado:** defaults conservadores implementados para paper.
+- **Decisión necesaria:** calibrar queue máxima, tasa de rechazo, muestra mínima,
+  obligatoriedad de champion IA y qué degradaciones requieren paging o veto.
+- **Acción bloqueada:** reutilizar estos defaults como autorización para capital
+  real o interpretar `READY` como certificación de producción.
+

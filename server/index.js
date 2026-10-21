@@ -8,6 +8,7 @@ const { ResearchLab } = require("./research/lab.js");
 const { PortfolioService } = require("./portfolio/service.js");
 const { ExecutionService } = require("./execution/service.js");
 const { SreService } = require("./sre/service.js");
+const { ReadinessService } = require("./sre/readiness.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -131,6 +132,24 @@ const regime = new RegimeService({
         burn: Number(process.env.SRE_SLOW_BURN || 6),
       },
     ],
+  }),
+  readiness = new ReadinessService({
+    dataService: data,
+    pipeline,
+    execution,
+    sre,
+    governance,
+    experiments,
+    aiEvaluation,
+    calibrationGovernance,
+    llmConfigured: Boolean(process.env.LLM_BASE_URL),
+    record: (stream, event) => data.record(stream, event),
+    policy: {
+      maxExecutionQueue: Number(process.env.READINESS_MAX_QUEUE || 100),
+      maxRejectionRate: Number(process.env.READINESS_MAX_REJECTION_RATE || 0.2),
+      minExecutionsForRate: Number(process.env.READINESS_MIN_EXECUTIONS || 20),
+      requireChampion: process.env.READINESS_REQUIRE_CHAMPION === "true",
+    },
   });
 gateway.setDataService(data);
 gateway.setPipeline(pipeline);
@@ -144,6 +163,7 @@ gateway.setGovernance(governance);
 gateway.setExperiments(experiments);
 gateway.setAiEvaluation(aiEvaluation);
 gateway.setCalibrationGovernance(calibrationGovernance);
+gateway.setReadiness(readiness);
 gateway.listen().then(async (address) => {
   console.log(
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,

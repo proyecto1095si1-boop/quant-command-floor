@@ -44,6 +44,10 @@ SRE_FAST_BURN=14.4
 SRE_SLOW_LONG_MIN=360
 SRE_SLOW_SHORT_MIN=30
 SRE_SLOW_BURN=6
+READINESS_MAX_QUEUE=100
+READINESS_MAX_REJECTION_RATE=0.2
+READINESS_MIN_EXECUTIONS=20
+READINESS_REQUIRE_CHAMPION=false
 OUTCOME_MAX_STALENESS_MS=30000
 OUTCOME_MAX_LAG_MS=30000
 OUTCOME_FINALITY_DELAY_MS=30000
@@ -620,6 +624,7 @@ reproducibilidad, ECE, Brier e intervalos Wilson 95%.
 | Método | Ruta | Rol |
 |---|---|---|
 | GET | `/v1/sre/status` | viewer |
+| GET | `/v1/readiness` | viewer |
 | POST | `/v1/sre/backup` | admin |
 | POST | `/v1/sre/incidents/{id}/ack` | admin |
 
@@ -634,6 +639,12 @@ pendientes y gaps. El arranque rechaza checkpoints alterados o creados con otra
 política; mientras la recuperación no termina, el snapshot SRE permanece
 fail-closed. `SRE_SAMPLE_MS` debe ser menor o igual a `SRE_BUCKET_MS`, y
 `DATA_RETENTION_DAYS` no puede ser menor que `SRE_WINDOW_DAYS`.
+
+`GET /v1/readiness` devuelve `READY`, `DEGRADED` o `HALTED`, las capacidades
+`marketAnalysis`, `paperExecution` y `aiSignals`, los 18 controles evaluados y
+las razones no compensables. `HALTED` responde HTTP 503. La ruta
+`POST /v1/execution/submit` y `/v1/execution/drain` vuelven a evaluar readiness
+y responden 409 sin llamar al ejecutor cuando `paperExecution=false`.
 
 ## 5. Ejemplos internos
 

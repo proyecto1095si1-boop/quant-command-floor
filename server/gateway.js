@@ -145,7 +145,8 @@ function createGateway(options = {}) {
     governance = options.governance || null,
     experiments = options.experiments || null,
     aiEvaluation = options.aiEvaluation || null,
-    calibrationGovernance = options.calibrationGovernance || null;
+    calibrationGovernance = options.calibrationGovernance || null,
+    readiness = options.readiness || null;
   const publish = (event) => {
     const frame = wsFrame(JSON.stringify(event));
     for (const socket of clients) {
@@ -217,6 +218,26 @@ function createGateway(options = {}) {
       );
     if (req.method === "GET" && req.url === "/v1/security/status")
       return json(res, 200, security.status(), headers);
+    if (req.method === "GET" && req.url === "/v1/readiness") {
+      if (!readiness)
+        return json(res, 503, { error: "readiness-disabled" }, headers);
+      try {
+        const decision = await readiness.evaluate();
+        return json(
+          res,
+          decision.state === "HALTED" ? 503 : 200,
+          decision,
+          headers,
+        );
+      } catch (error) {
+        return json(
+          res,
+          error.status || 503,
+          { error: error.message },
+          headers,
+        );
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/regime/status")
       return json(
         res,
@@ -872,6 +893,16 @@ function createGateway(options = {}) {
       if (!execution)
         return json(res, 503, { error: "execution-disabled" }, headers);
       try {
+        if (readiness) {
+          const decision = await readiness.evaluate();
+          if (!decision.capabilities.paperExecution)
+            return json(
+              res,
+              409,
+              { error: "operational-readiness-blocked", readiness: decision },
+              headers,
+            );
+        }
         fourEyes(req);
         return json(res, 200, await execution.submit(await body(req)), headers);
       } catch (e) {
@@ -882,6 +913,16 @@ function createGateway(options = {}) {
       if (!execution)
         return json(res, 503, { error: "execution-disabled" }, headers);
       try {
+        if (readiness) {
+          const decision = await readiness.evaluate();
+          if (!decision.capabilities.paperExecution)
+            return json(
+              res,
+              409,
+              { error: "operational-readiness-blocked", readiness: decision },
+              headers,
+            );
+        }
         return json(res, 200, await execution.drain(await body(req)), headers);
       } catch (e) {
         return json(res, e.status || 422, { error: e.message }, headers);
@@ -1164,6 +1205,9 @@ function createGateway(options = {}) {
     },
     setCalibrationGovernance(value) {
       calibrationGovernance = value;
+    },
+    setReadiness(value) {
+      readiness = value;
     },
     listen(port = Number(process.env.PORT || 8787), host = "127.0.0.1") {
       return new Promise((resolve) =>
