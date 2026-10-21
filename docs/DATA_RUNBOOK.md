@@ -31,6 +31,12 @@ Al iniciar, el servicio verifica SHA-256, recupera hasta 1000 trades recientes p
 
 La retención es configurable con `DATA_RETENTION_DAYS`; los datos necesarios para investigación de largo plazo deben copiarse previamente a almacenamiento analítico o backups.
 
+Los streams nuevos de mercado están encadenados por día UTC. Antes de usar un
+ticker como evidencia, `pointInTimeQuotes` verifica la cadena completa disponible.
+Una ruptura, fila sin sellar después de la frontera T30 o reloj no saludable debe
+tratarse como incidente de integridad; no se debe reconstruir manualmente el hash.
+Los datos legacy no son elegibles para el Outcome Oracle.
+
 ## Alertas
 
 - `cycleAgeMs > 3 × MARKET_POLL_MS`: feed estancado.
