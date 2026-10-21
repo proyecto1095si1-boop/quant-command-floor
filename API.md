@@ -42,6 +42,16 @@ ALLOWED_ORIGIN=https://tu-dominio-privado.example
 
 Nunca subir `.env`, API keys, secretos, seed phrases o private keys a GitHub.
 
+### Calibración del consenso (interna, paper-only)
+
+`POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
+parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales
+con `timestamp`, `outcome`, `regime` y `signals`; acepta políticas `folds`,
+`grid`, `dependencePolicy` y `consensusPolicy`. Devuelve hashes, ranking y una
+recomendación con `autoApply: false`. No necesita API externa ni modifica las
+mesas activas. El detalle matemático está en
+`docs/CONSENSUS_CALIBRATION.md`.
+
 ## 2. APIs externas implementadas
 
 ### Coinbase Exchange — mercado primario
