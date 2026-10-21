@@ -17,7 +17,8 @@ const governance = {
     const outcome = index % 2;
     return {
       requestId,
-      outcome,
+      expectedOutcome: outcome,
+      horizonMs: 1,
       regime: index % 4 < 2 ? "risk-on" : "risk-off",
       championProbability: outcome ? 0.9 : 0.1,
       challengerProbability: degraded
@@ -36,21 +37,31 @@ const governance = {
   assert.ok(hac.lag > 0);
   assert.ok(hac.standardError >= 0);
 
+  let now = Date.parse("2026-01-01T00:00:00.000Z");
   const events = [],
     service = new ExperimentService({
       governance,
       record: async (...event) => events.push(event),
+      clock: () => now,
+      policy: { forecastHorizonMs: 1, labelGraceMs: 0 },
     }),
+    observe = async (id, input) => {
+      const outcome = input.expectedOutcome;
+      await service.observeForecast(id, input);
+      now += 1;
+      return service.labelForecast(id, {
+        requestId: input.requestId,
+        outcome,
+        outcomeAt: new Date(now).toISOString(),
+      });
+    },
     healthy = await service.start({
       modelId: "consensus",
       challengerVersion: "2",
       mode: "shadow",
     });
   for (let index = 0; index < 50; index++)
-    await service.observeForecast(
-      healthy.id,
-      forecast(`healthy-${index}`, index),
-    );
+    await observe(healthy.id, forecast(`healthy-${index}`, index));
   assert.equal(service.get(healthy.id).state, "running");
   assert.ok(service.get(healthy.id).sequential.overall.mean < 0);
   assert.equal(service.get(healthy.id).sequential.breaches.length, 0);
@@ -68,7 +79,7 @@ const governance = {
   });
   let result;
   for (let index = 0; index < 60; index++) {
-    result = await service.observeForecast(
+    result = await observe(
       degraded.id,
       forecast(`degraded-${index}`, index, true),
     );
@@ -88,7 +99,11 @@ const governance = {
   const experimentEvents = events
       .filter(([stream]) => stream === "governance.experiments")
       .map(([, event]) => structuredClone(event)),
-    recovered = new ExperimentService({ governance });
+    recovered = new ExperimentService({
+      governance,
+      clock: () => now,
+      policy: { forecastHorizonMs: 1, labelGraceMs: 0 },
+    });
   assert.equal(recovered.recover(experimentEvents).experiments, 2);
   assert.equal(recovered.get(degraded.id).state, "rolled-back");
   assert.equal(
@@ -97,9 +112,16 @@ const governance = {
   );
   const corrupted = structuredClone(experimentEvents),
     forecastEvent = corrupted.find((event) => event.action === "forecast");
-  forecastEvent.forecast.lossDifference += 1;
+  forecastEvent.forecast.maturesAt = new Date(
+    Date.parse(forecastEvent.forecast.maturesAt) + 1,
+  ).toISOString();
   assert.throws(
-    () => new ExperimentService({ governance }).recover(corrupted),
+    () =>
+      new ExperimentService({
+        governance,
+        clock: () => now,
+        policy: { forecastHorizonMs: 1, labelGraceMs: 0 },
+      }).recover(corrupted),
     /experiment-recovery-failed/,
   );
 

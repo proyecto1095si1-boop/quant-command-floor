@@ -20,8 +20,14 @@ const assert = require("node:assert/strict"),
       observe: async (id) => ({ id, summary: { observations: 1 } }),
       observeForecast: async (id) => ({
         id,
+        labels: { pending: 1 },
+      }),
+      labelForecast: async (id, input) => ({
+        id,
+        secondApprover: input.secondApprover,
         sequential: { overall: { observations: 1 } },
       }),
+      censorForecast: async (id) => ({ id, labels: { censored: 1 } }),
       stop: async (id, actor, reason) => {
         calls.push(["stop", actor, reason]);
         return { id, state: "stopped" };
@@ -61,7 +67,18 @@ const assert = require("node:assert/strict"),
   const forecast = await request("/v1/governance/experiments/forecast", {
     experimentId: started.id,
   });
-  assert.equal(forecast.sequential.overall.observations, 1);
+  assert.equal(forecast.labels.pending, 1);
+  const labeled = await request(
+    "/v1/governance/experiments/label",
+    { experimentId: started.id },
+    { "x-second-approver": "label-reviewer" },
+  );
+  assert.equal(labeled.sequential.overall.observations, 1);
+  assert.equal(labeled.secondApprover, "label-reviewer");
+  const censored = await request("/v1/governance/experiments/censor", {
+    experimentId: started.id,
+  });
+  assert.equal(censored.labels.censored, 1);
   const graduated = await request(
     "/v1/governance/experiments/graduate",
     {

@@ -3,10 +3,17 @@
 const crypto = require("node:crypto"),
   { fingerprint } = require("./service.js");
 const {
-  cleanForecast,
+  cleanPrediction,
   graduationEvidence,
+  scorePrediction,
   summarizeForecasts,
 } = require("./sequential.js");
+const {
+  addLabel,
+  censor,
+  labelSummary,
+  validateRevisionChain,
+} = require("./labels.js");
 
 function percentile(values, probability) {
   if (!values.length) return 0;
@@ -133,9 +140,15 @@ function summarize(observations) {
 }
 
 class ExperimentService {
-  constructor({ governance, record = async () => {}, policy = {} } = {}) {
+  constructor({
+    governance,
+    record = async () => {},
+    policy = {},
+    clock,
+  } = {}) {
     this.governance = governance;
     this.record = record;
+    this.clock = clock || (() => Date.now());
     this.policy = {
       minimumObservations: 50,
       maxErrorRateIncrease: 0.02,
@@ -144,6 +157,9 @@ class ExperimentService {
       maxGroundingFailureRate: 0.05,
       maxLatencyP95Ratio: 2,
       maxMeanAbsoluteDelta: null,
+      forecastHorizonMs: 60 * 60 * 1000,
+      labelGraceMs: 24 * 60 * 60 * 1000,
+      maxCensorRate: 0.05,
       ...policy,
     };
     this.sequentialPolicy = {
@@ -200,6 +216,47 @@ class ExperimentService {
         });
     this.experiments = new Map();
     this.recoveryError = null;
+    if (
+      !Number.isInteger(this.policy.forecastHorizonMs) ||
+      this.policy.forecastHorizonMs < 1 ||
+      !Number.isInteger(this.policy.labelGraceMs) ||
+      this.policy.labelGraceMs < 0 ||
+      !Number.isFinite(this.policy.maxCensorRate) ||
+      this.policy.maxCensorRate < 0 ||
+      this.policy.maxCensorRate > 1
+    )
+      throw Object.assign(new Error("invalid-label-policy"), { status: 422 });
+  }
+
+  now() {
+    const value = Number(this.clock());
+    if (!Number.isFinite(value)) throw new Error("invalid-governance-clock");
+    return value;
+  }
+
+  scoredForecasts(experiment) {
+    return experiment.forecasts
+      .filter((forecast) => forecast.status === "labeled")
+      .map((forecast) => ({
+        ...scorePrediction(
+          forecast,
+          forecast.activeLabel.outcome,
+          this.sequentialPolicy,
+        ),
+        requestKey: forecast.requestKey,
+      }));
+  }
+
+  refreshSequential(experiment) {
+    experiment.sequential = summarizeForecasts(
+      this.scoredForecasts(experiment),
+      this.sequentialPolicy,
+    );
+    experiment.labels = labelSummary(
+      experiment.forecasts,
+      this.now(),
+      this.policy.labelGraceMs,
+    );
   }
 
   ensureReady() {
@@ -261,10 +318,11 @@ class ExperimentService {
       mode,
       trafficPercent: mode === "shadow" ? 0 : trafficPercent,
       state: "running",
-      startedAt: new Date().toISOString(),
+      startedAt: new Date(this.now()).toISOString(),
       startedBy: actor,
       observations: [],
       forecasts: [],
+      labels: labelSummary([], this.now(), this.policy.labelGraceMs),
       summary: summarize([]),
       sequential: summarizeForecasts([], this.sequentialPolicy),
       graduation: null,
@@ -395,12 +453,25 @@ class ExperimentService {
       throw Object.assign(new Error("duplicate-sequential-forecast"), {
         status: 409,
       });
-    const forecast = {
-      id: crypto.randomUUID(),
-      requestKey: key,
-      at: new Date().toISOString(),
-      ...cleanForecast(input, this.sequentialPolicy),
-    };
+    const horizonMs = Number(input.horizonMs ?? this.policy.forecastHorizonMs);
+    if (!Number.isInteger(horizonMs) || horizonMs < 1)
+      throw Object.assign(new Error("invalid-forecast-horizon"), {
+        status: 422,
+      });
+    const nowMs = this.now(),
+      forecast = {
+        id: crypto.randomUUID(),
+        requestKey: key,
+        at: new Date(nowMs).toISOString(),
+        predictedAt: new Date(nowMs).toISOString(),
+        maturesAt: new Date(nowMs + horizonMs).toISOString(),
+        horizonMs,
+        ...cleanPrediction(input, this.sequentialPolicy),
+        status: "pending",
+        revisions: [],
+        activeLabel: null,
+        censoring: null,
+      };
     const regimes = new Set([
       ...experiment.forecasts.map((row) => row.regime),
       forecast.regime,
@@ -410,14 +481,38 @@ class ExperimentService {
         status: 422,
       });
     experiment.forecasts.push(forecast);
-    experiment.sequential = summarizeForecasts(
-      experiment.forecasts,
-      this.sequentialPolicy,
-    );
+    this.refreshSequential(experiment);
     await this.record("governance.experiments", {
       action: "forecast",
       experimentId: id,
-      forecast,
+      forecast: structuredClone(forecast),
+    });
+    return structuredClone(experiment);
+  }
+
+  async labelForecast(id, input = {}, actor = "system") {
+    this.ensureReady();
+    const experiment = this.get(id);
+    if (experiment.state !== "running")
+      throw Object.assign(new Error("experiment-not-running"), { status: 409 });
+    if (!input.requestId)
+      throw Object.assign(new Error("experiment-request-id-required"), {
+        status: 422,
+      });
+    const key = requestKey(input.requestId),
+      forecast = experiment.forecasts.find((row) => row.requestKey === key);
+    if (!forecast)
+      throw Object.assign(new Error("forecast-not-found"), { status: 404 });
+    const revision = addLabel(forecast, input, {
+      actor,
+      nowMs: this.now(),
+    });
+    this.refreshSequential(experiment);
+    await this.record("governance.experiments", {
+      action: "label",
+      experimentId: id,
+      requestKey: key,
+      revision: structuredClone(revision),
     });
     if (experiment.sequential.breaches.length)
       await this.rollback(
@@ -425,6 +520,34 @@ class ExperimentService {
         experiment.sequential.breaches,
         "sequential-monitor",
       );
+    return structuredClone(experiment);
+  }
+
+  async censorForecast(id, input = {}, actor = "system") {
+    this.ensureReady();
+    const experiment = this.get(id);
+    if (experiment.state !== "running")
+      throw Object.assign(new Error("experiment-not-running"), { status: 409 });
+    if (!input.requestId)
+      throw Object.assign(new Error("experiment-request-id-required"), {
+        status: 422,
+      });
+    const key = requestKey(input.requestId),
+      forecast = experiment.forecasts.find((row) => row.requestKey === key);
+    if (!forecast)
+      throw Object.assign(new Error("forecast-not-found"), { status: 404 });
+    const censoring = censor(forecast, input, {
+      actor,
+      nowMs: this.now(),
+      graceMs: this.policy.labelGraceMs,
+    });
+    this.refreshSequential(experiment);
+    await this.record("governance.experiments", {
+      action: "censor",
+      experimentId: id,
+      requestKey: key,
+      censoring: structuredClone(censoring),
+    });
     return structuredClone(experiment);
   }
 
@@ -460,12 +583,13 @@ class ExperimentService {
       throw Object.assign(new Error("independent-second-approval-required"), {
         status: 403,
       });
-    const evidence = graduationEvidence(
-        experiment.forecasts,
-        this.sequentialPolicy,
-      ),
+    this.refreshSequential(experiment);
+    const scored = this.scoredForecasts(experiment),
+      evidence = graduationEvidence(scored, this.sequentialPolicy),
       checks = {
         ...evidence.checks,
+        allForecastsResolved: experiment.labels.pending === 0,
+        censorRate: experiment.labels.censorRate <= this.policy.maxCensorRate,
         operationalObservations:
           experiment.summary.observations >= this.policy.minimumObservations,
         operationalBreaches: this.breaches(experiment.summary).length === 0,
@@ -486,6 +610,7 @@ class ExperimentService {
         mode: experiment.mode,
         observations: experiment.summary.observations,
         forecasts: experiment.forecasts.length,
+        labels: experiment.labels,
         summary: experiment.summary,
         evidence,
         checks,
@@ -543,6 +668,11 @@ class ExperimentService {
         ...structuredClone(experiment),
         observations: experiment.observations.length,
         forecasts: experiment.forecasts.length,
+        labels: labelSummary(
+          experiment.forecasts,
+          this.now(),
+          this.policy.labelGraceMs,
+        ),
       })),
     };
   }
@@ -558,6 +688,7 @@ class ExperimentService {
             ...structuredClone(event.experiment),
             observations: [],
             forecasts: [],
+            labels: labelSummary([], this.now(), this.policy.labelGraceMs),
             summary: summarize([]),
             sequential: summarizeForecasts([], this.sequentialPolicy),
             graduation: null,
@@ -579,7 +710,7 @@ class ExperimentService {
           experiment.observations.push(structuredClone(event.observation));
           experiment.summary = summarize(experiment.observations);
         } else if (event.action === "forecast") {
-          const recalculated = cleanForecast(
+          const recalculated = cleanPrediction(
             event.forecast || {},
             this.sequentialPolicy,
           );
@@ -591,14 +722,64 @@ class ExperimentService {
             ) ||
             Object.entries(recalculated).some(
               ([field, value]) => event.forecast[field] !== value,
-            )
+            ) ||
+            event.forecast.status !== "pending" ||
+            !Number.isInteger(event.forecast.horizonMs) ||
+            Date.parse(event.forecast.maturesAt) -
+              Date.parse(event.forecast.predictedAt) !==
+              event.forecast.horizonMs ||
+            !validateRevisionChain(event.forecast)
           )
             throw new Error("invalid-experiment-forecast-event");
           experiment.forecasts.push(structuredClone(event.forecast));
-          experiment.sequential = summarizeForecasts(
-            experiment.forecasts,
-            this.sequentialPolicy,
+          this.refreshSequential(experiment);
+        } else if (event.action === "label") {
+          const forecast = experiment.forecasts.find(
+              (row) => row.requestKey === event.requestKey,
+            ),
+            previous = forecast?.revisions.at(-1) || null,
+            { hash, ...content } = event.revision || {};
+          if (
+            experiment.state !== "running" ||
+            !forecast ||
+            forecast.status === "censored" ||
+            content.version !== forecast.revisions.length + 1 ||
+            content.previousHash !== (previous?.hash || null) ||
+            hash !== fingerprint(content) ||
+            ![0, 1].includes(content.outcome) ||
+            Date.parse(content.outcomeAt) < Date.parse(forecast.maturesAt) ||
+            Date.parse(content.outcomeAt) > Date.parse(content.observedAt) ||
+            (!previous &&
+              (!Array.isArray(content.approvedBy) ||
+                content.approvedBy.length !== 0)) ||
+            (previous &&
+              (content.outcomeAt !== previous.outcomeAt ||
+                !content.correctionReason ||
+                content.approvedBy?.length !== 2 ||
+                content.approvedBy.some((actor) => actor.length < 3) ||
+                content.approvedBy[0] === content.approvedBy[1]))
+          )
+            throw new Error("invalid-experiment-label-event");
+          forecast.revisions.push(structuredClone(event.revision));
+          forecast.activeLabel = structuredClone(event.revision);
+          forecast.status = "labeled";
+          this.refreshSequential(experiment);
+        } else if (event.action === "censor") {
+          const forecast = experiment.forecasts.find(
+            (row) => row.requestKey === event.requestKey,
           );
+          if (
+            experiment.state !== "running" ||
+            !forecast ||
+            forecast.status !== "pending" ||
+            Date.parse(event.censoring?.at) <
+              Date.parse(forecast.maturesAt) + this.policy.labelGraceMs ||
+            !event.censoring?.reason
+          )
+            throw new Error("invalid-experiment-censor-event");
+          forecast.status = "censored";
+          forecast.censoring = structuredClone(event.censoring);
+          this.refreshSequential(experiment);
         } else if (event.action === "rollback") {
           if (
             experiment.state !== "running" ||
@@ -614,7 +795,7 @@ class ExperimentService {
           const { graduatedAt, graduatedBy, reason, hash, ...content } =
               event.artifact || {},
             evidence = graduationEvidence(
-              experiment.forecasts,
+              this.scoredForecasts(experiment),
               this.sequentialPolicy,
             );
           if (
@@ -623,6 +804,8 @@ class ExperimentService {
             content.experimentId !== experiment.id ||
             content.paperOnly !== true ||
             content.forecasts !== experiment.forecasts.length ||
+            JSON.stringify(content.labels) !==
+              JSON.stringify(experiment.labels) ||
             JSON.stringify(content.evidence) !== JSON.stringify(evidence) ||
             !Object.values(content.checks || {}).every(Boolean) ||
             !Array.isArray(content.approvedBy) ||

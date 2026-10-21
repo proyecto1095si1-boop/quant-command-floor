@@ -212,11 +212,34 @@ function cleanForecast(input, policy) {
   };
 }
 
+function cleanPrediction(input, policy) {
+  if (input.outcome !== undefined) invalid("forecast-outcome-not-allowed");
+  const regime = String(input.regime || "unclassified").trim();
+  if (!regime) invalid("invalid-sequential-regime");
+  return {
+    regime,
+    championProbability: clampProbability(
+      input.championProbability,
+      policy.probabilityFloor,
+    ),
+    challengerProbability: clampProbability(
+      input.challengerProbability,
+      policy.probabilityFloor,
+    ),
+  };
+}
+
+function scorePrediction(prediction, outcome, policy) {
+  return cleanForecast({ ...prediction, outcome }, policy);
+}
+
 module.exports = {
   cleanForecast,
+  cleanPrediction,
   eProcess,
   graduationEvidence,
   logLoss,
   neweyWest,
+  scorePrediction,
   summarizeForecasts,
 };

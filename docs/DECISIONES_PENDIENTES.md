@@ -114,3 +114,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** interpretar una graduación T27 como autorización para
   capital real.
 
+## Horizonte y censura de labels
+
+- **Estado:** pendiente por activo y familia de señal.
+- **Decisión necesaria:** aprobar `forecastHorizonMs`, `labelGraceMs` y
+  `maxCensorRate` con validación independiente.
+- **Implicación actual:** los defaults T28 (1 hora, 24 horas y 5 %) son
+  conservadores operativos para paper; no constituyen calibración económica ni
+  autorización para capital real.
+
