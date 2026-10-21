@@ -151,6 +151,8 @@ const { DataQualityMonitor } = require("../server/data/quality.js");
         source: "kraken",
         symbol: product,
         price: 100.1,
+        exchangeAt: null,
+        receivedAt: "2026-10-19T00:00:03Z",
       }),
       health: () => ({ source: "kraken", status: "healthy" }),
     },
@@ -169,6 +171,7 @@ const { DataQualityMonitor } = require("../server/data/quality.js");
   assert.equal(service.snapshot("BTC-USD").ticker.price, 100);
   assert.ok(service.snapshot("BTC-USD").divergenceBps > 0);
   assert.equal(service.health().secondary.source, "kraken");
+  assert.equal(service.health().provenance.algorithm, "SHA-256");
   assert.ok(events.some((x) => x.type === "market.snapshot"));
   await service.stop();
   const restarted = new MarketDataService({
