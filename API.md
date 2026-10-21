@@ -19,6 +19,8 @@ PAPER_ONLY=true
 MARKET_DATA_ENABLED=true
 MARKET_PRODUCTS=BTC-USD,ETH-USD,SOL-USD,BNB-USD
 MARKET_POLL_MS=5000
+MARKET_CLOCK_MAX_DRIFT_MS=2000
+MARKET_EVENT_MAX_FUTURE_MS=2000
 OUTCOME_MAX_STALENESS_MS=30000
 OUTCOME_MAX_LAG_MS=30000
 OUTCOME_FINALITY_DELAY_MS=30000
@@ -452,6 +454,10 @@ su sesión segura en una identidad verificable para el upgrade.
 | GET | `/v1/data/storage` | viewer |
 | GET | `/v1/data/snapshot/{product}` | viewer |
 | GET | `/v1/data/replay?stream=...&from=...&to=...&limit=...` | viewer |
+
+`/v1/data/health` incluye `provenance`: algoritmo, alcance diario, heads,
+secuencias, gaps detectados y estado del reloj monotónico. Un reloj no saludable
+degrada el Data Plane y la ingesta nueva falla cerrada.
 
 ### Agentes y mesas
 

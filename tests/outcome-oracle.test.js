@@ -6,7 +6,8 @@ const assert = require("node:assert/strict"),
     validateArtifact,
     validateResolution,
   } = require("../server/governance/outcome-oracle.js"),
-  { MarketDataService } = require("../server/data/service.js");
+  { MarketDataService } = require("../server/data/service.js"),
+  { MarketDataProvenance } = require("../server/data/provenance.js");
 
 (async () => {
   let now = Date.parse("2026-01-01T00:00:00.000Z"),
@@ -90,7 +91,7 @@ const assert = require("node:assert/strict"),
     /invalid-oracle-anchor-window/,
   );
 
-  const rows = {
+  const rawRows = {
       "ticker.BTC-USD": [
         {
           source: "coinbase",
@@ -120,10 +121,23 @@ const assert = require("node:assert/strict"),
         },
       ],
     },
+    provenanceClock = {
+      now: () => new Date("2026-01-01T00:02:00.000Z"),
+      status: () => ({ healthy: true }),
+    },
+    provenance = new MarketDataProvenance({ clock: provenanceClock }),
+    rows = Object.fromEntries(
+      Object.entries(rawRows).map(([stream, events]) => [
+        stream,
+        events.map((event) => provenance.seal(stream, event)),
+      ]),
+    ),
     data = new MarketDataService({
       connector: { health: () => ({ status: "stopped" }) },
       secondary: null,
       store: { tail: async (stream) => rows[stream] || [] },
+      trustedClock: provenanceClock,
+      provenance,
     });
   const before = await data.pointInTimeQuotes(
       "BTC-USD",
@@ -144,6 +158,22 @@ const assert = require("node:assert/strict"),
   assert.deepEqual(
     after.map((row) => row.price),
     [101, 101.01],
+  );
+  const legacyOnly = new MarketDataService({
+    connector: { health: () => ({ status: "stopped" }) },
+    secondary: null,
+    store: { tail: async (stream) => rawRows[stream] || [] },
+    trustedClock: provenanceClock,
+    provenance: new MarketDataProvenance({ clock: provenanceClock }),
+  });
+  assert.deepEqual(
+    await legacyOnly.pointInTimeQuotes(
+      "BTC-USD",
+      "2026-01-01T00:00:30.000Z",
+      "anchor",
+      { sources: ["coinbase", "kraken"], maxStalenessMs: 30_000 },
+    ),
+    [],
   );
   console.log("outcome oracle tests: ok");
 })().catch((error) => {

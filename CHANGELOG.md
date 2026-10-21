@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Cadena SHA-256 diaria por stream de mercado, restauración de heads, detección
+  de regresiones/gaps y reloj civil contrastado con tiempo monotónico.
 - Outcome Oracle point-in-time multifonte: mediana robusta, staleness, finalidad,
   clock skew, divergencia, evidencia hasheada y labels sin outcomes manuales.
 - Graduación de experimentos con evidencia positiva de no inferioridad global y

@@ -7,7 +7,10 @@ const path = require("node:path"),
   { OrderBook } = require("./order-book.js"),
   { CandleAggregator } = require("./candles.js"),
   { JsonlStore } = require("./jsonl-store.js"),
-  { DataQualityMonitor } = require("./quality.js");
+  { DataQualityMonitor } = require("./quality.js"),
+  { TrustedClock } = require("./trusted-clock.js"),
+  { MarketDataProvenance } = require("./provenance.js");
+const MARKET_STREAM = /^(ticker|book|trades|candles)\./;
 class MarketDataService {
   constructor({
     connector = new CoinbaseConnector(),
@@ -21,6 +24,10 @@ class MarketDataService {
     divergenceLimitBps = 25,
     quality = new DataQualityMonitor(),
     stream = null,
+    trustedClock = new TrustedClock({
+      maxDriftMs: Number(process.env.MARKET_CLOCK_MAX_DRIFT_MS || 2000),
+    }),
+    provenance = null,
   } = {}) {
     this.connector = connector;
     this.secondary = secondary;
@@ -30,6 +37,15 @@ class MarketDataService {
     this.publish = publish;
     this.divergenceLimitBps = divergenceLimitBps;
     this.quality = quality;
+    this.trustedClock = trustedClock;
+    this.provenance =
+      provenance ||
+      new MarketDataProvenance({
+        clock: trustedClock,
+        maxEventFutureMs: Number(
+          process.env.MARKET_EVENT_MAX_FUTURE_MS || 2000,
+        ),
+      });
     this.books = new Map();
     this.candles = new CandleAggregator();
     this.tickers = new Map();
@@ -110,6 +126,18 @@ class MarketDataService {
   }
   async recover() {
     const recovered = { trades: 0, products: [] };
+    if (
+      typeof this.store.inventory === "function" &&
+      typeof this.store.replay === "function"
+    ) {
+      const inventory = await this.store.inventory();
+      for (const { stream } of inventory.streams.filter((row) =>
+        MARKET_STREAM.test(row.stream),
+      ))
+        this.provenance.verify(stream, await this.store.replay(stream), {
+          restore: true,
+        });
+    }
     for (const product of this.products) {
       const trades = await this.store.tail(`trades.${product}`, 1000);
       if (!trades.length) continue;
@@ -135,7 +163,11 @@ class MarketDataService {
   }
   async record(stream, event) {
     this.metrics.events++;
-    await this.store.append(stream, event);
+    const stored = MARKET_STREAM.test(stream)
+      ? this.provenance.seal(stream, event)
+      : event;
+    await this.store.append(stream, stored);
+    return stored;
   }
   async cycle() {
     const started = Date.now();
@@ -230,12 +262,14 @@ class MarketDataService {
         ? Date.now() - this.metrics.lastCycleAt
         : Infinity,
       maxDivergence = Math.max(0, ...this.divergence.values()),
+      provenance = this.provenance.status(),
       healthy =
         this.running &&
         source.status !== "down" &&
         cycleAge < this.pollMs * 3 &&
         maxDivergence <= this.divergenceLimitBps &&
-        quality.status === "healthy";
+        quality.status === "healthy" &&
+        provenance.clock.healthy;
     return {
       status: healthy ? "healthy" : this.running ? "degraded" : "stopped",
       running: this.running,
@@ -248,6 +282,7 @@ class MarketDataService {
       stream,
       quality,
       metrics: { ...this.metrics },
+      provenance,
     };
   }
   replay(stream, options) {
@@ -285,7 +320,14 @@ class MarketDataService {
     for (const source of sources) {
       const stream = streams[source];
       if (!stream) continue;
-      const rows = await this.store.tail(stream, 10000),
+      const rows = this.provenance.verify(
+          stream,
+          typeof this.store.replay === "function"
+            ? await this.store.replay(stream, {
+                limit: Number.MAX_SAFE_INTEGER,
+              })
+            : await this.store.tail(stream, 10000),
+        ),
         eligible = rows.filter((row) => {
           const eventMs = Date.parse(row.exchangeAt || row.receivedAt);
           return phase === "anchor"

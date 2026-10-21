@@ -57,7 +57,9 @@ la nueva versión en lugar de mezclar reglas estadísticas.
 Los tickers se consultan desde los streams point-in-time del data plane:
 `ticker.<symbol>` y `ticker.kraken.<symbol>`. El anchor usa la última observación
 válida anterior al instante; el cierre usa la primera observación válida desde
-el vencimiento. La retención debe abarcar todo el experimento.
+el vencimiento. Desde T30, solo son elegibles filas con cadena de procedencia
+verificada; la retención debe abarcar todo el experimento. Véase
+`docs/MARKET_DATA_PROVENANCE.md`.
 
 ## Límites para un sistema futuro real
 

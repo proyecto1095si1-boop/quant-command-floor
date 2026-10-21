@@ -131,3 +131,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** interpretar el outcome paper como benchmark regulatorio
   o usarlo para promoción vinculada a capital real.
 
+## Custodia externa de market data
+
+- **Estado:** arquitectura y proveedor pendientes.
+- **Decisión necesaria:** elegir KMS/HSM, identidad de workload, frecuencia de
+  firma, repositorio WORM, retención legal y fuentes de tiempo autenticadas.
+- **Acción bloqueada:** considerar las cadenas SHA-256 locales como evidencia de
+  autoría, existencia temporal o integridad frente a compromiso total del host.
+
