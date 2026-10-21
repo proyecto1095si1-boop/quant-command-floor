@@ -52,6 +52,27 @@ recomendación con `autoApply: false`. No necesita API externa ni modifica las
 mesas activas. El detalle matemático está en
 `docs/CONSENSUS_CALIBRATION.md`.
 
+### Gobierno de calibración y holdout
+
+Configuración del registro de revisores:
+
+```env
+CALIBRATION_TRUSTED_REVIEWERS={"risk-reviewer":"-----BEGIN PUBLIC KEY-----..."}
+```
+
+- `GET /v1/governance/calibration`: estado, política y último run.
+- `POST /v1/governance/calibration/datasets`: registra observaciones, split,
+  manifiesto y attestation Ed25519; el holdout queda sellado.
+- `POST /v1/governance/calibration/evaluate`: calibra con desarrollo y consume
+  el holdout una sola vez.
+- `POST /v1/governance/calibration/approve-experiment`: verifica run,
+  challenger y dos aprobadores; inicia únicamente shadow o canary paper.
+
+Para la última ruta se envían `x-second-approver` y, cuando
+`REQUIRE_FOUR_EYES=true`, también `x-approver`. Canary está limitado a 5 %. El
+contrato completo de firma y gates se encuentra en
+`docs/CALIBRATION_GOVERNANCE.md`.
+
 ## 2. APIs externas implementadas
 
 ### Coinbase Exchange — mercado primario

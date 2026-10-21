@@ -84,5 +84,15 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** aplicar automáticamente la recomendación T24, promoverla
   a parámetros productivos o usarla para dimensionar capital real.
 - **Implicación actual:** T24 compara candidatos de forma causal y reproducible,
-  pero su salida sigue siendo evidencia paper-only sujeta a aprobación humana.
+  y T25 sella/consume el holdout una sola vez, pero los thresholds siguen siendo
+  evidencia paper-only sujeta a aprobación humana.
+
+## Custodia del catálogo de calibración
+
+- **Estado:** pendiente de infraestructura.
+- **Decisión necesaria:** almacenamiento WORM, retención, tamaño máximo,
+  versionado, responsable de publicación y proceso de revocación para datasets
+  de calibración firmados.
+- **Acción bloqueada:** cargar datasets mayores al límite del gateway o tratar el
+  journal local como evidencia externa inmutable.
 

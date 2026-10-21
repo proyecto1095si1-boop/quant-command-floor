@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Gobierno de calibraciones con datasets Ed25519, split hasheado, holdout de uso
+  único, gates no compensables, recuperación fail-closed y autorización de dos
+  personas exclusivamente para shadow/canary paper.
 - Calibración offline del consenso y dependencia multiagente mediante
   walk-forward expansivo, purga, embargo, proper scoring rules, robustez por
   régimen, ranking reproducible y recomendación sin autoaplicación.
