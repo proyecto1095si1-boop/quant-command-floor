@@ -26,6 +26,12 @@ El estado activo se consulta en `GET /v1/ai/provider-health`. Hasta observar un
 deshabilita únicamente `aiSignals`. Las fallas usan el motor matemático local y
 la respuesta identifica el fallback sin exponer secretos.
 
+El estado se recupera desde `sre.ai-provider-health`. Antes de completar esa
+recuperación, o si falla una escritura, el cliente externo no recibe tráfico y
+se conserva el fallback local. Cambiar la política o alternar la configuración
+del proveedor requiere una migración explícita del historial; no se recalculan
+hashes automáticamente.
+
 ## Endpoints mínimos
 
 `GET /v1/health` devuelve HTTP 200:
