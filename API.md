@@ -408,6 +408,9 @@ Activos implementados: `BTC`, `ETH`, `SOL` y `BNB`.
 La respuesta incluye `desk.consensus`: posterior, IC95, tamaño efectivo,
 concentración, aportes Bull/Bear y gates del Investment Committee. Si el motor
 se abstiene, la acción es `NO_TRADE` y no se crea una propuesta.
+`desk.dependence` informa si se usó correlación `dynamic-ewma` o
+`static-fallback`, su razón, muestra, ventana efectiva, shrinkage, condition
+number y detección de cambio estructural.
 
 ### Riesgo
 

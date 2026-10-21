@@ -67,3 +67,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** usar los defaults T22 para dimensionar capital real o
   presentar su intervalo operativo como probabilidad estadística certificada.
 
+## Ventana de dependencia dinámica
+
+- **Estado:** pendiente por mesa y frecuencia.
+- **Decisión necesaria:** λ EWMA, mínimo de observaciones, target de shrinkage,
+  condition number máximo y umbrales/cooldown de cambio estructural.
+- **Acción bloqueada:** reemplazar límites reales de correlación o exposición con
+  los defaults T23 sin walk-forward y stress específicos.
+
