@@ -1,7 +1,12 @@
 "use strict";
 
-const crypto = require("node:crypto");
-const { cleanForecast, summarizeForecasts } = require("./sequential.js");
+const crypto = require("node:crypto"),
+  { fingerprint } = require("./service.js");
+const {
+  cleanForecast,
+  graduationEvidence,
+  summarizeForecasts,
+} = require("./sequential.js");
 
 function percentile(values, probability) {
   if (!values.length) return 0;
@@ -150,6 +155,11 @@ class ExperimentService {
       probabilityFloor: 0.01,
       lossBound: -Math.log(0.01),
       bettingFraction: 0.5,
+      nonInferiorityMargin: 0.02,
+      targetImprovement: 1,
+      graduationMinimumObservations: 100,
+      graduationMinimumRegimes: 2,
+      graduationMinimumRegimeObservations: 30,
       ...(policy.sequential || {}),
     };
     const sequential = this.sequentialPolicy;
@@ -177,6 +187,17 @@ class ExperimentService {
       throw Object.assign(new Error("invalid-sequential-policy"), {
         status: 422,
       });
+    for (const field of [
+      "nonInferiorityMargin",
+      "targetImprovement",
+      "graduationMinimumObservations",
+      "graduationMinimumRegimes",
+      "graduationMinimumRegimeObservations",
+    ])
+      if (!Number.isFinite(sequential[field]) || sequential[field] <= 0)
+        throw Object.assign(new Error("invalid-sequential-policy"), {
+          status: 422,
+        });
     this.experiments = new Map();
     this.recoveryError = null;
   }
@@ -246,6 +267,7 @@ class ExperimentService {
       forecasts: [],
       summary: summarize([]),
       sequential: summarizeForecasts([], this.sequentialPolicy),
+      graduation: null,
       rollback: null,
     };
     this.experiments.set(experiment.id, experiment);
@@ -422,6 +444,75 @@ class ExperimentService {
     });
   }
 
+  async graduate(id, actor = "system", reason = "", approvals = {}) {
+    this.ensureReady();
+    const experiment = this.get(id);
+    if (experiment.state !== "running")
+      throw Object.assign(new Error("experiment-not-running"), { status: 409 });
+    const approvedBy = [
+      String(approvals.primary || ""),
+      String(approvals.secondary || ""),
+    ];
+    if (
+      approvedBy.some((approver) => approver.length < 3) ||
+      approvedBy[0] === approvedBy[1]
+    )
+      throw Object.assign(new Error("independent-second-approval-required"), {
+        status: 403,
+      });
+    const evidence = graduationEvidence(
+        experiment.forecasts,
+        this.sequentialPolicy,
+      ),
+      checks = {
+        ...evidence.checks,
+        operationalObservations:
+          experiment.summary.observations >= this.policy.minimumObservations,
+        operationalBreaches: this.breaches(experiment.summary).length === 0,
+        noRollback: experiment.rollback === null,
+      };
+    if (!Object.values(checks).every(Boolean))
+      throw Object.assign(new Error("experiment-not-eligible-for-graduation"), {
+        status: 422,
+        checks,
+      });
+    const content = {
+        version: 1,
+        paperOnly: true,
+        experimentId: experiment.id,
+        modelId: experiment.modelId,
+        championVersion: experiment.championVersion,
+        challengerVersion: experiment.challengerVersion,
+        mode: experiment.mode,
+        observations: experiment.summary.observations,
+        forecasts: experiment.forecasts.length,
+        summary: experiment.summary,
+        evidence,
+        checks,
+        approvedBy,
+      },
+      artifact = {
+        ...content,
+        hash: fingerprint(content),
+        graduatedAt: new Date().toISOString(),
+        graduatedBy: actor,
+        reason: String(reason),
+      };
+    experiment.state = "graduated";
+    experiment.trafficPercent = 0;
+    experiment.graduation = artifact;
+    const accepted = await this.governance.acceptExperimentGraduation(
+      artifact,
+      actor,
+    );
+    await this.record("governance.experiments", {
+      action: "graduate",
+      experimentId: id,
+      artifact,
+    });
+    return { paperOnly: true, artifact, governance: accepted };
+  }
+
   async stop(id, actor = "system", reason = "manual") {
     this.ensureReady();
     const experiment = this.get(id);
@@ -469,6 +560,7 @@ class ExperimentService {
             forecasts: [],
             summary: summarize([]),
             sequential: summarizeForecasts([], this.sequentialPolicy),
+            graduation: null,
           });
           continue;
         }
@@ -518,6 +610,30 @@ class ExperimentService {
           experiment.state = "rolled-back";
           experiment.trafficPercent = 0;
           experiment.rollback = structuredClone(event.rollback);
+        } else if (event.action === "graduate") {
+          const { graduatedAt, graduatedBy, reason, hash, ...content } =
+              event.artifact || {},
+            evidence = graduationEvidence(
+              experiment.forecasts,
+              this.sequentialPolicy,
+            );
+          if (
+            experiment.state !== "running" ||
+            hash !== fingerprint(content) ||
+            content.experimentId !== experiment.id ||
+            content.paperOnly !== true ||
+            content.forecasts !== experiment.forecasts.length ||
+            JSON.stringify(content.evidence) !== JSON.stringify(evidence) ||
+            !Object.values(content.checks || {}).every(Boolean) ||
+            !Array.isArray(content.approvedBy) ||
+            content.approvedBy.length !== 2 ||
+            content.approvedBy.some((approver) => approver.length < 3) ||
+            content.approvedBy[0] === content.approvedBy[1]
+          )
+            throw new Error("invalid-experiment-graduation-event");
+          experiment.state = "graduated";
+          experiment.trafficPercent = 0;
+          experiment.graduation = structuredClone(event.artifact);
         } else if (event.action === "stop") {
           if (experiment.state !== "running")
             throw new Error("invalid-experiment-stop-event");

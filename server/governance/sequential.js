@@ -117,6 +117,75 @@ function summarizeForecasts(rows, policy) {
   };
 }
 
+function graduationEvidence(rows, policy) {
+  const differences = rows.map((row) => row.lossDifference),
+    requiredObservations = Math.max(
+      policy.graduationMinimumObservations,
+      Math.ceil(
+        (2 * policy.lossBound ** 2 * Math.log(1 / policy.alpha)) /
+          policy.targetImprovement ** 2,
+      ),
+    ),
+    assess = (values, threshold) => {
+      const result = eProcess(
+        values.map((value) => -value),
+        {
+          margin: -policy.nonInferiorityMargin,
+          bound: policy.lossBound,
+          bettingFraction: Math.min(
+            1,
+            policy.targetImprovement / policy.lossBound,
+          ),
+        },
+      );
+      return {
+        ...result,
+        observations: values.length,
+        threshold,
+        passed: result.eValue >= threshold,
+      };
+    },
+    overall = assess(differences, 1 / policy.alpha),
+    regimes = Object.fromEntries(
+      [...new Set(rows.map((row) => row.regime))].sort().map((regime) => [
+        regime,
+        assess(
+          rows
+            .filter((row) => row.regime === regime)
+            .map((row) => row.lossDifference),
+          policy.maximumRegimes / policy.alpha,
+        ),
+      ]),
+    ),
+    checks = {
+      observations: rows.length >= requiredObservations,
+      regimeCount:
+        Object.keys(regimes).length >= policy.graduationMinimumRegimes,
+      regimeCoverage: Object.values(regimes).every(
+        (result) =>
+          result.observations >= policy.graduationMinimumRegimeObservations,
+      ),
+      globalNonInferiority: overall.passed,
+      regimeNonInferiority: Object.values(regimes).every(
+        (result) => result.passed,
+      ),
+    };
+  return {
+    method: "paired-log-loss-noninferiority-e-process-v1",
+    design: {
+      alpha: policy.alpha,
+      nonInferiorityMargin: policy.nonInferiorityMargin,
+      targetImprovement: policy.targetImprovement,
+      requiredObservations,
+      sampleSizeMethod: "Hoeffding-bound-conservative",
+    },
+    overall,
+    regimes,
+    checks,
+    eligible: Object.values(checks).every(Boolean),
+  };
+}
+
 function cleanForecast(input, policy) {
   const outcome = Number(input.outcome),
     regime = String(input.regime || "unclassified").trim();
@@ -146,6 +215,7 @@ function cleanForecast(input, policy) {
 module.exports = {
   cleanForecast,
   eProcess,
+  graduationEvidence,
   logLoss,
   neweyWest,
   summarizeForecasts,

@@ -81,11 +81,13 @@ class ModelGovernanceService {
       minIndependencePValue: 0.05,
       championTolerance: 0,
       minimumAiCases: 20,
+      requiredGraduationKinds: ["consensus"],
       ...policy,
     };
     this.models = new Map();
     this.evaluations = [];
     this.promotions = [];
+    this.graduations = [];
     this.recoveryError = null;
   }
 
@@ -152,6 +154,7 @@ class ModelGovernanceService {
       models: [...this.models.values()].map((model) => structuredClone(model)),
       evaluations: this.evaluations.length,
       promotions: this.promotions.length,
+      graduations: this.graduations.length,
     };
   }
 
@@ -277,6 +280,36 @@ class ModelGovernanceService {
     );
   }
 
+  async acceptExperimentGraduation(input = {}, actor = "system") {
+    this.ensureReady();
+    const model = this.get(input.modelId, input.challengerVersion),
+      { graduatedAt, graduatedBy, reason, hash, ...content } = input;
+    if (
+      input.paperOnly !== true ||
+      input.version !== 1 ||
+      model.stage !== "challenger" ||
+      model.version !== input.challengerVersion ||
+      hash !== fingerprint(content) ||
+      !input.experimentId ||
+      !Object.values(input.checks || {}).every(Boolean) ||
+      !input.evidence?.eligible ||
+      this.graduations.some(
+        (graduation) => graduation.experimentId === input.experimentId,
+      )
+    )
+      throw Object.assign(new Error("invalid-experiment-graduation"), {
+        status: 422,
+      });
+    const graduation = {
+      ...structuredClone(input),
+      acceptedAt: new Date().toISOString(),
+      acceptedBy: actor,
+    };
+    this.graduations.push(graduation);
+    await this.record("governance.graduations", graduation);
+    return structuredClone(graduation);
+  }
+
   async promote(input = {}, approvals = {}) {
     this.ensureReady();
     const model = this.get(input.modelId, input.version),
@@ -301,7 +334,22 @@ class ModelGovernanceService {
         status: 409,
       });
     const previous = this.champion(model.modelId),
-      previousEvaluation = previous ? this.latestEvaluation(previous) : null;
+      previousEvaluation = previous ? this.latestEvaluation(previous) : null,
+      graduation = this.graduations
+        .filter(
+          (item) =>
+            item.modelId === model.modelId &&
+            item.challengerVersion === model.version,
+        )
+        .at(-1);
+    if (
+      previous &&
+      this.policy.requiredGraduationKinds.includes(model.kind) &&
+      !graduation
+    )
+      throw Object.assign(new Error("experiment-graduation-required"), {
+        status: 422,
+      });
     if (
       previousEvaluation &&
       evaluation.metrics.score + this.policy.championTolerance <
@@ -319,6 +367,7 @@ class ModelGovernanceService {
       version: model.version,
       previousVersion: previous?.version || null,
       evaluationId: evaluation.id,
+      graduationId: graduation?.hash || null,
       approvedBy: approvers,
       reason: String(input.reason || ""),
     };
@@ -338,12 +387,18 @@ class ModelGovernanceService {
       models: this.models.size,
       evaluations: this.evaluations.length,
       promotions: this.promotions.length,
+      graduations: this.graduations.length,
       champions,
       lastPromotion: this.promotions.at(-1) || null,
     };
   }
 
-  recover({ models = [], evaluations = [], promotions = [] } = {}) {
+  recover({
+    models = [],
+    evaluations = [],
+    graduations = [],
+    promotions = [],
+  } = {}) {
     try {
       const recoveredModels = new Map();
       for (const event of models) {
@@ -364,15 +419,53 @@ class ModelGovernanceService {
           throw new Error("orphan-evaluation-event");
         model.evaluationIds.push(evaluation.id);
       }
+      const recoveredGraduations = [];
+      for (const input of graduations) {
+        const model = recoveredModels.get(
+            key(input.modelId, input.challengerVersion),
+          ),
+          {
+            acceptedAt,
+            acceptedBy,
+            graduatedAt,
+            graduatedBy,
+            reason,
+            hash,
+            ...content
+          } = input;
+        if (
+          !model ||
+          input.paperOnly !== true ||
+          hash !== fingerprint(content) ||
+          !Object.values(input.checks || {}).every(Boolean) ||
+          !input.evidence?.eligible ||
+          recoveredGraduations.some(
+            (item) => item.experimentId === input.experimentId,
+          )
+        )
+          throw new Error("invalid-graduation-event");
+        recoveredGraduations.push(structuredClone(input));
+      }
       for (const promotion of promotions) {
         const model = recoveredModels.get(
           key(promotion.modelId, promotion.version),
         );
+        const previous = [...recoveredModels.values()].find(
+            (candidate) =>
+              candidate.modelId === model?.modelId &&
+              candidate.stage === "champion",
+          ),
+          graduation = recoveredGraduations.find(
+            (item) => item.hash === promotion.graduationId,
+          );
         if (
           !model ||
           !evaluations.some(
             (evaluation) => evaluation.id === promotion.evaluationId,
-          )
+          ) ||
+          (previous &&
+            this.policy.requiredGraduationKinds.includes(model.kind) &&
+            (!graduation || graduation.challengerVersion !== model.version))
         )
           throw new Error("orphan-promotion-event");
         for (const candidate of recoveredModels.values())
@@ -386,12 +479,14 @@ class ModelGovernanceService {
       this.models = recoveredModels;
       this.evaluations = structuredClone(evaluations);
       this.promotions = structuredClone(promotions);
+      this.graduations = recoveredGraduations;
       this.recoveryError = null;
       return {
         recovered: true,
         models: this.models.size,
         evaluations: this.evaluations.length,
         promotions: this.promotions.length,
+        graduations: this.graduations.length,
       };
     } catch (error) {
       this.recoveryError = error.message;

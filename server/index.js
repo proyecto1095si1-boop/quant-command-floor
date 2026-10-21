@@ -96,12 +96,18 @@ gateway.listen().then(async (address) => {
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
   );
   try {
-    const [models, evaluations, promotions] = await Promise.all([
+    const [models, evaluations, graduations, promotions] = await Promise.all([
       data.store.tail("governance.models", 1000),
       data.store.tail("governance.evaluations", 1000),
+      data.store.tail("governance.graduations", 1000),
       data.store.tail("governance.promotions", 1000),
     ]);
-    const recovered = governance.recover({ models, evaluations, promotions });
+    const recovered = governance.recover({
+      models,
+      evaluations,
+      graduations,
+      promotions,
+    });
     if (recovered.models)
       console.log(`Model governance recovered: ${recovered.models} models`);
     const experimentEvents = await data.store.tail(

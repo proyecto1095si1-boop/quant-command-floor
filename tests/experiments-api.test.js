@@ -26,14 +26,18 @@ const assert = require("node:assert/strict"),
         calls.push(["stop", actor, reason]);
         return { id, state: "stopped" };
       },
+      graduate: async (id, actor, reason) => ({
+        paperOnly: true,
+        artifact: { experimentId: id, graduatedBy: actor, reason },
+      }),
     },
     gateway = createGateway({ experiments }),
     address = await gateway.listen(0),
     base = `http://127.0.0.1:${address.port}`,
-    request = async (path, body) => {
+    request = async (path, body, headers = {}) => {
       const response = await fetch(`${base}${path}`, {
         method: body ? "POST" : "GET",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...headers },
         body: body ? JSON.stringify(body) : undefined,
       });
       assert.equal(response.status, 200);
@@ -58,6 +62,15 @@ const assert = require("node:assert/strict"),
     experimentId: started.id,
   });
   assert.equal(forecast.sequential.overall.observations, 1);
+  const graduated = await request(
+    "/v1/governance/experiments/graduate",
+    {
+      experimentId: started.id,
+      reason: "evidence-complete",
+    },
+    { "x-second-approver": "risk-reviewer" },
+  );
+  assert.equal(graduated.paperOnly, true);
   const stopped = await request("/v1/governance/experiments/stop", {
     experimentId: started.id,
     reason: "done",
