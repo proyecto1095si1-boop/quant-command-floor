@@ -90,6 +90,29 @@ const regime = new RegimeService({
     portfolio,
     execution,
     record: (stream, event) => data.record(stream, event),
+    slos: {
+      availability: Number(process.env.SRE_AVAILABILITY_TARGET || 0.999),
+      latencyTarget: Number(process.env.SRE_LATENCY_TARGET || 0.95),
+      p95LatencyMs: Number(process.env.SRE_LATENCY_MS || 500),
+      freshnessTarget: Number(process.env.SRE_FRESHNESS_TARGET || 0.99),
+      dataFreshnessMs: Number(process.env.SRE_FRESHNESS_MS || 15000),
+      auditIntegrity: 1,
+    },
+    sloWindowMs: Number(process.env.SRE_WINDOW_DAYS || 30) * 86400000,
+    alertPolicies: [
+      {
+        name: "fast",
+        longMs: Number(process.env.SRE_FAST_LONG_MIN || 60) * 60000,
+        shortMs: Number(process.env.SRE_FAST_SHORT_MIN || 5) * 60000,
+        burn: Number(process.env.SRE_FAST_BURN || 14.4),
+      },
+      {
+        name: "slow",
+        longMs: Number(process.env.SRE_SLOW_LONG_MIN || 360) * 60000,
+        shortMs: Number(process.env.SRE_SLOW_SHORT_MIN || 30) * 60000,
+        burn: Number(process.env.SRE_SLOW_BURN || 6),
+      },
+    ],
   });
 gateway.setDataService(data);
 gateway.setPipeline(pipeline);

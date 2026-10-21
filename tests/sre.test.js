@@ -46,6 +46,27 @@ const assert = require("node:assert/strict"),
   assert.equal(degraded.incidents[0].code, "RISK_HALTED");
   const ack = sre.acknowledge(degraded.incidents[0].id, "SRE Operator");
   assert.equal(ack.state, "acknowledged");
+  gatewayMetrics.observations = [
+    { at: Date.now(), status: 200, latencyMs: 10, weight: 98 },
+    { at: Date.now(), status: 500, latencyMs: 10, weight: 2 },
+  ];
+  const burning = await sre.snapshot();
+  assert.equal(burning.objectives.availability.alerts[0].firing, true);
+  assert.equal(burning.slis.errorBudgetRemaining, 0);
+  assert.ok(
+    burning.incidents.some(
+      (incident) => incident.code === "SLO_BURN_AVAILABILITY_FAST",
+    ),
+  );
+  gatewayMetrics.observations = [
+    { at: Date.now(), status: 200, latencyMs: 10, weight: 100 },
+  ];
+  const recovered = await sre.snapshot(),
+    burnIncident = recovered.incidents.find(
+      (incident) => incident.code === "SLO_BURN_AVAILABILITY_FAST",
+    );
+  assert.equal(burnIncident.state, "resolved");
+  assert.ok(burnIncident.resolvedAt);
   const backup = await sre.backup("SRE Operator");
   assert.equal(backup.digest.length, 64);
   assert.equal(written[0][0], "sre.backups");
