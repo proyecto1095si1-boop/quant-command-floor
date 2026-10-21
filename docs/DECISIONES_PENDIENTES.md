@@ -75,3 +75,14 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** reemplazar límites reales de correlación o exposición con
   los defaults T23 sin walk-forward y stress específicos.
 
+## Política de calibración y holdout del consenso
+
+- **Estado:** pendiente por activo, horizonte y frecuencia.
+- **Decisión necesaria:** definir fuente y propietario del ground truth,
+  horizonte del label, tamaño de purga/embargo, regímenes mínimos, holdout final,
+  límites aceptables de log-loss/ECE/cobertura y frecuencia de recalibración.
+- **Acción bloqueada:** aplicar automáticamente la recomendación T24, promoverla
+  a parámetros productivos o usarla para dimensionar capital real.
+- **Implicación actual:** T24 compara candidatos de forma causal y reproducible,
+  pero su salida sigue siendo evidencia paper-only sujeta a aprobación humana.
+

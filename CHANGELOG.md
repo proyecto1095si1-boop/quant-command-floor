@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Calibración offline del consenso y dependencia multiagente mediante
+  walk-forward expansivo, purga, embargo, proper scoring rules, robustez por
+  régimen, ranking reproducible y recomendación sin autoaplicación.
 - Correlaciones dinámicas EWMA con shrinkage adaptativo, condition number,
   detección de cambio, fallback estático y checkpoint verificable.
 - Consenso multiagente por log-odds con descuento de correlación, pesos por

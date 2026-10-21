@@ -2,7 +2,8 @@
 const crypto = require("node:crypto"),
   { PERIODS_PER_YEAR } = require("../config/annualization.js"),
   S = require("./statistics.js"),
-  V = require("./validation.js");
+  V = require("./validation.js"),
+  { calibrateConsensus } = require("./consensus-calibration.js");
 const DEFAULT_POLICY = {
   minObservations: 120,
   minDsr: 0.95,
@@ -25,6 +26,7 @@ class ResearchLab {
     this.policy = { ...DEFAULT_POLICY, ...policy };
     this.record = record;
     this.reports = new Map();
+    this.calibrations = new Map();
     this.champion = null;
     this.promotions = [];
   }
@@ -33,6 +35,7 @@ class ResearchLab {
       policy: this.policy,
       champion: this.champion,
       reports: [...this.reports.values()].slice(-20).reverse(),
+      calibrations: [...this.calibrations.values()].slice(-20).reverse(),
       promotions: this.promotions.slice(-20).reverse(),
       methods: [
         "purged-k-fold",
@@ -40,6 +43,7 @@ class ResearchLab {
         "probability-of-backtest-overfitting",
         "parameter-sensitivity",
         "human-approved-promotion",
+        "purged-embargoed-consensus-walk-forward",
       ],
     };
   }
@@ -118,6 +122,17 @@ class ResearchLab {
     };
     this.reports.set(id, report);
     await this.record("research.evaluation", report);
+    return report;
+  }
+  async calibrateConsensus(input = {}) {
+    const result = calibrateConsensus(input),
+      report = {
+        id: String(input.calibrationId || result.reproducibilityHash),
+        createdAt: new Date().toISOString(),
+        ...result,
+      };
+    this.calibrations.set(report.id, report);
+    await this.record("research.consensus-calibration", report);
     return report;
   }
   async promote(candidateId, approvedBy) {

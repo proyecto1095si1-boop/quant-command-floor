@@ -36,5 +36,8 @@ usado queda registrado como `metrics.annualizationPeriods`.
 - `GET /v1/research/catalog`: política, champion, evaluaciones y promociones.
 - `POST /v1/research/evaluate`: acepta `returns`, `returnsMatrix`, `trials`, `folds`, `purge`, `embargo`, `slices` y una política opcional.
 - `POST /v1/research/promote`: promoción controlada, únicamente para candidatos elegibles y con aprobación humana explícita.
+- `POST /v1/research/consensus-calibration`: búsqueda walk-forward purgada y
+  embargada de parámetros T22/T23; produce un ranking paper-only y nunca aplica
+  automáticamente la recomendación. Véase `CONSENSUS_CALIBRATION.md`.
 
 Los reportes y eventos se guardan en los streams SHA-256 `research.evaluation` y `research.promotion`. El generador determinista incluido sirve para demos y pruebas; una investigación operativa debe enviar retornos netos de fees y slippage desde un dataset versionado.
