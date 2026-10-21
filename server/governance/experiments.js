@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const { cleanForecast, summarizeForecasts } = require("./sequential.js");
 
 function percentile(values, probability) {
   if (!values.length) return 0;
@@ -140,6 +141,42 @@ class ExperimentService {
       maxMeanAbsoluteDelta: null,
       ...policy,
     };
+    this.sequentialPolicy = {
+      alpha: 0.01,
+      degradationMargin: 0,
+      minimumObservations: 30,
+      minimumRegimeObservations: 20,
+      maximumRegimes: 8,
+      probabilityFloor: 0.01,
+      lossBound: -Math.log(0.01),
+      bettingFraction: 0.5,
+      ...(policy.sequential || {}),
+    };
+    const sequential = this.sequentialPolicy;
+    if (
+      !Number.isFinite(sequential.alpha) ||
+      sequential.alpha <= 0 ||
+      sequential.alpha >= 1 ||
+      !Number.isFinite(sequential.degradationMargin) ||
+      sequential.degradationMargin < 0 ||
+      !Number.isInteger(sequential.minimumObservations) ||
+      sequential.minimumObservations < 2 ||
+      !Number.isInteger(sequential.minimumRegimeObservations) ||
+      sequential.minimumRegimeObservations < 2 ||
+      !Number.isInteger(sequential.maximumRegimes) ||
+      sequential.maximumRegimes < 1 ||
+      !Number.isFinite(sequential.probabilityFloor) ||
+      sequential.probabilityFloor <= 0 ||
+      sequential.probabilityFloor >= 0.5 ||
+      !Number.isFinite(sequential.lossBound) ||
+      sequential.lossBound < -Math.log(sequential.probabilityFloor) ||
+      !Number.isFinite(sequential.bettingFraction) ||
+      sequential.bettingFraction <= 0 ||
+      sequential.bettingFraction > 1
+    )
+      throw Object.assign(new Error("invalid-sequential-policy"), {
+        status: 422,
+      });
     this.experiments = new Map();
     this.recoveryError = null;
   }
@@ -206,7 +243,9 @@ class ExperimentService {
       startedAt: new Date().toISOString(),
       startedBy: actor,
       observations: [],
+      forecasts: [],
       summary: summarize([]),
+      sequential: summarizeForecasts([], this.sequentialPolicy),
       rollback: null,
     };
     this.experiments.set(experiment.id, experiment);
@@ -315,21 +354,72 @@ class ExperimentService {
       observation,
     });
     const breaches = this.breaches(experiment.summary);
-    if (breaches.length) {
-      experiment.state = "rolled-back";
-      experiment.trafficPercent = 0;
-      experiment.rollback = {
-        at: new Date().toISOString(),
-        automatic: true,
-        breaches,
-      };
-      await this.record("governance.experiments", {
-        action: "rollback",
-        experimentId: id,
-        rollback: experiment.rollback,
-      });
-    }
+    if (breaches.length)
+      await this.rollback(experiment, breaches, "guardrails");
     return structuredClone(experiment);
+  }
+
+  async observeForecast(id, input = {}) {
+    this.ensureReady();
+    const experiment = this.get(id);
+    if (experiment.state !== "running")
+      throw Object.assign(new Error("experiment-not-running"), { status: 409 });
+    if (!input.requestId)
+      throw Object.assign(new Error("experiment-request-id-required"), {
+        status: 422,
+      });
+    const key = requestKey(input.requestId);
+    if (experiment.forecasts.some((row) => row.requestKey === key))
+      throw Object.assign(new Error("duplicate-sequential-forecast"), {
+        status: 409,
+      });
+    const forecast = {
+      id: crypto.randomUUID(),
+      requestKey: key,
+      at: new Date().toISOString(),
+      ...cleanForecast(input, this.sequentialPolicy),
+    };
+    const regimes = new Set([
+      ...experiment.forecasts.map((row) => row.regime),
+      forecast.regime,
+    ]);
+    if (regimes.size > this.sequentialPolicy.maximumRegimes)
+      throw Object.assign(new Error("sequential-regime-limit-exceeded"), {
+        status: 422,
+      });
+    experiment.forecasts.push(forecast);
+    experiment.sequential = summarizeForecasts(
+      experiment.forecasts,
+      this.sequentialPolicy,
+    );
+    await this.record("governance.experiments", {
+      action: "forecast",
+      experimentId: id,
+      forecast,
+    });
+    if (experiment.sequential.breaches.length)
+      await this.rollback(
+        experiment,
+        experiment.sequential.breaches,
+        "sequential-monitor",
+      );
+    return structuredClone(experiment);
+  }
+
+  async rollback(experiment, breaches, source) {
+    experiment.state = "rolled-back";
+    experiment.trafficPercent = 0;
+    experiment.rollback = {
+      at: new Date().toISOString(),
+      automatic: true,
+      source,
+      breaches,
+    };
+    await this.record("governance.experiments", {
+      action: "rollback",
+      experimentId: experiment.id,
+      rollback: experiment.rollback,
+    });
   }
 
   async stop(id, actor = "system", reason = "manual") {
@@ -357,9 +447,11 @@ class ExperimentService {
       paperOnly: true,
       ready: !this.recoveryError,
       policy: this.policy,
+      sequentialPolicy: this.sequentialPolicy,
       experiments: [...this.experiments.values()].map((experiment) => ({
         ...structuredClone(experiment),
         observations: experiment.observations.length,
+        forecasts: experiment.forecasts.length,
       })),
     };
   }
@@ -374,7 +466,9 @@ class ExperimentService {
           recovered.set(event.experiment.id, {
             ...structuredClone(event.experiment),
             observations: [],
+            forecasts: [],
             summary: summarize([]),
+            sequential: summarizeForecasts([], this.sequentialPolicy),
           });
           continue;
         }
@@ -392,8 +486,34 @@ class ExperimentService {
             throw new Error("invalid-experiment-observation-event");
           experiment.observations.push(structuredClone(event.observation));
           experiment.summary = summarize(experiment.observations);
+        } else if (event.action === "forecast") {
+          const recalculated = cleanForecast(
+            event.forecast || {},
+            this.sequentialPolicy,
+          );
+          if (
+            experiment.state !== "running" ||
+            !event.forecast?.requestKey ||
+            experiment.forecasts.some(
+              (forecast) => forecast.requestKey === event.forecast.requestKey,
+            ) ||
+            Object.entries(recalculated).some(
+              ([field, value]) => event.forecast[field] !== value,
+            )
+          )
+            throw new Error("invalid-experiment-forecast-event");
+          experiment.forecasts.push(structuredClone(event.forecast));
+          experiment.sequential = summarizeForecasts(
+            experiment.forecasts,
+            this.sequentialPolicy,
+          );
         } else if (event.action === "rollback") {
-          if (experiment.state !== "running")
+          if (
+            experiment.state !== "running" ||
+            (event.rollback?.source === "sequential-monitor" &&
+              JSON.stringify(event.rollback.breaches) !==
+                JSON.stringify(experiment.sequential.breaches))
+          )
             throw new Error("invalid-experiment-rollback-event");
           experiment.state = "rolled-back";
           experiment.trafficPercent = 0;

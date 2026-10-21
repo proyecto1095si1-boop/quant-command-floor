@@ -664,6 +664,24 @@ function createGateway(options = {}) {
     }
     if (
       req.method === "POST" &&
+      req.url === "/v1/governance/experiments/forecast"
+    ) {
+      if (!experiments)
+        return json(res, 503, { error: "experiments-disabled" }, headers);
+      try {
+        const input = await body(req);
+        return json(
+          res,
+          200,
+          await experiments.observeForecast(input.experimentId, input),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
       req.url === "/v1/governance/experiments/stop"
     ) {
       if (!experiments)

@@ -18,6 +18,10 @@ const assert = require("node:assert/strict"),
         selectedVersion: "1",
       }),
       observe: async (id) => ({ id, summary: { observations: 1 } }),
+      observeForecast: async (id) => ({
+        id,
+        sequential: { overall: { observations: 1 } },
+      }),
       stop: async (id, actor, reason) => {
         calls.push(["stop", actor, reason]);
         return { id, state: "stopped" };
@@ -50,6 +54,10 @@ const assert = require("node:assert/strict"),
     experimentId: started.id,
   });
   assert.equal(observed.summary.observations, 1);
+  const forecast = await request("/v1/governance/experiments/forecast", {
+    experimentId: started.id,
+  });
+  assert.equal(forecast.sequential.overall.observations, 1);
   const stopped = await request("/v1/governance/experiments/stop", {
     experimentId: started.id,
     reason: "done",
