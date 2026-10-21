@@ -73,6 +73,26 @@ Para la última ruta se envían `x-second-approver` y, cuando
 contrato completo de firma y gates se encuentra en
 `docs/CALIBRATION_GOVERNANCE.md`.
 
+### Monitoreo secuencial del experimento
+
+`POST /v1/governance/experiments/forecast` registra un pronóstico pareado ya
+resuelto:
+
+```json
+{
+  "experimentId": "uuid",
+  "requestId": "id-estable",
+  "championProbability": 0.61,
+  "challengerProbability": 0.58,
+  "outcome": 1,
+  "regime": "risk_on_low_vol"
+}
+```
+
+La respuesta incluye `sequential.overall`, resultados por régimen, e-values,
+estadístico Newey–West y breaches. Un breach always-valid realiza rollback del
+experimento paper y fija tráfico en cero. Véase `docs/SEQUENTIAL_MONITORING.md`.
+
 ## 2. APIs externas implementadas
 
 ### Coinbase Exchange — mercado primario

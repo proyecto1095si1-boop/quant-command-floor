@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Monitoreo prequential champion/challenger mediante log-loss pareado, e-process
+  always-valid, corrección por regímenes, diagnóstico Diebold–Mariano/Newey–West
+  y rollback automático exclusivamente paper.
 - Gobierno de calibraciones con datasets Ed25519, split hasheado, holdout de uso
   único, gates no compensables, recuperación fail-closed y autorización de dos
   personas exclusivamente para shadow/canary paper.
