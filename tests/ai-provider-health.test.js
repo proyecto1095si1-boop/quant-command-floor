@@ -51,6 +51,8 @@ const assert = require("node:assert/strict"),
   });
   slow.success(11);
   assert.equal(slow.status().healthy, false);
+  assert.equal(slow.status().state, STATES.OPEN);
+  assert.equal(slow.status().openReason, "latency-p95");
 
   const absent = new AiProviderHealth();
   assert.equal(absent.acquire().reason, "provider-not-configured");

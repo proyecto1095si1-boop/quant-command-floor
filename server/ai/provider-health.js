@@ -54,14 +54,18 @@ class AiProviderHealth {
     this.lastFailure = null;
     this.halfOpenProbe = false;
     this.transitions = 0;
+    this.openReason = null;
   }
 
-  transition(state) {
+  transition(state, reason = null) {
     if (this.state !== state) {
       this.state = state;
       this.transitions++;
     }
-    if (state === STATES.OPEN) this.openedAt = this.clock();
+    if (state === STATES.OPEN) {
+      this.openedAt = this.clock();
+      this.openReason = reason || this.openReason || "policy-threshold";
+    } else if (state === STATES.CLOSED) this.openReason = null;
     if (state !== STATES.HALF_OPEN) this.halfOpenProbe = false;
   }
 
@@ -93,7 +97,17 @@ class AiProviderHealth {
     this.push(true, latency);
     this.lastSuccessAt = this.clock();
     this.consecutiveFailureCount = 0;
-    if (this.state === STATES.HALF_OPEN) this.transition(STATES.CLOSED);
+    const p95 = percentile(
+        this.samples
+          .filter((sample) => sample.ok)
+          .map((sample) => sample.latencyMs),
+        0.95,
+      ),
+      latencyBreached =
+        this.samples.length >= this.policy.minSamples &&
+        p95 > this.policy.latencyP95Ms;
+    if (latencyBreached) this.transition(STATES.OPEN, "latency-p95");
+    else if (this.state === STATES.HALF_OPEN) this.transition(STATES.CLOSED);
     this.halfOpenProbe = false;
   }
 
@@ -112,7 +126,7 @@ class AiProviderHealth {
         this.consecutiveFailureCount >= this.policy.consecutiveFailures ||
         (this.samples.length >= this.policy.minSamples &&
           rate >= this.policy.failureRate);
-    if (shouldOpen) this.transition(STATES.OPEN);
+    if (shouldOpen) this.transition(STATES.OPEN, "failure-threshold");
     this.halfOpenProbe = false;
   }
 
@@ -143,6 +157,7 @@ class AiProviderHealth {
       lastFailureAt: this.lastFailureAt,
       lastFailure: this.lastFailure,
       openedAt: this.openedAt,
+      openReason: this.openReason,
       cooldownRemainingMs:
         this.state === STATES.OPEN
           ? Math.max(0, this.policy.cooldownMs - (this.clock() - this.openedAt))
