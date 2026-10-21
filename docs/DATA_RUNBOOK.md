@@ -21,6 +21,11 @@ curl -fsS http://127.0.0.1:8787/v1/data/snapshot/BTC-USD
 
 Al iniciar, el servicio verifica SHA-256, recupera hasta 1000 trades recientes por producto, restaura el último `trade_id` y reconstruye las velas abiertas. Después solicita un snapshot L2 nuevo y reanuda el flujo. Una discrepancia de checksum bloquea el replay afectado: conservar el archivo, aislar la partición y restaurarla desde backup o reingesta.
 
+Antes de reanudar ciclos también restaura el último checkpoint
+`data.reconciliation`. La política del checkpoint debe coincidir exactamente
+con la configuración activa. No eliminar el checkpoint para liberar una
+cuarentena: corregir la fuente y cumplir los ciclos sanos de recuperación.
+
 ## WebSocket y fallback
 
 `MARKET_WS_ENABLED=true` habilita Coinbase WebSocket. La reconexión usa backoff exponencial con jitter entre 500 ms y 30 s. REST continúa entregando snapshots y funciona como fallback. En redes sin salida TCP/WebSocket, mantenerlo en `false`.

@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Checkpoints SHA-256 versionados para cuarentenas de mercado y TCA, con
+  restauración fail-closed y rechazo de políticas incompatibles.
 - Microestructura determinista y TCA paper con microprice, imbalance, Amihud,
   Kyle lambda, toxicidad de flujo, implementation shortfall y markouts.
 - Reconciliación multifonte con mediana, frescura, cobertura de trades,

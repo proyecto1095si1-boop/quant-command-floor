@@ -543,6 +543,10 @@ implementation shortfall ponderado por notional, effective spread y markouts
 pendientes/resueltos. Los markouts solo se resuelven al observar un snapshot
 posterior al horizonte; nunca reutilizan el precio contemporáneo del fill.
 
+El estado TCA se persiste en `execution.tca`; la cuarentena multifonte, en
+`data.reconciliation`. Ambos streams contienen checkpoints versionados con
+SHA-256. Un hash inválido o una política distinta bloquea la recuperación.
+
 Todas las órdenes son paper. `submit` necesita un plan existente y aprobación humana.
 
 ### Gobierno de modelos

@@ -63,6 +63,11 @@ El agregado TCA pondera costos por notional. Los markouts de 1 y 5 minutos
 permanecen pendientes hasta observar un libro posterior al horizonte; no se
 completa un futuro inexistente con el snapshot del fill.
 
+El EMS persiste un checkpoint `execution.tca` después de cada drain. Incluye
+versión, horizontes, registros y SHA-256 canónico. Al arrancar se restaura antes
+del recovery del pipeline; corrupción, IDs duplicados o cambio de horizontes
+detienen Risk Gate mediante el camino de recuperación fail-closed.
+
 Ese fill queda marcado como `fillModel: "impact"`; los basados en libro usan
 `fillModel: "l2"`. Cada fill descuenta fees, actualiza cash, posición, precio
 promedio, PnL realizado/no realizado y exposición. La reconciliación informa
