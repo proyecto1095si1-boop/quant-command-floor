@@ -45,6 +45,17 @@ Una ruptura, fila sin sellar después de la frontera T30 o reloj no saludable de
 tratarse como incidente de integridad; no se debe reconstruir manualmente el hash.
 Los datos legacy no son elegibles para el Outcome Oracle.
 
+## Backfill de gaps
+
+1. Solicitar `/v1/data/backfill/plan`; revisar cantidad, rangos y stream destino.
+2. Ejecutar el plan sin modificarlo y con identidad humana verificable.
+3. Verificar `backfill.manifests` y el `datasetHash`.
+4. Mantener el dataset en staging hasta una revisión independiente.
+
+El plan usa una grilla `[start,end)` alineada al timeframe, se vuelve inválido
+si cambia el stream confiable y limita cada consulta a 300 velas. Nunca copiar
+manualmente filas staged sobre el stream confiable. T34 no implementa promoción.
+
 ## Alertas
 
 - `cycleAgeMs > 3 × MARKET_POLL_MS`: feed estancado.

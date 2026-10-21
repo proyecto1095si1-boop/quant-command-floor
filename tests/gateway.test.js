@@ -22,7 +22,24 @@ const assert = require("node:assert/strict"),
       allowedOrigin: "http://localhost:8080",
       llm: { baseUrl: null },
     }),
-    address = await gateway.listen(0),
+    backfillPlan = {
+      id: "plan-1",
+      mode: "dry-run",
+      paperOnly: true,
+      missing: 1,
+    },
+    backfillCalls = [];
+  gateway.setDataService({
+    planBackfill: async (input) => {
+      backfillCalls.push({ operation: "plan", input });
+      return backfillPlan;
+    },
+    executeBackfill: async (plan, approvedBy) => {
+      backfillCalls.push({ operation: "execute", plan, approvedBy });
+      return { kind: "historical-backfill", state: "staged" };
+    },
+  });
+  const address = await gateway.listen(0),
     base = `http://127.0.0.1:${address.port}`;
   const health = await fetch(base + "/v1/health");
   assert.equal(health.status, 200);
@@ -61,6 +78,30 @@ const assert = require("node:assert/strict"),
     }),
   });
   assert.equal(unsafe.status, 422);
+  const planned = await fetch(base + "/v1/data/backfill/plan", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      product: "BTC-USD",
+      start: "2026-10-20T00:00:00.000Z",
+      end: "2026-10-20T00:01:00.000Z",
+      granularity: 60,
+    }),
+  });
+  assert.equal(planned.status, 200);
+  assert.deepEqual(await planned.json(), backfillPlan);
+  const staged = await fetch(base + "/v1/data/backfill/execute", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ plan: backfillPlan, approvedBy: "Data Operator" }),
+  });
+  assert.equal(staged.status, 200);
+  assert.equal((await staged.json()).state, "staged");
+  assert.deepEqual(
+    backfillCalls.map((call) => call.operation),
+    ["plan", "execute"],
+  );
+  assert.equal(backfillCalls[1].approvedBy, "Data Operator");
   await gateway.close();
   console.log("gateway tests: ok");
 })().catch((e) => {
