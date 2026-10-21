@@ -56,6 +56,20 @@ El plan usa una grilla `[start,end)` alineada al timeframe, se vuelve inválido
 si cambia el stream confiable y limita cada consulta a 300 velas. Nunca copiar
 manualmente filas staged sobre el stream confiable. T34 no implementa promoción.
 
+## Telemetría SLO
+
+- Stream: `sre.slo-telemetry`.
+- Verificar que `policyHash` coincida con objetivos, alertas, bucket y retención.
+- Un `slo-telemetry-recovery-failed` mantiene el Risk Gate detenido; no borrar,
+  reordenar ni editar checkpoints para reanudarlo.
+- Revisar `telemetry.gaps` para probes ausentes y `telemetry.httpGaps` para
+  observaciones expulsadas antes de agregarse.
+- La última revisión de cada bucket debe crecer estrictamente.
+
+Para recuperación, conservar el stream original, corregir primero la causa de
+configuración o almacenamiento y reiniciar con la misma política. Un cambio de
+política requiere una migración aprobada; no se acepta recalcular hashes.
+
 ## Alertas
 
 - `cycleAgeMs > 3 × MARKET_POLL_MS`: feed estancado.

@@ -15,6 +15,22 @@ const { OutcomeOracle } = require("./governance/outcome-oracle.js");
 const { AiEvaluationService } = require("./governance/ai-evaluation.js");
 const { CalibrationGovernanceService } = require("./governance/calibration.js");
 const { parseTrustedReviewers } = require("./governance/provenance.js");
+const sreWindowDays = Number(process.env.SRE_WINDOW_DAYS || 30),
+  dataRetentionDays = Number(process.env.DATA_RETENTION_DAYS || 30),
+  sreBucketMs = Number(process.env.SRE_BUCKET_MS || 60000),
+  sreSampleMs = Number(process.env.SRE_SAMPLE_MS || 60000);
+if (
+  !Number.isFinite(sreWindowDays) ||
+  sreWindowDays <= 0 ||
+  !Number.isFinite(dataRetentionDays) ||
+  dataRetentionDays < sreWindowDays ||
+  !Number.isInteger(sreBucketMs) ||
+  sreBucketMs < 1000 ||
+  !Number.isInteger(sreSampleMs) ||
+  sreSampleMs < 1000 ||
+  sreSampleMs > sreBucketMs
+)
+  throw new Error("invalid-sre-retention-or-sampling-policy");
 const gateway = createGateway(),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
@@ -98,7 +114,9 @@ const regime = new RegimeService({
       dataFreshnessMs: Number(process.env.SRE_FRESHNESS_MS || 15000),
       auditIntegrity: 1,
     },
-    sloWindowMs: Number(process.env.SRE_WINDOW_DAYS || 30) * 86400000,
+    sloWindowMs: sreWindowDays * 86400000,
+    telemetryBucketMs: sreBucketMs,
+    requireTelemetryRecovery: true,
     alertPolicies: [
       {
         name: "fast",
@@ -130,6 +148,15 @@ gateway.listen().then(async (address) => {
   console.log(
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
   );
+  try {
+    const telemetry = await data.store.tail("sre.slo-telemetry", 100000),
+      recovered = sre.recoverTelemetry(telemetry);
+    if (recovered.buckets)
+      console.log(`SLO telemetry recovered: ${recovered.buckets} buckets`);
+  } catch (e) {
+    console.error(`SLO telemetry recovery blocked: ${e.message}`);
+    pipeline.risk.halt("slo-telemetry-recovery-failed");
+  }
   try {
     const [models, evaluations, graduations, promotions] = await Promise.all([
       data.store.tail("governance.models", 1000),
@@ -208,7 +235,7 @@ const maintenance = setInterval(
     try {
       await data.store.compact({ before: new Date(Date.now() - 86400000) });
       await data.store.enforceRetention({
-        days: Number(process.env.DATA_RETENTION_DAYS || 30),
+        days: dataRetentionDays,
       });
     } catch (e) {
       console.error(`Storage maintenance degraded: ${e.message}`);
@@ -217,9 +244,20 @@ const maintenance = setInterval(
   Number(process.env.DATA_MAINTENANCE_MS || 3600000),
 );
 maintenance.unref();
+const sreSampler = setInterval(
+  () =>
+    sre
+      .snapshot()
+      .catch((error) =>
+        console.error(`SLO sampling degraded: ${error.message}`),
+      ),
+  sreSampleMs,
+);
+sreSampler.unref();
 for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () => {
     clearInterval(maintenance);
+    clearInterval(sreSampler);
     data
       .stop()
       .then(() => gateway.close())

@@ -143,7 +143,7 @@ class JsonlStore {
       for (const name of await fsp.readdir(dir)) {
         if (!name.endsWith(".jsonl") && !name.endsWith(".jsonl.gz")) continue;
         const date = Date.parse(name.slice(0, 10) + "T00:00:00Z");
-        if (date < cutoff) {
+        if (date + 86400000 <= cutoff) {
           await fsp.unlink(path.join(dir, name));
           removed.push(`${stream}/${name}`);
         }

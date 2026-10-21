@@ -200,6 +200,21 @@ const { MarketReconciliation } = require("../server/data/reconciliation.js");
     now: new Date("2027-01-01T00:00:00Z"),
   });
   assert.equal(retention.removed.length, 1);
+  const boundaryStore = new JsonlStore(path.join(dir, "retention-boundary"), {
+    clock: () => new Date("2026-12-02T00:00:00Z"),
+  });
+  await boundaryStore.append("events", {
+    receivedAt: "2026-12-02T00:00:00Z",
+  });
+  assert.equal(
+    (
+      await boundaryStore.enforceRetention({
+        days: 30,
+        now: new Date("2027-01-01T00:00:00Z"),
+      })
+    ).removed.length,
+    0,
+  );
   fs.rmSync(dir, { recursive: true });
   console.log("market data tests: ok");
 })().catch((e) => {
