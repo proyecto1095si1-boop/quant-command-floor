@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- SLO por eventos con ventanas móviles, presupuesto de error matemáticamente
+  consumido y alertas de burn rate multi-ventana fast/slow.
 - Backfill histórico read-only con planificación de gaps, dry-run, aprobación,
   staging separado y manifiesto de dataset hasheado.
 - Checkpoints SHA-256 versionados para cuarentenas de mercado y TCA, con

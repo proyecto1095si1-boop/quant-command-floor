@@ -7,17 +7,37 @@ La consola SRE observa el sistema completo sin modificar decisiones de inversió
 | Indicador | Cálculo | Objetivo |
 |---|---|---:|
 | Availability | `1 − respuestas 5xx / requests` | 99.9% |
-| Latencia | percentil 95 de requests | ≤ 500 ms |
-| Frescura | edad del último ciclo de mercado | ≤ 15 s |
+| Latencia | requests con duración ≤ 500 ms | 95% |
+| Frescura | probes con edad del último ciclo ≤ 15 s | 99% |
 | Integridad | verificación de cadena SHA-256 | 100% |
 
-El error budget es `1 − SLO`. El burn rate es `error rate / error budget`: 1× consume exactamente el presupuesto al ritmo permitido; valores mayores requieren atención.
+Para una ventana con `N` eventos y objetivo `S`, el presupuesto permitido es
+`N × (1 − S)`. Si `B` eventos son malos:
 
-El gateway conserva una ventana móvil de 2.000 latencias y conteos por status HTTP. La consola también verifica Data Plane, WebSocket, Risk halt y disponibilidad de Research, Portfolio y Execution.
+- cumplimiento: `(N − B) / N`;
+- burn rate: `(B / N) / (1 − S)`;
+- presupuesto restante: `max(0, 1 − B / (N × (1 − S)))`.
+
+Un objetivo de 100% tiene presupuesto cero: cualquier fallo produce burn
+infinito. Una ventana sin observaciones devuelve `null`, no un falso 100%.
+
+Las alertas usan confirmación multi-ventana. La política fast exige ≥14,4×
+tanto en 1 hora como en 5 minutos; slow exige ≥6× en 6 horas y 30 minutos.
+Exigir ambas reduce alertas por un pico viejo o aislado. Los valores son
+configurables por entorno.
+
+El gateway conserva 10.000 observaciones HTTP fechadas y 2.000 latencias de
+compatibilidad. `completeWindow=false` indica que el proceso todavía no observó
+la ventana SLO completa; por eso el resultado local no debe presentarse como
+evidencia de 30 días. Para producción hace falta telemetría externa durable.
+La consola también verifica Data Plane, WebSocket, Risk halt y disponibilidad
+de Research, Portfolio y Execution.
 
 ## Incidentes
 
 Las violaciones generan incidentes `warning` o `critical`. Un código abierto se deduplica, incrementa `occurrences` y actualiza `lastSeenAt`. El ACK exige actor, hora y queda encadenado en auditoría; reconocer no elimina el evento ni altera el control que lo originó.
+Los incidentes `SLO_BURN_*` se resuelven automáticamente cuando alguna de las
+dos ventanas deja de superar el umbral; la transición también queda encadenada.
 
 ## Journal inmutable
 

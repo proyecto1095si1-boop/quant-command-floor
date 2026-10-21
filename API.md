@@ -30,6 +30,18 @@ MARKET_QUARANTINE_AFTER=2
 MARKET_RECOVER_AFTER=3
 BACKFILL_MAX_RANGE_DAYS=7
 BACKFILL_MAX_CANDLES=10000
+SRE_AVAILABILITY_TARGET=0.999
+SRE_LATENCY_TARGET=0.95
+SRE_LATENCY_MS=500
+SRE_FRESHNESS_TARGET=0.99
+SRE_FRESHNESS_MS=15000
+SRE_WINDOW_DAYS=30
+SRE_FAST_LONG_MIN=60
+SRE_FAST_SHORT_MIN=5
+SRE_FAST_BURN=14.4
+SRE_SLOW_LONG_MIN=360
+SRE_SLOW_SHORT_MIN=30
+SRE_SLOW_BURN=6
 OUTCOME_MAX_STALENESS_MS=30000
 OUTCOME_MAX_LAG_MS=30000
 OUTCOME_FINALITY_DELAY_MS=30000
@@ -608,6 +620,12 @@ reproducibilidad, ECE, Brier e intervalos Wilson 95%.
 | GET | `/v1/sre/status` | viewer |
 | POST | `/v1/sre/backup` | admin |
 | POST | `/v1/sre/incidents/{id}/ack` | admin |
+
+`GET /v1/sre/status` devuelve `objectives` para availability, latencia,
+frescura e integridad. Cada objetivo incluye cumplimiento, eventos buenos/malos,
+presupuesto permitido y restante, burn rate, cobertura temporal y evaluaciones
+fast/slow. `burnAlerts` contiene sólo las políticas cuya ventana larga y corta
+superan simultáneamente el umbral.
 
 ## 5. Ejemplos internos
 
