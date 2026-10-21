@@ -36,6 +36,8 @@ SRE_LATENCY_MS=500
 SRE_FRESHNESS_TARGET=0.99
 SRE_FRESHNESS_MS=15000
 SRE_WINDOW_DAYS=30
+SRE_BUCKET_MS=60000
+SRE_SAMPLE_MS=60000
 SRE_FAST_LONG_MIN=60
 SRE_FAST_SHORT_MIN=5
 SRE_FAST_BURN=14.4
@@ -626,6 +628,12 @@ frescura e integridad. Cada objetivo incluye cumplimiento, eventos buenos/malos,
 presupuesto permitido y restante, burn rate, cobertura temporal y evaluaciones
 fast/slow. `burnAlerts` contiene sólo las políticas cuya ventana larga y corta
 superan simultáneamente el umbral.
+
+`telemetry` informa tamaño y hash de política, buckets restaurados, escrituras
+pendientes y gaps. El arranque rechaza checkpoints alterados o creados con otra
+política; mientras la recuperación no termina, el snapshot SRE permanece
+fail-closed. `SRE_SAMPLE_MS` debe ser menor o igual a `SRE_BUCKET_MS`, y
+`DATA_RETENTION_DAYS` no puede ser menor que `SRE_WINDOW_DAYS`.
 
 ## 5. Ejemplos internos
 

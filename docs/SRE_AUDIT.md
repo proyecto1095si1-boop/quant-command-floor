@@ -33,6 +33,28 @@ evidencia de 30 días. Para producción hace falta telemetría externa durable.
 La consola también verifica Data Plane, WebSocket, Risk halt y disponibilidad
 de Research, Portfolio y Execution.
 
+## Persistencia de telemetría
+
+El sampler autónomo agrega observaciones en buckets de un minuto. Cada versión
+se sella con SHA-256 sobre objetivo, inicio y fin alineados, conteos good/total,
+revisión, política, estado paper-only y hora de persistencia. El stream
+append-only es `sre.slo-telemetry`; múltiples versiones del mismo bucket son
+válidas únicamente con revisión estrictamente creciente.
+
+Al reiniciar, se verifica cada sello y se conserva la última revisión por
+bucket. Una alteración, revisión regresiva o `policyHash` distinto bloquea la
+recuperación y detiene el Risk Gate. Antes de recuperar, el endpoint SRE no
+calcula snapshots. Los probes de frescura e integridad permiten detectar
+buckets internos ausentes; los saltos en secuencia HTTP detectan overflow de la
+ventana del gateway. Cualquiera de ambos degrada el check `telemetry` y abre el
+incidente crítico `SLO_TELEMETRY_GAP`; un cálculo incompleto no se considera
+evidencia sana.
+
+La retención elimina un archivo diario sólo cuando terminó por completo su
+período de conservación. Debe cumplirse
+`DATA_RETENTION_DAYS >= SRE_WINDOW_DAYS` y
+`SRE_SAMPLE_MS <= SRE_BUCKET_MS`.
+
 ## Incidentes
 
 Las violaciones generan incidentes `warning` o `critical`. Un código abierto se deduplica, incrementa `occurrences` y actualiza `lastSeenAt`. El ACK exige actor, hora y queda encadenado en auditoría; reconocer no elimina el evento ni altera el control que lo originó.

@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Telemetría SLO durable en buckets sellados, recuperación fail-closed,
+  detección de gaps y muestreo autónomo.
 - SLO por eventos con ventanas móviles, presupuesto de error matemáticamente
   consumido y alertas de burn rate multi-ventana fast/slow.
 - Backfill histórico read-only con planificación de gaps, dry-run, aprobación,

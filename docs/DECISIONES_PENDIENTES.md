@@ -172,11 +172,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** mover `backfill.candles.*` a streams confiables, usarlos
   en Outcome Oracle o reemplazar observaciones existentes.
 
-## Backend durable de telemetría SLO
+## Backend externo de telemetría SLO
 
-- **Estado:** pendiente para producción.
+- **Estado:** persistencia JSONL local implementada; backend externo pendiente
+  para producción.
 - **Decisión necesaria:** proveedor, retención, cardinalidad, redundancia,
   ownership de alertas y canal de paging con escalamiento humano.
-- **Acción bloqueada:** declarar cumplimiento mensual o disponibilidad real con
-  la ventana en memoria del proceso.
+- **Acción bloqueada:** declarar cumplimiento contractual o disponibilidad real
+  basándose únicamente en archivos del mismo host.
 
