@@ -51,6 +51,8 @@ function trades(n = 100) {
   assert.ok(report.signal >= -1 && report.signal <= 1);
   assert.equal(report.policy.paperOnly, true);
   assert.equal(report.consensus.paperOnly, true);
+  assert.equal(report.dependence.source, "static-fallback");
+  assert.equal(report.dependence.reason, "warmup");
   assert.ok(report.consensus.effectiveAgents > 0);
   assert.equal(report.formula.includes("logit"), true);
   const blocked = registry.analyze("ETH", {
@@ -62,6 +64,27 @@ function trades(n = 100) {
   assert.equal(blocked.action, "NO_TRADE");
   assert.ok(blocked.blockers.includes("book:missing"));
   assert.ok(blocked.blockers.length >= 4);
+  const decisionState = registry.exportDecisionState(),
+    restoredRegistry = new DeskRegistry();
+  assert.equal(
+    restoredRegistry.restoreDecisionState(decisionState).BTC.observations,
+    1,
+  );
+  assert.equal(
+    restoredRegistry.restoreDecisionState(decisionState).ETH.observations,
+    1,
+  );
+  assert.throws(
+    () =>
+      restoredRegistry.restoreDecisionState({
+        ...decisionState,
+        assets: {
+          ...decisionState.assets,
+          BTC: { ...decisionState.assets.BTC, observations: 999 },
+        },
+      }),
+    /invalid-decision-checkpoint/,
+  );
   assert.throws(() => registry.analyze("DOGE", context));
   console.log("desk tests: ok");
 })();
