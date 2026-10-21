@@ -144,6 +144,7 @@ const regime = new RegimeService({
     calibrationGovernance,
     llmConfigured: Boolean(process.env.LLM_BASE_URL),
     record: (stream, event) => data.record(stream, event),
+    requireRecovery: true,
     policy: {
       maxExecutionQueue: Number(process.env.READINESS_MAX_QUEUE || 100),
       maxRejectionRate: Number(process.env.READINESS_MAX_REJECTION_RATE || 0.2),
@@ -240,6 +241,20 @@ gateway.listen().then(async (address) => {
   } catch (e) {
     console.error(`Pipeline recovery blocked: ${e.message}`);
     pipeline.risk.halt("recovery-failed");
+  }
+  try {
+    const transitions = await data.store.tail(
+        "sre.readiness-transitions",
+        10000,
+      ),
+      recovered = readiness.recover(transitions);
+    if (recovered.transitions)
+      console.log(
+        `Operational readiness recovered: ${recovered.transitions} transitions`,
+      );
+  } catch (e) {
+    console.error(`Operational readiness recovery blocked: ${e.message}`);
+    pipeline.risk.halt("readiness-recovery-failed");
   }
   if (process.env.MARKET_DATA_ENABLED !== "false") {
     try {
