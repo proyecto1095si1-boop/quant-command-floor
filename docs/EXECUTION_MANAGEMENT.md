@@ -42,6 +42,27 @@ Cuando no existe un libro, el Paper Ledger conserva el fallback:
 
 `slippage bps = base + spread/2 + participation × impact`
 
+## Microestructura y TCA
+
+El contexto de análisis agrega microprice ponderado por tamaño top-of-book,
+imbalance de profundidad, spread, profundidad nocional, iliquidez de Amihud,
+Kyle lambda por OLS y toxicidad absoluta del flujo. Son diagnósticos sobre la
+ventana observada, no estimadores calibrados universalmente.
+
+Cada fill registra:
+
+```text
+price shortfall = lado × (fill - arrival mid) / arrival mid
+fee bps = fee / notional
+implementation shortfall = price shortfall + fee bps
+effective spread = 2 × price shortfall
+markout(h) = lado × (mid futuro(h) - fill) / fill
+```
+
+El agregado TCA pondera costos por notional. Los markouts de 1 y 5 minutos
+permanecen pendientes hasta observar un libro posterior al horizonte; no se
+completa un futuro inexistente con el snapshot del fill.
+
 Ese fill queda marcado como `fillModel: "impact"`; los basados en libro usan
 `fillModel: "l2"`. Cada fill descuenta fees, actualiza cash, posición, precio
 promedio, PnL realizado/no realizado y exposición. La reconciliación informa

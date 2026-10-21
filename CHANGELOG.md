@@ -40,6 +40,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Microestructura determinista y TCA paper con microprice, imbalance, Amihud,
+  Kyle lambda, toxicidad de flujo, implementation shortfall y markouts.
 - Reconciliación multifonte con mediana, frescura, cobertura de trades,
   validación L2 y cuarentena con histéresis por producto.
 - Cadena SHA-256 diaria por stream de mercado, restauración de heads, detección
