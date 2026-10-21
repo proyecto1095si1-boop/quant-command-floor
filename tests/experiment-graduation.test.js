@@ -62,11 +62,15 @@ const assert = require("node:assert/strict"),
     /experiment-graduation-required/,
   );
 
+  let now = Date.parse("2026-01-01T00:00:00.000Z");
   const experiments = new ExperimentService({
       governance,
       record,
+      clock: () => now,
       policy: {
         minimumObservations: 20,
+        forecastHorizonMs: 1,
+        labelGraceMs: 0,
         sequential: {
           targetImprovement: 2,
           graduationMinimumObservations: 40,
@@ -105,10 +109,16 @@ const assert = require("node:assert/strict"),
     });
     await experiments.observeForecast(experiment.id, {
       requestId: `forecast-${index}`,
-      outcome,
       regime,
+      horizonMs: 1,
       championProbability: outcome ? 0.01 : 0.99,
       challengerProbability: outcome ? 0.99 : 0.01,
+    });
+    now += 1;
+    await experiments.labelForecast(experiment.id, {
+      requestId: `forecast-${index}`,
+      outcome,
+      outcomeAt: new Date(now).toISOString(),
     });
   }
   const graduation = await experiments.graduate(
@@ -148,8 +158,11 @@ const assert = require("node:assert/strict"),
   assert.equal(recoveredGovernance.champion("consensus-btc").version, "2");
   const recoveredExperiments = new ExperimentService({
     governance: recoveredGovernance,
+    clock: () => now,
     policy: {
       minimumObservations: 20,
+      forecastHorizonMs: 1,
+      labelGraceMs: 0,
       sequential: {
         targetImprovement: 2,
         graduationMinimumObservations: 40,
