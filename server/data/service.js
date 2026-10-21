@@ -9,6 +9,7 @@ const path = require("node:path"),
   { JsonlStore } = require("./jsonl-store.js"),
   { DataQualityMonitor } = require("./quality.js"),
   { MarketReconciliation } = require("./reconciliation.js"),
+  { HistoricalBackfill } = require("./backfill.js"),
   { TrustedClock } = require("./trusted-clock.js"),
   { MarketDataProvenance } = require("./provenance.js");
 const { microstructure } = require("../execution/microstructure.js");
@@ -41,6 +42,7 @@ class MarketDataService {
       maxDriftMs: Number(process.env.MARKET_CLOCK_MAX_DRIFT_MS || 2000),
     }),
     provenance = null,
+    backfill = null,
   } = {}) {
     this.connector = connector;
     this.secondary = secondary;
@@ -77,6 +79,15 @@ class MarketDataService {
       lastCycleAt: 0,
       lastError: null,
     };
+    this.backfill =
+      backfill ||
+      new HistoricalBackfill({
+        connector: this.connector,
+        store: this.store,
+        append: (stream, event) => this.record(stream, event),
+        maxRangeMs: Number(process.env.BACKFILL_MAX_RANGE_DAYS || 7) * 86400000,
+        maxCandles: Number(process.env.BACKFILL_MAX_CANDLES || 10000),
+      });
   }
   enableStream(options = {}) {
     if (this.stream) return this.stream;
@@ -323,6 +334,12 @@ class MarketDataService {
   }
   storage() {
     return this.store.inventory();
+  }
+  planBackfill(input) {
+    return this.backfill.plan(input);
+  }
+  executeBackfill(plan, approvedBy) {
+    return this.backfill.execute(plan, approvedBy);
   }
   async analysisContext(product) {
     const [candles, persisted] = await Promise.all([

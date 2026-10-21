@@ -253,6 +253,39 @@ function createGateway(options = {}) {
           : { error: "data-service-disabled" },
         headers,
       );
+    if (req.method === "POST" && req.url === "/v1/data/backfill/plan") {
+      if (!dataService)
+        return json(res, 503, { error: "data-service-disabled" }, headers);
+      try {
+        return json(
+          res,
+          200,
+          await dataService.planBackfill(await body(req)),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (req.method === "POST" && req.url === "/v1/data/backfill/execute") {
+      if (!dataService)
+        return json(res, 503, { error: "data-service-disabled" }, headers);
+      try {
+        fourEyes(req);
+        const input = await body(req);
+        return json(
+          res,
+          200,
+          await dataService.executeBackfill(
+            input.plan,
+            input.approvedBy || req.auth.sub,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/desks")
       return json(res, 200, { desks: desks.list() }, headers);
     if (req.method === "GET" && req.url === "/v1/pipeline/status")

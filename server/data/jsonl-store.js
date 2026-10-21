@@ -41,7 +41,10 @@ class JsonlStore {
     );
     return next;
   }
-  async replay(stream, { from = 0, to = Infinity, limit = 10000 } = {}) {
+  async replay(
+    stream,
+    { from = 0, to = Infinity, limit = 10000, timeField = null } = {},
+  ) {
     const dir = path.join(this.root, safe(stream));
     if (!fs.existsSync(dir)) return [];
     const files = (await fsp.readdir(dir))
@@ -61,7 +64,10 @@ class JsonlStore {
         if (checksum !== row.checksum)
           throw new Error(`checksum-mismatch:${name}`);
         const at = Date.parse(
-          row.payload.exchangeAt || row.payload.receivedAt || 0,
+          (timeField && row.payload[timeField]) ||
+            row.payload.exchangeAt ||
+            row.payload.receivedAt ||
+            0,
         );
         if (at >= from && at <= to) out.push(row.payload);
         if (out.length >= limit) return out;
