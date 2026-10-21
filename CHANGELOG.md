@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- El estado del circuit breaker IA se persiste después de cada observación y
+  transición mediante checkpoints encadenados; el arranque y los errores de
+  almacenamiento bloquean llamadas al proveedor hasta una recuperación válida.
 - Readiness ahora usa salud activa del proveedor IA —muestra rodante, tasa de
   fallos, p95 y circuit breaker— y el gateway cae explícitamente al motor
   matemático local cuando el proveedor no está disponible.

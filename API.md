@@ -672,6 +672,13 @@ habilita `aiSignals` cuando el proveedor está configurado, fue observado,
 permanece `CLOSED` y su p95 está dentro de política. Esta degradación no bloquea
 la ejecución paper independiente de IA.
 
+El campo `recovery` informa `recovered`, cantidad de checkpoints, revisión,
+último ID y si la retención truncó el comienzo de la cadena. Durante el arranque
+las llamadas externas quedan bloqueadas con `provider-health-not-recovered` y
+usan fallback local hasta validar `sre.ai-provider-health`. También se bloquean
+si no puede persistirse una observación; URL, credenciales y mensajes internos
+del transporte nunca se escriben en el checkpoint.
+
 ## 5. Ejemplos internos
 
 ### Ejecutar una mesa

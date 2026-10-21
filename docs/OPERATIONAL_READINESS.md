@@ -43,6 +43,13 @@ circuito: tasa de fallos con muestra mínima o fallos consecutivos. Tras el
 cooldown pasa a `HALF_OPEN` y admite una sola prueba. Éxito cierra; fallo reabre.
 Antes de la primera observación `aiSignals=false`.
 
+El circuito comienza fail-closed hasta recuperar `sre.ai-provider-health`.
+Cada observación y transición persiste ventana, estado, revisión, `policyHash`,
+`previousId` e ID de contenido dentro de un checkpoint SHA-256. La recuperación
+valida tipos, límites, política, configuración, continuidad temporal, revisión,
+IDs y transiciones permitidas. Si el almacenamiento falla, nuevas llamadas IA
+quedan bloqueadas y el gateway usa fallback matemático.
+
 ## Aplicación
 
 `GET /v1/readiness` expone todos los inputs, expectativas y motivos. Antes de

@@ -1,5 +1,8 @@
 # ADR-0030: salud activa y circuit breaker del proveedor IA
 
+> La limitación de persistencia descrita aquí fue resuelta localmente por
+> ADR-0031; este documento conserva la decisión original.
+
 ## Contexto
 
 La existencia de `LLM_BASE_URL` no demuestra disponibilidad, latencia aceptable

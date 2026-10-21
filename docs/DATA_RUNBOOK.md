@@ -79,6 +79,18 @@ política requiere una migración aprobada; no se acepta recalcular hashes.
 - Ante `readiness-recovery-failed`, conservar evidencia y no reanudar Risk Gate
   editando o eliminando la transición conflictiva.
 
+## Historial del proveedor IA
+
+- Stream: `sre.ai-provider-health`.
+- Cada llamada terminada y cada paso a `HALF_OPEN` escribe un checkpoint.
+- Validar sello, `policyHash`, configuración, revisión, `previousId`, ventana,
+  contadores, tiempos y transición de estados.
+- `boundaryTruncated=true` permite un prefijo eliminado por retención, pero no
+  revisiones faltantes dentro del tramo disponible.
+- `provider-health-not-recovered` o `provider-health-persistence-failed`
+  obliga a conservar el fallback matemático. No editar hashes ni vaciar el
+  stream para forzar la reapertura.
+
 ## Alertas
 
 - `cycleAgeMs > 3 × MARKET_POLL_MS`: feed estancado.
