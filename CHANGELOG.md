@@ -38,6 +38,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Graduación de experimentos con evidencia positiva de no inferioridad global y
+  por régimen, diseño de muestra, cuatro ojos y vínculo obligatorio al promover
+  reemplazos del champion de consenso.
 - Monitoreo prequential champion/challenger mediante log-loss pareado, e-process
   always-valid, corrección por regímenes, diagnóstico Diebold–Mariano/Newey–West
   y rollback automático exclusivamente paper.
