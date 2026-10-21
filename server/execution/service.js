@@ -153,6 +153,7 @@ class ExecutionService {
           ? this.tca.observe(parent.symbol, Number(book.mid), Date.now())
           : 0,
         effectiveSpreadBps = Number(book?.spreadBps ?? spreadBps),
+        dataStatus = this.pipeline.dataService?.health().status || "degraded",
         portfolio = this.pipeline.ledger.snapshot(this.pipeline.marks()),
         spec = this.pipeline.desks.assets[parent.asset],
         position = portfolio.positions[child.symbol],
@@ -194,7 +195,7 @@ class ExecutionService {
             },
             0,
           ),
-          dataStatus: "healthy",
+          dataStatus,
           spreadBps: effectiveSpreadBps,
           exposures: Object.fromEntries(
             Object.entries(portfolio.positions).map(([k, v]) => [

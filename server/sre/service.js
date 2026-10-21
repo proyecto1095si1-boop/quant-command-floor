@@ -120,7 +120,10 @@ class SreService {
     return x;
   }
   async snapshot() {
-    if (!this.telemetryReady) throw new Error("slo-telemetry-not-recovered");
+    if (!this.telemetryReady)
+      throw Object.assign(new Error("slo-telemetry-not-recovered"), {
+        status: 503,
+      });
     const data = this.dataService.health(),
       audit = this.pipeline.audit.verify(),
       m = this.gatewayMetrics,

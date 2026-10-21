@@ -25,6 +25,7 @@ const assert = require("node:assert/strict"),
     pipeline = {
       risk,
       ledger,
+      dataService: { health: () => ({ status: "healthy" }) },
       marks: () => ({ "BTC-USD": 100 }),
       desks: { assets: { BTC: { maxWeight: 0.35 } } },
     },
@@ -52,9 +53,11 @@ const assert = require("node:assert/strict"),
     submitted,
   );
   let riskReviews = 0;
+  const riskContexts = [];
   const evaluate = risk.evaluate.bind(risk);
   risk.evaluate = (...args) => {
     riskReviews++;
+    riskContexts.push(args[1]);
     return evaluate(...args);
   };
   const reconciled = await svc.drain({ spreadBps: 5, depthNotional: 100000 });
@@ -62,11 +65,29 @@ const assert = require("node:assert/strict"),
   assert.equal(svc.status().queue, 0);
   assert.equal(ledger.fills.length, 6);
   assert.equal(riskReviews, 6);
+  assert.ok(riskContexts.every((context) => context.dataStatus === "healthy"));
   assert.ok(svc.metrics.fees > 0);
   assert.equal(svc.status().tca.fills, 6);
   assert.ok(
     Number.isFinite(svc.status().tca.weightedImplementationShortfallBps),
   );
+  const degradedPlan = {
+    id: "plan-degraded",
+    allocations: [{ asset: "BTC", product: "BTC-USD", tradeNotional: 600 }],
+  };
+  portfolio.plans.push(degradedPlan);
+  await svc.submit({
+    planId: "plan-degraded",
+    approvedBy: "Human Director",
+    prices: { BTC: 100 },
+  });
+  pipeline.dataService.health = () => ({ status: "degraded" });
+  const rejectedForData = await svc.drain({
+    spreadBps: 5,
+    depthNotional: 100000,
+  });
+  assert.equal(rejectedForData.rejected, 6);
+  pipeline.dataService.health = () => ({ status: "healthy" });
   const qtyBeforeReduction = ledger.positions.get("BTC-USD").qty,
     reductionPlan = {
       id: "plan-reduce",
