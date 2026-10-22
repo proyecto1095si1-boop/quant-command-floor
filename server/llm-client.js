@@ -88,6 +88,12 @@ async function executeLLM(
       version: `llm:${model.name || defaultModel}`,
       status: "ok",
       ...normalized,
+      usage: {
+        promptTokens: Number(data.usage?.prompt_tokens) || 0,
+        completionTokens: Number(data.usage?.completion_tokens) || 0,
+        totalTokens: Number(data.usage?.total_tokens) || 0,
+        reported: Number.isSafeInteger(Number(data.usage?.total_tokens)),
+      },
       latency_ms: 0,
       at: new Date().toISOString(),
     };

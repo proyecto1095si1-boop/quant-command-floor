@@ -11,6 +11,7 @@ const { SreService } = require("./sre/service.js");
 const { ReadinessService } = require("./sre/readiness.js");
 const { AiProviderHealth } = require("./ai/provider-health.js");
 const { AiProviderPool } = require("./ai/provider-pool.js");
+const { AiCostLedger } = require("./ai/cost-ledger.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -58,7 +59,17 @@ const aiHealthPolicy = {
     providerId: "secondary",
     policy: aiHealthPolicy,
   }),
+  aiCostLedger = new AiCostLedger({
+    record: (stream, event) => data.record(stream, event),
+    requireRecovery: true,
+    policy: {
+      providerDailyUsd: Number(process.env.LLM_PROVIDER_DAILY_USD || 10),
+      agentDailyUsd: Number(process.env.LLM_AGENT_DAILY_USD || 2),
+      estimatedTokens: Number(process.env.LLM_ESTIMATED_TOKENS || 500),
+    },
+  }),
   aiProviderPool = new AiProviderPool({
+    costLedger: aiCostLedger,
     providers: [
       {
         id: "primary",
@@ -89,7 +100,7 @@ const aiHealthPolicy = {
       priorityWeight: Number(process.env.LLM_POOL_PRIORITY_WEIGHT || 0.1),
     },
   }),
-  gateway = createGateway({ aiProviderPool }),
+  gateway = createGateway({ aiProviderPool, aiCostLedger }),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
     .map((x) => x.trim())
@@ -298,6 +309,16 @@ gateway.listen().then(async (address) => {
   } catch (e) {
     console.error(`Pipeline recovery blocked: ${e.message}`);
     pipeline.risk.halt("recovery-failed");
+  }
+  try {
+    const costCheckpoints = await data.store.tail("sre.ai-cost-ledger", 10000),
+      costRecovery = aiCostLedger.recover(costCheckpoints);
+    if (costRecovery.checkpoints)
+      console.log(
+        `AI cost ledger recovered: ${costRecovery.checkpoints} checkpoints`,
+      );
+  } catch (e) {
+    console.error(`AI cost ledger recovery blocked: ${e.message}`);
   }
   try {
     const [primaryCheckpoints, secondaryCheckpoints] = await Promise.all([

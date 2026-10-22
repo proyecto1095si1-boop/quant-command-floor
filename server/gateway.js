@@ -227,6 +227,13 @@ function createGateway(options = {}) {
         },
         headers,
       );
+    if (req.method === "GET" && req.url === "/v1/ai/costs")
+      return json(
+        res,
+        options.aiCostLedger ? 200 : 503,
+        options.aiCostLedger?.status() || { error: "ai-cost-ledger-disabled" },
+        headers,
+      );
     if (req.method === "GET" && req.url === "/v1/readiness") {
       if (!readiness)
         return json(res, 503, { error: "readiness-disabled" }, headers);
