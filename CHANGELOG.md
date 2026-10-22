@@ -52,6 +52,10 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Procedencia financiera de facturas IA con firma Ed25519, allowlist de emisores,
+  oracle FX multifFuente, límites de frescura/divergencia y aprobación contable
+  independiente preservada en recovery.
+
 - Conciliación point-in-time de costos IA con tarifas por proveedor/modelo,
   precios separados de entrada/salida, FX, impuestos, idempotencia, alertas de
   desvío y recuperación encadenada fail-closed.
