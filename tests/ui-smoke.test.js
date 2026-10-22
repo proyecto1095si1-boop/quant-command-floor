@@ -101,6 +101,18 @@ for (const file of [
   );
   assert.ok(document.querySelector("#aiCostSigned"));
 
+  document.querySelector("#intelligenceOpen").click();
+  assert.equal(
+    document.querySelector("#intelligenceModal").classList.contains("open"),
+    true,
+    "the external data API console opens",
+  );
+  assert.equal(
+    requests.some(({ url }) => url.endsWith("/v1/intelligence/status")),
+    true,
+    "the external data API console requests provider status",
+  );
+
   await new Promise((resolve) => setImmediate(resolve));
 
   dom.window.close();

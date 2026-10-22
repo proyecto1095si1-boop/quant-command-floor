@@ -88,6 +88,8 @@
               ><button class="filter" data-filter="alert">ALERTAS</button>
             </div>
             <button id="sreOpen" class="network-toggle">⌁ SRE</button
+            ><button id="intelligenceOpen" class="network-toggle">
+              ◉ DATA APIs</button
             ><button id="aiCostOpen" class="network-toggle">◈ AI COST</button
             ><button id="executionOpen" class="network-toggle">⇢ EXEC</button
             ><button id="portfolioOpen" class="network-toggle">◒ CARTERA</button
@@ -736,6 +738,38 @@
           Conciliación de facturas pendiente.
         </div>
         <div id="aiCostStatus" class="run-inspector">Esperando telemetría.</div>
+      </section>
+    </div>
+    <div
+      id="intelligenceModal"
+      class="platform-modal sre-modal"
+      aria-hidden="true"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="intelligenceTitle"
+      >
+        <button
+          id="intelligenceClose"
+          class="platform-close"
+          aria-label="Cerrar"
+        >
+          ×
+        </button>
+        <div class="eyebrow">INTEL & DATA · READ ONLY</div>
+        <h2 id="intelligenceTitle">External Data APIs</h2>
+        <p>
+          Estado seguro de Finnhub, FRED, Financial Modeling Prep y Polygon. Las
+          credenciales viven únicamente en el backend.
+        </p>
+        <div class="sre-actions">
+          <button id="intelligenceRefresh">ACTUALIZAR</button>
+        </div>
+        <div id="intelligenceProviders" class="sre-grid"></div>
+        <div id="intelligenceStatus" class="run-inspector">
+          Esperando estado de proveedores.
+        </div>
       </section>
     </div>
     <script src="platform-config.js"></script>
