@@ -221,8 +221,8 @@ function createGateway(options = {}) {
     if (req.method === "GET" && req.url === "/v1/ai/provider-health")
       return json(
         res,
-        options.aiProviderHealth ? 200 : 503,
-        options.aiProviderHealth?.status() || {
+        options.aiProviderPool || options.aiProviderHealth ? 200 : 503,
+        (options.aiProviderPool || options.aiProviderHealth)?.status() || {
           error: "ai-provider-health-disabled",
         },
         headers,
@@ -1097,10 +1097,12 @@ function createGateway(options = {}) {
         let external = null,
           fallbackReason = null;
         try {
-          external = await executeLLM(payload, {
-            ...(options.llm || {}),
-            providerHealth: options.aiProviderHealth || null,
-          });
+          external = options.aiProviderPool
+            ? await options.aiProviderPool.execute(payload)
+            : await executeLLM(payload, {
+                ...(options.llm || {}),
+                providerHealth: options.aiProviderHealth || null,
+              });
         } catch (error) {
           if (!error.providerUnavailable) throw error;
           fallbackReason = error.message;
