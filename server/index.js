@@ -12,6 +12,10 @@ const { ReadinessService } = require("./sre/readiness.js");
 const { AiProviderHealth } = require("./ai/provider-health.js");
 const { AiProviderPool } = require("./ai/provider-pool.js");
 const { AiCostLedger } = require("./ai/cost-ledger.js");
+const {
+  AiCostReconciliation,
+  AiPriceCatalog,
+} = require("./ai/cost-reconciliation.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -68,6 +72,39 @@ const aiHealthPolicy = {
       estimatedTokens: Number(process.env.LLM_ESTIMATED_TOKENS || 500),
     },
   }),
+  aiPriceCatalog = new AiPriceCatalog([
+    {
+      providerId: "primary",
+      model: process.env.LLM_MODEL || "local-model",
+      effectiveFrom: process.env.LLM_PRICE_EFFECTIVE_FROM || "1970-01-01",
+      inputPer1kUsd:
+        process.env.LLM_INPUT_COST_PER_1K || process.env.LLM_COST_PER_1K || 0,
+      outputPer1kUsd:
+        process.env.LLM_OUTPUT_COST_PER_1K || process.env.LLM_COST_PER_1K || 0,
+    },
+    {
+      providerId: "secondary",
+      model: process.env.LLM_SECONDARY_MODEL || "local-model",
+      effectiveFrom:
+        process.env.LLM_SECONDARY_PRICE_EFFECTIVE_FROM || "1970-01-01",
+      inputPer1kUsd:
+        process.env.LLM_SECONDARY_INPUT_COST_PER_1K ||
+        process.env.LLM_SECONDARY_COST_PER_1K ||
+        0,
+      outputPer1kUsd:
+        process.env.LLM_SECONDARY_OUTPUT_COST_PER_1K ||
+        process.env.LLM_SECONDARY_COST_PER_1K ||
+        0,
+    },
+  ]),
+  aiCostReconciliation = new AiCostReconciliation({
+    catalog: aiPriceCatalog,
+    record: (stream, event) => data.record(stream, event),
+    requireRecovery: true,
+    policy: {
+      varianceAlertBps: Number(process.env.LLM_INVOICE_VARIANCE_BPS || 500),
+    },
+  }),
   aiProviderPool = new AiProviderPool({
     costLedger: aiCostLedger,
     providers: [
@@ -100,7 +137,11 @@ const aiHealthPolicy = {
       priorityWeight: Number(process.env.LLM_POOL_PRIORITY_WEIGHT || 0.1),
     },
   }),
-  gateway = createGateway({ aiProviderPool, aiCostLedger }),
+  gateway = createGateway({
+    aiProviderPool,
+    aiCostLedger,
+    aiCostReconciliation,
+  }),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
     .map((x) => x.trim())
@@ -319,6 +360,19 @@ gateway.listen().then(async (address) => {
       );
   } catch (e) {
     console.error(`AI cost ledger recovery blocked: ${e.message}`);
+  }
+  try {
+    const checkpoints = await data.store.tail(
+        "sre.ai-cost-reconciliation",
+        10000,
+      ),
+      recovered = aiCostReconciliation.recover(checkpoints);
+    if (recovered.checkpoints)
+      console.log(
+        `AI cost reconciliation recovered: ${recovered.checkpoints} checkpoints`,
+      );
+  } catch (e) {
+    console.error(`AI cost reconciliation recovery blocked: ${e.message}`);
   }
   try {
     const [primaryCheckpoints, secondaryCheckpoints] = await Promise.all([
