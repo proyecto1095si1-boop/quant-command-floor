@@ -17,6 +17,13 @@ const {
   AiPriceCatalog,
 } = require("./ai/cost-reconciliation.js");
 const { FxOracle } = require("./finance/provenance.js");
+const {
+  FinnhubConnector,
+  FmpConnector,
+  FredConnector,
+  IntelligenceService,
+  PolygonConnector,
+} = require("./intelligence/connectors.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -155,10 +162,31 @@ const aiHealthPolicy = {
       priorityWeight: Number(process.env.LLM_POOL_PRIORITY_WEIGHT || 0.1),
     },
   }),
+  intelligence = new IntelligenceService({
+    connectors: {
+      finnhub: new FinnhubConnector({
+        apiKey: process.env.FINNHUB_API_KEY,
+        maxRequestsPerMinute: Number(process.env.FINNHUB_RPM || 60),
+      }),
+      fred: new FredConnector({
+        apiKey: process.env.FRED_API_KEY,
+        maxRequestsPerMinute: Number(process.env.FRED_RPM || 60),
+      }),
+      fmp: new FmpConnector({
+        apiKey: process.env.FMP_API_KEY,
+        maxRequestsPerMinute: Number(process.env.FMP_RPM || 60),
+      }),
+      polygon: new PolygonConnector({
+        apiKey: process.env.POLYGON_API_KEY,
+        maxRequestsPerMinute: Number(process.env.POLYGON_RPM || 60),
+      }),
+    },
+  }),
   gateway = createGateway({
     aiProviderPool,
     aiCostLedger,
     aiCostReconciliation,
+    intelligence,
   }),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")

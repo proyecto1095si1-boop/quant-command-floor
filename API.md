@@ -102,6 +102,14 @@ FX_MAX_FUTURE_MS=60000
 FX_MAX_DIVERGENCE_BPS=50
 FX_INVOICE_TOLERANCE_BPS=1
 LLM_ESTIMATED_TOKENS=500
+FINNHUB_API_KEY=
+FINNHUB_RPM=60
+FRED_API_KEY=
+FRED_RPM=60
+FMP_API_KEY=
+FMP_RPM=60
+POLYGON_API_KEY=
+POLYGON_RPM=60
 ```
 
 Para producción controlada:
@@ -116,6 +124,29 @@ ALLOWED_ORIGIN=https://tu-dominio-privado.example
 Nunca subir `.env`, API keys, secretos, seed phrases o private keys a GitHub.
 
 ### Calibración del consenso (interna, paper-only)
+
+### Inteligencia externa read-only
+
+`GET /v1/intelligence/status` informa qué conectores están configurados sin
+exponer claves. `POST /v1/intelligence/query` acepta únicamente estas parejas:
+
+- `finnhub/news`
+- `fred/series`
+- `fmp/profile` y `fmp/news`
+- `polygon/aggregates`
+
+No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
+
+```json
+{
+  "provider": "fred",
+  "operation": "series",
+  "params": {"seriesId": "FEDFUNDS", "limit": 120}
+}
+```
+
+El contrato completo está en
+[`docs/INTELLIGENCE_CONNECTORS.md`](docs/INTELLIGENCE_CONNECTORS.md).
 
 `POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
 parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales

@@ -1,3 +1,6 @@
+require("./intelligence-connectors.test.js");
+require("./intelligence-api.test.js");
+
 const assert = require("node:assert/strict"),
   { createGateway } = require("../server/gateway.js"),
   { execute } = require("../server/agent-engine.js");

@@ -52,6 +52,10 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Conectores read-only para Finnhub, FRED, Financial Modeling Prep y Polygon,
+  con operaciones allowlisted, secretos solo backend, límites por minuto,
+  timeout, retry, normalización, API interna y consola visual de estado.
+
 - Procedencia financiera de facturas IA con firma Ed25519, allowlist de emisores,
   oracle FX multifFuente, límites de frescura/divergencia y aprobación contable
   independiente preservada en recovery.

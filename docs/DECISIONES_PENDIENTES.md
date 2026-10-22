@@ -209,3 +209,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** tratar el costo estimado como factura, habilitar
   auto-recarga o usar estos límites para autorizar capital real.
 
+## Proveedores externos de inteligencia
+
+- **Estado:** adaptadores read-only de Finnhub, FRED, FMP y Polygon implementados;
+  credenciales reales no se almacenan en el repositorio.
+- **Decisión necesaria:** revocar cualquier clave compartida fuera del secret
+  manager, elegir planes, límites, licencias, retención y datasets point-in-time.
+- **Acción bloqueada:** usar datos externos como fuente única de una orden real,
+  redistribuirlos sin licencia o considerar una clave visible todavía segura.
+

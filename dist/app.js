@@ -1827,6 +1827,44 @@ document.querySelector("#aiCostRefresh").onclick = refreshAiCost;
 aiCostModal.onclick = (event) => {
   if (event.target === aiCostModal) closeAiCost();
 };
+const intelligenceModal = document.querySelector("#intelligenceModal");
+function closeIntelligence() {
+  intelligenceModal.classList.remove("open");
+  intelligenceModal.setAttribute("aria-hidden", "true");
+}
+async function refreshIntelligence() {
+  try {
+    const response = await fetch(
+        platformConfig.backendBaseUrl + "/v1/intelligence/status",
+      ),
+      data = await response.json();
+    if (!response.ok)
+      throw new Error(data.error || "intelligence-service-unavailable");
+    const providers = Object.values(data.providers || {}),
+      configured = providers.filter((provider) => provider.configured).length;
+    document.querySelector("#intelligenceProviders").innerHTML = providers
+      .map(
+        (provider) =>
+          `<div class="sre-service ${provider.configured && !provider.healthy ? "bad" : ""}"><b>${esc(provider.id.toUpperCase())}</b><span>${provider.configured ? (provider.healthy ? "READY" : "DEGRADED") : "SIN CLAVE"} · READ ONLY · ${esc(provider.requestsLastMinute)}/${esc(provider.limitPerMinute)} RPM</span></div>`,
+      )
+      .join("");
+    document.querySelector("#intelligenceStatus").textContent =
+      `${configured}/${providers.length} proveedores configurados · PAPER ONLY · sin órdenes ni secretos en UI`;
+  } catch (error) {
+    document.querySelector("#intelligenceStatus").textContent =
+      `DATA API ERROR · ${error.message}`;
+  }
+}
+document.querySelector("#intelligenceOpen").onclick = () => {
+  intelligenceModal.classList.add("open");
+  intelligenceModal.setAttribute("aria-hidden", "false");
+  refreshIntelligence();
+};
+document.querySelector("#intelligenceClose").onclick = closeIntelligence;
+document.querySelector("#intelligenceRefresh").onclick = refreshIntelligence;
+intelligenceModal.onclick = (event) => {
+  if (event.target === intelligenceModal) closeIntelligence();
+};
 document.querySelector("#platformSave").onclick = () => {
   try {
     platformConfig = platformStore.save({
