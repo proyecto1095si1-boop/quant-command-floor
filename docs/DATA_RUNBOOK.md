@@ -94,6 +94,15 @@ política requiere una migración aprobada; no se acepta recalcular hashes.
 - Los checkpoints v1 existentes sólo son válidos para `primary`. La versión 2
   vincula `providerId`; nunca copiar una cadena entre proveedores.
 
+## Ledger económico IA
+
+- Stream: `sre.ai-cost-ledger`.
+- Verificar día UTC, `policyHash`, revisión, `previousId`, sello y acumulados.
+- Si aparece `cost-ledger-not-recovered` o `ai-cost-persistence-failed`, no
+  vaciar el historial: conservar fallback matemático y reparar almacenamiento.
+- Contrastar periódicamente tokens y precios declarados con el reporte firmado
+  del proveedor; esa conciliación externa aún no está automatizada.
+
 ## Alertas
 
 - `cycleAgeMs > 3 × MARKET_POLL_MS`: feed estancado.

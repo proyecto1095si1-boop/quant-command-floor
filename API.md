@@ -83,6 +83,9 @@ LLM_POOL_RPM=60
 LLM_POOL_LATENCY_WEIGHT=1
 LLM_POOL_COST_WEIGHT=1
 LLM_POOL_PRIORITY_WEIGHT=0.1
+LLM_PROVIDER_DAILY_USD=10
+LLM_AGENT_DAILY_USD=2
+LLM_ESTIMATED_TOKENS=500
 ```
 
 Para producción controlada:
@@ -663,6 +666,7 @@ reproducibilidad, ECE, Brier e intervalos Wilson 95%.
 | GET | `/v1/sre/status` | viewer |
 | GET | `/v1/readiness` | viewer |
 | GET | `/v1/ai/provider-health` | viewer |
+| GET | `/v1/ai/costs` | viewer |
 | POST | `/v1/sre/backup` | admin |
 | POST | `/v1/sre/incidents/{id}/ack` | admin |
 
@@ -705,6 +709,17 @@ Los historiales son `sre.ai-provider-health` para el primario y
 `sre.ai-provider-health.secondary` para el secundario. Una falla de persistencia
 retira sólo ese proveedor, pero readiness degrada `aiSignals` si la recuperación
 agregada no está completa.
+
+`GET /v1/ai/costs` expone el día UTC, consumo por proveedor y agente, tokens,
+costo con ocho decimales, límite, remanente, reservas activas y recuperación.
+Antes de cada request se reserva `max_tokens` —o `LLM_ESTIMATED_TOKENS`— usando:
+
+`costoAtoms = round(costoPor1kAtoms × tokens / 1000)`
+
+Si proveedor o agente excedería su presupuesto diario, ese candidato no recibe
+la llamada. Al finalizar se reemplaza la reserva por tokens reportados; cuando
+el proveedor no reporta uso se conserva la estimación. El ledger declara
+siempre `paperOnly=true` y `liveTrading=false`.
 
 ## 5. Ejemplos internos
 

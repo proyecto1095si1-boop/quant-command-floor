@@ -2313,6 +2313,20 @@ nav {
 .sre-incident {
   border-left-color: var(--red);
 }
+.ai-cost-grid .sre-service b {
+  color: #d7ff68;
+}
+.ai-cost-bar {
+  height: 5px;
+  margin-top: 8px;
+  background: #172930;
+  overflow: hidden;
+}
+.ai-cost-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #42d7d0, #d7ff68);
+}
 .sre-incident button {
   border: 1px solid #4c5f66;
   background: #14272d;

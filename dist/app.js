@@ -1750,6 +1750,70 @@ document.querySelector("#sreBackup").onclick = async () => {
       `Backup ${x.id.slice(0, 8)} · SHA-256 ${x.digest.slice(0, 16)}… · journal verificado`;
   } else document.querySelector("#sreStatus").textContent = x.error;
 };
+
+const aiCostModal = document.querySelector("#aiCostModal");
+function closeAiCost() {
+  aiCostModal.classList.remove("open");
+  aiCostModal.setAttribute("aria-hidden", "true");
+}
+function aiCostRows(records) {
+  const rows = Object.entries(records || {});
+  if (!rows.length)
+    return '<div class="sre-service"><b>SIN CONSUMO</b><span>$0.00000000</span></div>';
+  return rows
+    .map(([id, row]) => {
+      const used = Number(row.costValue || 0),
+        limit = Number(row.limit || 0),
+        ratio = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+      return `<div class="sre-service"><b>${esc(id)}</b><span>${esc(row.tokens)} TOK · $${esc(row.cost)}</span><div class="ai-cost-bar"><i style="width:${esc(ratio.toFixed(2))}%"></i></div></div>`;
+    })
+    .join("");
+}
+async function refreshAiCost() {
+  try {
+    const response = await fetch(
+        platformConfig.backendBaseUrl + "/v1/ai/costs",
+      ),
+      data = await response.json();
+    if (!response.ok) throw new Error(data.error || "cost-ledger-unavailable");
+    const providerRows = Object.values(data.providers || {}),
+      total = providerRows.reduce(
+        (sum, row) => sum + Number(row.costValue || 0),
+        0,
+      ),
+      tokens = providerRows.reduce(
+        (sum, row) => sum + Number(row.tokens || 0),
+        0,
+      );
+    document.querySelector("#aiCostDay").textContent = data.day;
+    document.querySelector("#aiCostTotal").textContent = "$" + total.toFixed(8);
+    document.querySelector("#aiCostTokens").textContent =
+      tokens.toLocaleString("es-AR");
+    document.querySelector("#aiCostReservations").textContent =
+      data.reservations;
+    document.querySelector("#aiCostProviders").innerHTML = aiCostRows(
+      data.providers,
+    );
+    document.querySelector("#aiCostAgents").innerHTML = aiCostRows(data.agents);
+    document.querySelector("#aiCostStatus").textContent = data.recovery
+      .recovered
+      ? `LEDGER RECUPERADO · presupuesto proveedor $${data.policy.providerDailyUsd}/día · empleado $${data.policy.agentDailyUsd}/día`
+      : "LEDGER BLOQUEADO · pendiente de recuperación";
+  } catch (error) {
+    document.querySelector("#aiCostStatus").textContent =
+      `AI COST ERROR · ${error.message}`;
+  }
+}
+document.querySelector("#aiCostOpen").onclick = () => {
+  aiCostModal.classList.add("open");
+  aiCostModal.setAttribute("aria-hidden", "false");
+  refreshAiCost();
+};
+document.querySelector("#aiCostClose").onclick = closeAiCost;
+document.querySelector("#aiCostRefresh").onclick = refreshAiCost;
+aiCostModal.onclick = (event) => {
+  if (event.target === aiCostModal) closeAiCost();
+};
 document.querySelector("#platformSave").onclick = () => {
   try {
     platformConfig = platformStore.save({

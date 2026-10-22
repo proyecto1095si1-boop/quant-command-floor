@@ -8,9 +8,22 @@ function finite(value, fallback) {
 }
 
 class AiProviderPool {
-  constructor({ providers = [], clock = () => Date.now(), policy = {} } = {}) {
+  constructor({
+    providers = [],
+    costLedger = null,
+    clock = () => Date.now(),
+    policy = {},
+  } = {}) {
     this.clock = clock;
     this.recoveryReady = false;
+    this.costLedger = costLedger;
+    if (
+      costLedger &&
+      (typeof costLedger.authorize !== "function" ||
+        typeof costLedger.settle !== "function" ||
+        typeof costLedger.status !== "function")
+    )
+      throw new Error("invalid-ai-cost-ledger");
     this.policy = {
       maxAttempts: 2,
       maxRequestsPerMinute: 60,
@@ -111,6 +124,16 @@ class AiProviderPool {
       const provider = this.candidates(attempted)[0];
       if (!provider) break;
       attempted.add(provider.id);
+      const budget = this.costLedger?.authorize({
+        providerId: provider.id,
+        agentId: payload.agent_id,
+        costPer1kTokens: provider.costPer1kTokens,
+        estimatedTokens: Number(payload.model?.max_tokens) || undefined,
+      }) || { allowed: true, reservationId: null };
+      if (!budget.allowed) {
+        failures.push(budget.reason);
+        continue;
+      }
       provider.inFlight++;
       provider.requests.push(this.clock());
       provider.totals.attempts++;
@@ -129,17 +152,34 @@ class AiProviderPool {
             clock: this.clock,
           },
         );
+        let cost = null;
+        if (result && budget.reservationId)
+          try {
+            cost = await this.costLedger.settle(
+              budget.reservationId,
+              result.usage,
+            );
+          } catch (error) {
+            throw Object.assign(error, {
+              providerUnavailable: true,
+              stopFailover: true,
+            });
+          }
         if (result) provider.totals.successes++;
         return result
           ? {
               ...result,
+              cost,
               provider: provider.id,
               routing: { attempts: attempted.size },
             }
           : null;
       } catch (error) {
+        if (budget.reservationId)
+          this.costLedger?.release(budget.reservationId);
         provider.totals.failures++;
         failures.push(error.message);
+        if (error.stopFailover) throw error;
         if (!error.providerUnavailable) throw error;
       } finally {
         provider.inFlight--;
@@ -192,6 +232,7 @@ class AiProviderPool {
       healthy = providers.some((provider) => provider.healthy),
       recovered =
         this.recoveryReady &&
+        (!this.costLedger || this.costLedger.status().recovery.recovered) &&
         providers.every(
           (provider) => !provider.configured || provider.recovery.recovered,
         );
@@ -202,6 +243,7 @@ class AiProviderPool {
       state: healthy && recovered ? "AVAILABLE" : "UNAVAILABLE",
       providers,
       recovery: { recovered },
+      costs: this.costLedger?.status() || null,
       policy: { ...this.policy },
     };
   }

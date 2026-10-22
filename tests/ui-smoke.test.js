@@ -32,52 +32,74 @@ for (const file of [
 ])
   window.eval(fs.readFileSync(path.join(dist, file), "utf8"));
 
-const document = window.document,
-  rooms = document.querySelectorAll(".room");
-assert.equal(rooms.length, 9, "the floor loads all nine areas");
-assert.equal(document.querySelector("#engineState").textContent, "RUNNING");
+(async () => {
+  const document = window.document,
+    rooms = document.querySelectorAll(".room");
+  assert.equal(rooms.length, 9, "the floor loads all nine areas");
+  assert.equal(document.querySelector("#engineState").textContent, "RUNNING");
 
-document.querySelector('.room[data-id="2"]').click();
-assert.equal(
-  document.querySelector("#detailName").textContent,
-  "Trading Floor",
-);
-assert.equal(
-  document.querySelector("#detail").classList.contains("open"),
-  true,
-);
-assert.equal(
-  document.querySelector('.room[data-id="2"]').classList.contains("selected"),
-  true,
-);
+  document.querySelector('.room[data-id="2"]').click();
+  assert.equal(
+    document.querySelector("#detailName").textContent,
+    "Trading Floor",
+  );
+  assert.equal(
+    document.querySelector("#detail").classList.contains("open"),
+    true,
+  );
+  assert.equal(
+    document.querySelector('.room[data-id="2"]').classList.contains("selected"),
+    true,
+  );
 
-document.querySelector("#engineToggle").click();
-assert.equal(document.querySelector("#engineState").textContent, "PAUSED");
-assert.equal(
-  document.querySelector("#floor").classList.contains("paused"),
-  true,
-);
-assert.equal(document.querySelector("#engineToggle").textContent, "▶ REANUDAR");
+  document.querySelector("#engineToggle").click();
+  assert.equal(document.querySelector("#engineState").textContent, "PAUSED");
+  assert.equal(
+    document.querySelector("#floor").classList.contains("paused"),
+    true,
+  );
+  assert.equal(
+    document.querySelector("#engineToggle").textContent,
+    "▶ REANUDAR",
+  );
 
-document.querySelector("#killSwitch").click();
-assert.equal(document.querySelector("#engineState").textContent, "HALTED");
-assert.equal(
-  document.querySelector("#floor").classList.contains("halted"),
-  true,
-);
-assert.equal(document.querySelector("#riskGate").textContent, "LOCKED");
-assert.equal(
-  document.querySelector("#killSwitch").classList.contains("active"),
-  true,
-);
-assert.equal(
-  requests.some(
-    ({ url, options }) =>
-      url.endsWith("/v1/pipeline/halt") && options.method === "POST",
-  ),
-  true,
-  "the primary Kill Switch calls the backend halt endpoint",
-);
+  document.querySelector("#killSwitch").click();
+  assert.equal(document.querySelector("#engineState").textContent, "HALTED");
+  assert.equal(
+    document.querySelector("#floor").classList.contains("halted"),
+    true,
+  );
+  assert.equal(document.querySelector("#riskGate").textContent, "LOCKED");
+  assert.equal(
+    document.querySelector("#killSwitch").classList.contains("active"),
+    true,
+  );
+  assert.equal(
+    requests.some(
+      ({ url, options }) =>
+        url.endsWith("/v1/pipeline/halt") && options.method === "POST",
+    ),
+    true,
+    "the primary Kill Switch calls the backend halt endpoint",
+  );
 
-dom.window.close();
-console.log("ui smoke tests: ok");
+  document.querySelector("#aiCostOpen").click();
+  assert.equal(
+    document.querySelector("#aiCostModal").classList.contains("open"),
+    true,
+    "the AI cost console opens from the map toolbar",
+  );
+  assert.equal(
+    requests.some(({ url }) => url.endsWith("/v1/ai/costs")),
+    true,
+    "the AI cost console requests its backend ledger",
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+
+  dom.window.close();
+  console.log("ui smoke tests: ok");
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
