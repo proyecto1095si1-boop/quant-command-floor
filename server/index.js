@@ -16,6 +16,7 @@ const {
   AiCostReconciliation,
   AiPriceCatalog,
 } = require("./ai/cost-reconciliation.js");
+const { FxOracle } = require("./finance/provenance.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -101,8 +102,25 @@ const aiHealthPolicy = {
     catalog: aiPriceCatalog,
     record: (stream, event) => data.record(stream, event),
     requireRecovery: true,
+    trustedIssuers: parseTrustedReviewers(process.env.INVOICE_TRUSTED_ISSUERS),
+    fxOracle: new FxOracle({
+      sources: String(process.env.FX_TRUSTED_SOURCES || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+      policy: {
+        minSources: Number(process.env.FX_MIN_SOURCES || 2),
+        maxAgeMs: Number(process.env.FX_MAX_AGE_MS || 86400000),
+        maxFutureMs: Number(process.env.FX_MAX_FUTURE_MS || 60000),
+        maxDivergenceBps: Number(process.env.FX_MAX_DIVERGENCE_BPS || 50),
+        invoiceToleranceBps: Number(process.env.FX_INVOICE_TOLERANCE_BPS || 1),
+      },
+    }),
     policy: {
       varianceAlertBps: Number(process.env.LLM_INVOICE_VARIANCE_BPS || 500),
+      requireSignedInvoices: process.env.INVOICE_REQUIRE_SIGNATURE !== "false",
+      requireFxEvidence: process.env.FX_REQUIRE_EVIDENCE !== "false",
+      requireDualApproval: process.env.REQUIRE_FOUR_EYES === "true",
     },
   }),
   aiProviderPool = new AiProviderPool({
