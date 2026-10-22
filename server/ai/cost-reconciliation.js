@@ -11,6 +11,10 @@ const {
   openCheckpoint,
   sealCheckpoint,
 } = require("../config/checkpoint.js");
+const {
+  FxOracle,
+  verifyInvoiceAttestation,
+} = require("../finance/provenance.js");
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -186,6 +190,8 @@ class AiCostReconciliation {
   constructor({
     catalog,
     record = async () => {},
+    trustedIssuers = new Map(),
+    fxOracle = new FxOracle(),
     policy = {},
     requireRecovery = false,
   } = {}) {
@@ -193,24 +199,74 @@ class AiCostReconciliation {
       throw new Error("invalid-ai-price-catalog");
     this.catalog = catalog;
     this.record = record;
-    this.policy = { varianceAlertBps: 500, ...policy };
+    this.trustedIssuers = trustedIssuers;
+    this.fxOracle = fxOracle;
+    this.policy = {
+      varianceAlertBps: 500,
+      requireSignedInvoices: false,
+      requireDualApproval: false,
+      requireFxEvidence: false,
+      ...policy,
+    };
     if (
       !Number.isSafeInteger(this.policy.varianceAlertBps) ||
-      this.policy.varianceAlertBps < 0
+      this.policy.varianceAlertBps < 0 ||
+      typeof this.policy.requireSignedInvoices !== "boolean" ||
+      typeof this.policy.requireDualApproval !== "boolean" ||
+      typeof this.policy.requireFxEvidence !== "boolean"
     )
       throw new Error("invalid-ai-reconciliation-policy");
-    this.policyHash = digest({ catalogHash: catalog.hash, ...this.policy });
+    this.policyHash = digest({
+      catalogHash: catalog.hash,
+      fxOracle: fxOracle.status(),
+      trustedIssuers: [...trustedIssuers.keys()].sort(),
+      ...this.policy,
+    });
     this.invoices = new Map();
     this.revision = 0;
     this.lastId = null;
     this.recoveryReady = !requireRecovery;
   }
 
-  async importInvoice(raw, importedBy = "system") {
+  async importInvoice(raw, context = "system") {
     if (!this.recoveryReady) throw new Error("ai-reconciliation-not-recovered");
     const invoice = normalizeInvoice(raw),
       sourceDigest = digest(invoice),
+      importedBy =
+        typeof context === "string"
+          ? context
+          : String(context?.importedBy || "unknown"),
+      approvers =
+        typeof context === "object" && Array.isArray(context.approvers)
+          ? [...new Set(context.approvers.map(String).filter(Boolean))]
+          : [],
+      provenance = this.policy.requireSignedInvoices
+        ? verifyInvoiceAttestation(
+            invoice,
+            raw.attestation,
+            this.trustedIssuers,
+          )
+        : null,
+      fxBody = this.policy.requireFxEvidence
+        ? this.fxOracle.resolve(
+            invoice.currency,
+            invoice.fxRateToUsd,
+            raw.fxObservations,
+          )
+        : {
+            currency: invoice.currency,
+            rateToUsd: invoice.fxRateToUsd,
+            sources: [],
+            maximumDivergenceBps: null,
+            invoiceDeviationBps: null,
+          },
+      fxEvidence = {
+        ...fxBody,
+        evidenceHash: fxBody.evidenceHash || digest(fxBody),
+      },
       existing = this.invoices.get(invoice.invoiceId);
+    if (this.policy.requireDualApproval && approvers.length !== 2)
+      throw new Error("independent-accounting-approval-required");
     if (existing) {
       if (existing.sourceDigest !== sourceDigest)
         throw new Error("ai-invoice-id-conflict");
@@ -219,9 +275,12 @@ class AiCostReconciliation {
     const result = {
       invoice,
       sourceDigest,
-      importedBy: String(importedBy || "unknown"),
+      importedBy,
+      approvers,
       importedAt: Date.now(),
       catalogHash: this.catalog.hash,
+      provenance,
+      fxEvidence,
       ...calculate(invoice, this.catalog, this.policy.varianceAlertBps),
     };
     this.invoices.set(invoice.invoiceId, result);
@@ -289,7 +348,23 @@ class AiCostReconciliation {
           result.sourceDigest !== digest(invoice) ||
           result.catalogHash !== this.catalog.hash ||
           typeof result.importedBy !== "string" ||
+          !Array.isArray(result.approvers) ||
           !Number.isFinite(result.importedAt) ||
+          (this.policy.requireDualApproval && result.approvers.length !== 2) ||
+          (this.policy.requireSignedInvoices &&
+            verifyInvoiceAttestation(
+              invoice,
+              result.provenance?.attestation,
+              this.trustedIssuers,
+            ).invoiceHash !== result.provenance?.invoiceHash) ||
+          result.fxEvidence?.evidenceHash !==
+            digest(
+              Object.fromEntries(
+                Object.entries(result.fxEvidence || {}).filter(
+                  ([key]) => key !== "evidenceHash",
+                ),
+              ),
+            ) ||
           Object.entries(expected).some(([key, value]) => result[key] !== value)
         )
           throw new Error("invalid-ai-reconciliation-checkpoint");
@@ -322,6 +397,8 @@ class AiCostReconciliation {
       recovered: this.recoveryReady,
       policy: { ...this.policy },
       catalog: this.catalog.status(),
+      fxOracle: this.fxOracle.status(),
+      trustedIssuers: [...this.trustedIssuers.keys()].sort(),
       invoices,
       summary: { invoices: invoices.length, alerts },
     };

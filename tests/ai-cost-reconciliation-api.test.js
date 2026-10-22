@@ -32,7 +32,7 @@ const assert = require("node:assert/strict"),
       },
     );
     assert.equal(created.status, 201);
-    assert.equal(imported[0].importedBy, "local-development");
+    assert.equal(imported[0].importedBy.importedBy, "local-development");
   } finally {
     await gateway.close();
   }

@@ -92,6 +92,15 @@ LLM_SECONDARY_INPUT_COST_PER_1K=0
 LLM_SECONDARY_OUTPUT_COST_PER_1K=0
 LLM_SECONDARY_PRICE_EFFECTIVE_FROM=1970-01-01
 LLM_INVOICE_VARIANCE_BPS=500
+INVOICE_TRUSTED_ISSUERS={}
+INVOICE_REQUIRE_SIGNATURE=true
+FX_REQUIRE_EVIDENCE=true
+FX_TRUSTED_SOURCES=central-bank,market-data
+FX_MIN_SOURCES=2
+FX_MAX_AGE_MS=86400000
+FX_MAX_FUTURE_MS=60000
+FX_MAX_DIVERGENCE_BPS=50
+FX_INVOICE_TOLERANCE_BPS=1
 LLM_ESTIMATED_TOKENS=500
 ```
 
@@ -800,6 +809,15 @@ también exige `X-Approver` y `X-Second-Approver` distintos.
   "fxRateToUsd": 1.2,
   "subtotal": 100,
   "tax": 21,
+  "attestation": {
+    "issuerId": "provider-finance",
+    "algorithm": "Ed25519",
+    "signature": "BASE64_SIGNATURE"
+  },
+  "fxObservations": [
+    {"source":"central-bank","observedAt":1792670400000,"rateToUsd":1.2},
+    {"source":"market-data","observedAt":1792670401000,"rateToUsd":1.2001}
+  ],
   "lines": [
     {
       "model": "local-model",
@@ -813,6 +831,8 @@ también exige `X-Approver` y `X-Second-Approver` distintos.
 
 El contrato y sus límites están en
 [`docs/AI_COST_RECONCILIATION.md`](docs/AI_COST_RECONCILIATION.md).
+La firma, el oracle FX y sus límites se especifican en
+[`docs/FINANCIAL_PROVENANCE.md`](docs/FINANCIAL_PROVENANCE.md).
 
 Errores comunes:
 

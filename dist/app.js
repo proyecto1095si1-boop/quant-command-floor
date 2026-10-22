@@ -1797,6 +1797,9 @@ async function refreshAiCost() {
       reconciliation.summary?.invoices || 0;
     document.querySelector("#aiCostAlerts").textContent =
       reconciliation.summary?.alerts || 0;
+    document.querySelector("#aiCostSigned").textContent = (
+      reconciliation.invoices || []
+    ).filter((invoice) => invoice.provenance?.attestation).length;
     document.querySelector("#aiCostProviders").innerHTML = aiCostRows(
       data.providers,
     );

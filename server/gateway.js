@@ -255,10 +255,13 @@ function createGateway(options = {}) {
           headers,
         );
       try {
-        fourEyes(req);
+        const approval = fourEyes(req);
         const result = await options.aiCostReconciliation.importInvoice(
           await body(req),
-          req.auth.sub,
+          {
+            importedBy: req.auth.sub,
+            approvers: approval ? [approval.primary, approval.secondary] : [],
+          },
         );
         return json(res, result.idempotent ? 200 : 201, result, headers);
       } catch (error) {

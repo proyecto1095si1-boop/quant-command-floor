@@ -2,6 +2,7 @@
 
 require("./ai-cost-reconciliation.test.js");
 require("./ai-cost-reconciliation-api.test.js");
+require("./financial-provenance.test.js");
 
 const assert = require("node:assert/strict"),
   { AiCostLedger, dayKey, tokenCount } = require("../server/ai/cost-ledger.js"),
