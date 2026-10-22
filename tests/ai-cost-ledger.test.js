@@ -1,5 +1,8 @@
 "use strict";
 
+require("./ai-cost-reconciliation.test.js");
+require("./ai-cost-reconciliation-api.test.js");
+
 const assert = require("node:assert/strict"),
   { AiCostLedger, dayKey, tokenCount } = require("../server/ai/cost-ledger.js"),
   { AiProviderHealth } = require("../server/ai/provider-health.js"),

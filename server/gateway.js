@@ -234,6 +234,42 @@ function createGateway(options = {}) {
         options.aiCostLedger?.status() || { error: "ai-cost-ledger-disabled" },
         headers,
       );
+    if (req.method === "GET" && req.url === "/v1/ai/cost-reconciliation")
+      return json(
+        res,
+        options.aiCostReconciliation ? 200 : 503,
+        options.aiCostReconciliation?.status() || {
+          error: "ai-cost-reconciliation-disabled",
+        },
+        headers,
+      );
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/sre/ai-cost-reconciliation/invoices"
+    ) {
+      if (!options.aiCostReconciliation)
+        return json(
+          res,
+          503,
+          { error: "ai-cost-reconciliation-disabled" },
+          headers,
+        );
+      try {
+        fourEyes(req);
+        const result = await options.aiCostReconciliation.importInvoice(
+          await body(req),
+          req.auth.sub,
+        );
+        return json(res, result.idempotent ? 200 : 201, result, headers);
+      } catch (error) {
+        return json(
+          res,
+          error.status || 422,
+          { error: error.message },
+          headers,
+        );
+      }
+    }
     if (req.method === "GET" && req.url === "/v1/readiness") {
       if (!readiness)
         return json(res, 503, { error: "readiness-disabled" }, headers);

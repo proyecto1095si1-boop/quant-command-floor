@@ -94,6 +94,11 @@ for (const file of [
     true,
     "the AI cost console requests its backend ledger",
   );
+  assert.equal(
+    requests.some(({ url }) => url.endsWith("/v1/ai/cost-reconciliation")),
+    true,
+    "the AI cost console requests invoice reconciliation",
+  );
 
   await new Promise((resolve) => setImmediate(resolve));
 

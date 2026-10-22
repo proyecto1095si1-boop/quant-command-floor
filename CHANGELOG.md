@@ -52,6 +52,10 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Conciliación point-in-time de costos IA con tarifas por proveedor/modelo,
+  precios separados de entrada/salida, FX, impuestos, idempotencia, alertas de
+  desvío y recuperación encadenada fail-closed.
+
 - Recuperación fail-closed del historial de readiness con validación semántica,
   continuidad de transiciones y frontera de retención explícita.
 - Readiness operacional explicable con estados READY/DEGRADED/HALTED,

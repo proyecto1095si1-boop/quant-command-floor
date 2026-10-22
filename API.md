@@ -85,6 +85,13 @@ LLM_POOL_COST_WEIGHT=1
 LLM_POOL_PRIORITY_WEIGHT=0.1
 LLM_PROVIDER_DAILY_USD=10
 LLM_AGENT_DAILY_USD=2
+LLM_INPUT_COST_PER_1K=0
+LLM_OUTPUT_COST_PER_1K=0
+LLM_PRICE_EFFECTIVE_FROM=1970-01-01
+LLM_SECONDARY_INPUT_COST_PER_1K=0
+LLM_SECONDARY_OUTPUT_COST_PER_1K=0
+LLM_SECONDARY_PRICE_EFFECTIVE_FROM=1970-01-01
+LLM_INVOICE_VARIANCE_BPS=500
 LLM_ESTIMATED_TOKENS=500
 ```
 
@@ -774,6 +781,38 @@ curl -X POST http://localhost:8787/v1/execution/submit \
 ```
 
 ## 6. Contrato de errores
+
+### Conciliación de costos IA
+
+`GET /v1/ai/cost-reconciliation` devuelve catálogo efectivo, facturas,
+desvíos y alertas. `POST /v1/sre/ai-cost-reconciliation/invoices` importa una
+factura declarada y requiere rol admin en producción. Con cuatro ojos activo,
+también exige `X-Approver` y `X-Second-Approver` distintos.
+
+```json
+{
+  "invoiceId": "provider-2026-10",
+  "providerId": "primary",
+  "currency": "EUR",
+  "periodStart": "2026-10-01",
+  "periodEnd": "2026-10-31",
+  "issuedAt": "2026-11-01T00:00:00Z",
+  "fxRateToUsd": 1.2,
+  "subtotal": 100,
+  "tax": 21,
+  "lines": [
+    {
+      "model": "local-model",
+      "day": "2026-10-22",
+      "promptTokens": 50000,
+      "completionTokens": 10000
+    }
+  ]
+}
+```
+
+El contrato y sus límites están en
+[`docs/AI_COST_RECONCILIATION.md`](docs/AI_COST_RECONCILIATION.md).
 
 Errores comunes:
 

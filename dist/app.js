@@ -1771,10 +1771,12 @@ function aiCostRows(records) {
 }
 async function refreshAiCost() {
   try {
-    const response = await fetch(
-        platformConfig.backendBaseUrl + "/v1/ai/costs",
-      ),
-      data = await response.json();
+    const [response, reconciliationResponse] = await Promise.all([
+        fetch(platformConfig.backendBaseUrl + "/v1/ai/costs"),
+        fetch(platformConfig.backendBaseUrl + "/v1/ai/cost-reconciliation"),
+      ]),
+      data = await response.json(),
+      reconciliation = await reconciliationResponse.json();
     if (!response.ok) throw new Error(data.error || "cost-ledger-unavailable");
     const providerRows = Object.values(data.providers || {}),
       total = providerRows.reduce(
@@ -1791,10 +1793,18 @@ async function refreshAiCost() {
       tokens.toLocaleString("es-AR");
     document.querySelector("#aiCostReservations").textContent =
       data.reservations;
+    document.querySelector("#aiCostInvoices").textContent =
+      reconciliation.summary?.invoices || 0;
+    document.querySelector("#aiCostAlerts").textContent =
+      reconciliation.summary?.alerts || 0;
     document.querySelector("#aiCostProviders").innerHTML = aiCostRows(
       data.providers,
     );
     document.querySelector("#aiCostAgents").innerHTML = aiCostRows(data.agents);
+    document.querySelector("#aiCostReconciliation").textContent =
+      reconciliationResponse.ok
+        ? `CATÁLOGO ${String(reconciliation.catalog?.hash || "—").slice(0, 12)} · ${reconciliation.summary?.invoices || 0} facturas · ${reconciliation.summary?.alerts || 0} alertas de desvío`
+        : `CONCILIACIÓN NO DISPONIBLE · ${reconciliation.error || reconciliationResponse.status}`;
     document.querySelector("#aiCostStatus").textContent = data.recovery
       .recovered
       ? `LEDGER RECUPERADO · presupuesto proveedor $${data.policy.providerDailyUsd}/día · empleado $${data.policy.agentDailyUsd}/día`

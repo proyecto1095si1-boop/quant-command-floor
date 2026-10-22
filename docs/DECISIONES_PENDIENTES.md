@@ -201,10 +201,11 @@ propietario del repositorio. No se adoptan valores por omisión.
 
 ## Presupuesto económico de IA
 
-- **Estado:** ledger diario paper implementado con costo declarado.
-- **Decisión necesaria:** aprobar precios por modelo, moneda, impuestos,
-  presupuestos por agente/proveedor, timezone contable y conciliación contra la
-  factura firmada del proveedor.
+- **Estado:** ledger diario y conciliación point-in-time paper implementados con
+  catálogo, moneda, impuestos y FX declarados.
+- **Decisión necesaria:** aprobar precios y presupuestos, timezone contable,
+  fuente FX independiente, formato/firma de factura, identidad de importadores
+  y retención WORM.
 - **Acción bloqueada:** tratar el costo estimado como factura, habilitar
   auto-recarga o usar estos límites para autorizar capital real.
 
