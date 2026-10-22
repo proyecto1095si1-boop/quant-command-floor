@@ -88,6 +88,7 @@
               ><button class="filter" data-filter="alert">ALERTAS</button>
             </div>
             <button id="sreOpen" class="network-toggle">⌁ SRE</button
+            ><button id="aiCostOpen" class="network-toggle">◈ AI COST</button
             ><button id="executionOpen" class="network-toggle">⇢ EXEC</button
             ><button id="portfolioOpen" class="network-toggle">◒ CARTERA</button
             ><button id="riskOpen" class="network-toggle">⛨ RIESGO</button
@@ -699,6 +700,36 @@
         <div id="sreStatus" class="run-inspector">
           Esperando health profundo.
         </div>
+      </section>
+    </div>
+    <div id="aiCostModal" class="platform-modal sre-modal" aria-hidden="true">
+      <section role="dialog" aria-modal="true" aria-labelledby="aiCostTitle">
+        <button id="aiCostClose" class="platform-close" aria-label="Cerrar">
+          ×
+        </button>
+        <div class="eyebrow">ECONOMÍA DE INFERENCIA · PAPER ONLY</div>
+        <h2 id="aiCostTitle">AI Cost Control</h2>
+        <p>Consumo diario conciliado por proveedor y empleado IA.</p>
+        <div class="sre-actions">
+          <button id="aiCostRefresh">ACTUALIZAR</button>
+        </div>
+        <div class="sre-kpis">
+          <span>DÍA<b id="aiCostDay">—</b></span>
+          <span>COSTO<b id="aiCostTotal">$0.00000000</b></span>
+          <span>TOKENS<b id="aiCostTokens">0</b></span>
+          <span>RESERVAS<b id="aiCostReservations">0</b></span>
+        </div>
+        <div class="sre-grid ai-cost-grid">
+          <div>
+            <h3>PROVEEDORES</h3>
+            <div id="aiCostProviders"></div>
+          </div>
+          <div>
+            <h3>EMPLEADOS IA</h3>
+            <div id="aiCostAgents"></div>
+          </div>
+        </div>
+        <div id="aiCostStatus" class="run-inspector">Esperando telemetría.</div>
       </section>
     </div>
     <script src="platform-config.js"></script>
