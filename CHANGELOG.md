@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Cada llamada IA reserva y concilia tokens/costo con aritmética decimal fija,
+  presupuestos diarios por proveedor y agente, ledger durable y una consola
+  visual `AI COST` integrada al mapa.
 - Las llamadas IA usan un pool primario/secundario con circuitos e historiales
   aislados, selección determinista por salud, latencia, costo y prioridad,
   bulkheads, presupuesto por minuto y failover secuencial acotado.

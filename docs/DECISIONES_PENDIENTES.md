@@ -199,3 +199,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** considerar estos defaults un SLA contractual, habilitar
   señales IA para capital real o ocultar el fallback matemático al usuario.
 
+## Presupuesto económico de IA
+
+- **Estado:** ledger diario paper implementado con costo declarado.
+- **Decisión necesaria:** aprobar precios por modelo, moneda, impuestos,
+  presupuestos por agente/proveedor, timezone contable y conciliación contra la
+  factura firmada del proveedor.
+- **Acción bloqueada:** tratar el costo estimado como factura, habilitar
+  auto-recarga o usar estos límites para autorizar capital real.
+

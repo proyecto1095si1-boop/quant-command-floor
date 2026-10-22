@@ -20,6 +20,9 @@ LLM_SECONDARY_API_KEY=server-side-only
 LLM_SECONDARY_MODEL=secondary-model
 LLM_POOL_MAX_ATTEMPTS=2
 LLM_POOL_RPM=60
+LLM_PROVIDER_DAILY_USD=10
+LLM_AGENT_DAILY_USD=2
+LLM_ESTIMATED_TOKENS=500
 EXCHANGE_BASE_URL=https://api.exchange.example
 EXCHANGE_API_KEY=server-side-only
 EXCHANGE_API_SECRET=server-side-only
@@ -42,6 +45,11 @@ sólo cuando el primario termina con error. Salud, costo declarado, p95 y
 prioridad forman un score determinista; cada proveedor tiene bulkhead,
 presupuesto y checkpoint independientes. Las claves permanecen exclusivamente
 en variables de entorno del backend.
+
+El consumo conciliado está en `GET /v1/ai/costs`. El backend reserva costo antes
+de llamar, atribuye tokens al proveedor y empleado, y persiste el settlement.
+La UI lo presenta desde el botón `AI COST`; no contiene credenciales ni permite
+modificar presupuestos desde el navegador.
 
 ## Endpoints mínimos
 

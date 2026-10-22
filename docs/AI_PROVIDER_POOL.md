@@ -43,5 +43,6 @@ de intentos. El endpoint de salud no expone base URLs, claves ni cabeceras.
 ## Límites
 
 Los defaults no están calibrados contra SLAs o precios contractuales. El estado
-del presupuesto de un minuto vive en memoria; los circuitos sí se recuperan de
-checkpoints. No existe conector de órdenes reales.
+del presupuesto de un minuto vive en memoria. El gasto diario sí se concilia y
+recupera desde `sre.ai-cost-ledger` con ocho decimales. No existe conector de
+órdenes reales.
