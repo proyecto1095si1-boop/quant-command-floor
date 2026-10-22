@@ -81,7 +81,8 @@ política requiere una migración aprobada; no se acepta recalcular hashes.
 
 ## Historial del proveedor IA
 
-- Stream: `sre.ai-provider-health`.
+- Streams: `sre.ai-provider-health` para el primario y
+  `sre.ai-provider-health.secondary` para el secundario.
 - Cada llamada terminada y cada paso a `HALF_OPEN` escribe un checkpoint.
 - Validar sello, `policyHash`, configuración, revisión, `previousId`, ventana,
   contadores, tiempos y transición de estados.
@@ -90,6 +91,8 @@ política requiere una migración aprobada; no se acepta recalcular hashes.
 - `provider-health-not-recovered` o `provider-health-persistence-failed`
   obliga a conservar el fallback matemático. No editar hashes ni vaciar el
   stream para forzar la reapertura.
+- Los checkpoints v1 existentes sólo son válidos para `primary`. La versión 2
+  vincula `providerId`; nunca copiar una cadena entre proveedores.
 
 ## Alertas
 

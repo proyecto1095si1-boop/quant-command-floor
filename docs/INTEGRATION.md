@@ -15,6 +15,11 @@ LLM_HEALTH_FAILURE_RATE=0.5
 LLM_HEALTH_CONSECUTIVE_FAILURES=3
 LLM_HEALTH_P95_MS=5000
 LLM_HEALTH_COOLDOWN_MS=30000
+LLM_SECONDARY_BASE_URL=https://secondary.example/v1
+LLM_SECONDARY_API_KEY=server-side-only
+LLM_SECONDARY_MODEL=secondary-model
+LLM_POOL_MAX_ATTEMPTS=2
+LLM_POOL_RPM=60
 EXCHANGE_BASE_URL=https://api.exchange.example
 EXCHANGE_API_KEY=server-side-only
 EXCHANGE_API_SECRET=server-side-only
@@ -31,6 +36,12 @@ recuperación, o si falla una escritura, el cliente externo no recibe tráfico y
 se conserva el fallback local. Cambiar la política o alternar la configuración
 del proveedor requiere una migración explícita del historial; no se recalculan
 hashes automáticamente.
+
+El pool no hace hedging ni llamadas paralelas: el failover al secundario ocurre
+sólo cuando el primario termina con error. Salud, costo declarado, p95 y
+prioridad forman un score determinista; cada proveedor tiene bulkhead,
+presupuesto y checkpoint independientes. Las claves permanecen exclusivamente
+en variables de entorno del backend.
 
 ## Endpoints mínimos
 

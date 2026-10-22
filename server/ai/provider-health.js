@@ -44,8 +44,18 @@ class AiProviderHealth {
     policy = {},
     record = async () => {},
     requireRecovery = false,
+    providerId = "primary",
+    stream = null,
   } = {}) {
+    if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(providerId))
+      throw new Error("invalid-ai-provider-id");
     this.configured = !!configured;
+    this.providerId = providerId;
+    this.stream =
+      stream ||
+      (providerId === "primary"
+        ? "sre.ai-provider-health"
+        : `sre.ai-provider-health.${providerId}`);
     this.clock = clock;
     this.policy = {
       windowSize: 20,
@@ -175,7 +185,8 @@ class AiProviderHealth {
 
   checkpointBody() {
     return {
-      version: 1,
+      version: 2,
+      providerId: this.providerId,
       at: this.clock(),
       policyHash: this.policyHash,
       configured: this.configured,
@@ -198,7 +209,7 @@ class AiProviderHealth {
       payload = { id: digest(body), ...body };
     try {
       await this.record(
-        "sre.ai-provider-health",
+        this.stream,
         sealCheckpoint("ai-provider-health", payload),
       );
     } catch (error) {
@@ -246,7 +257,9 @@ class AiProviderHealth {
             ? (body.samples || []).length
             : trailingFailures;
       if (
-        body.version !== 1 ||
+        ![1, 2].includes(body.version) ||
+        (body.version === 1 && this.providerId !== "primary") ||
+        (body.version === 2 && body.providerId !== this.providerId) ||
         body.policyHash !== this.policyHash ||
         body.configured !== this.configured ||
         digest(body) !== id ||
@@ -348,6 +361,7 @@ class AiProviderHealth {
         (p95LatencyMs === null || p95LatencyMs <= this.policy.latencyP95Ms);
     return {
       configured: this.configured,
+      providerId: this.providerId,
       state: this.state,
       healthy,
       observed,

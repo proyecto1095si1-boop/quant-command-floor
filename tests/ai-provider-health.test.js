@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict"),
   {
+    digest,
     openCheckpoint,
     sealCheckpoint,
   } = require("../server/config/checkpoint.js"),
@@ -154,6 +155,39 @@ const assert = require("node:assert/strict"),
     policy: durable.status().policy,
   }).recover([checkpoints[1][1]]);
   assert.equal(truncated.boundaryTruncated, true);
+  const currentPrimary = openCheckpoint(
+      checkpoints[0][1],
+      "ai-provider-health",
+    ),
+    {
+      id: ignoredCurrentId,
+      providerId: ignoredProviderId,
+      ...legacyBody
+    } = currentPrimary;
+  void ignoredCurrentId;
+  void ignoredProviderId;
+  legacyBody.version = 1;
+  const legacyCheckpoint = sealCheckpoint("ai-provider-health", {
+    id: digest(legacyBody),
+    ...legacyBody,
+  });
+  const legacyPrimary = new AiProviderHealth({
+    configured: true,
+    providerId: "primary",
+    requireRecovery: true,
+    policy: durable.status().policy,
+  });
+  assert.equal(legacyPrimary.recover([legacyCheckpoint]).checkpoints, 1);
+  assert.throws(
+    () =>
+      new AiProviderHealth({
+        configured: true,
+        providerId: "secondary",
+        requireRecovery: true,
+        policy: durable.status().policy,
+      }).recover([legacyCheckpoint]),
+    /invalid-ai-provider-health-checkpoint/,
+  );
   const tampered = openCheckpoint(checkpoints[1][1], "ai-provider-health");
   tampered.previousId = "broken-chain";
   assert.throws(

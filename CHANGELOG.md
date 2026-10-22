@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Las llamadas IA usan un pool primario/secundario con circuitos e historiales
+  aislados, selección determinista por salud, latencia, costo y prioridad,
+  bulkheads, presupuesto por minuto y failover secuencial acotado.
 - El estado del circuit breaker IA se persiste después de cada observación y
   transición mediante checkpoints encadenados; el arranque y los errores de
   almacenamiento bloquean llamadas al proveedor hasta una recuperación válida.

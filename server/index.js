@@ -10,6 +10,7 @@ const { ExecutionService } = require("./execution/service.js");
 const { SreService } = require("./sre/service.js");
 const { ReadinessService } = require("./sre/readiness.js");
 const { AiProviderHealth } = require("./ai/provider-health.js");
+const { AiProviderPool } = require("./ai/provider-pool.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -33,22 +34,62 @@ if (
   sreSampleMs > sreBucketMs
 )
   throw new Error("invalid-sre-retention-or-sampling-policy");
-const aiProviderHealth = new AiProviderHealth({
+const aiHealthPolicy = {
+    windowSize: Number(process.env.LLM_HEALTH_WINDOW || 20),
+    minSamples: Number(process.env.LLM_HEALTH_MIN_SAMPLES || 5),
+    failureRate: Number(process.env.LLM_HEALTH_FAILURE_RATE || 0.5),
+    consecutiveFailures: Number(
+      process.env.LLM_HEALTH_CONSECUTIVE_FAILURES || 3,
+    ),
+    latencyP95Ms: Number(process.env.LLM_HEALTH_P95_MS || 5000),
+    cooldownMs: Number(process.env.LLM_HEALTH_COOLDOWN_MS || 30000),
+  },
+  primaryHealth = new AiProviderHealth({
     configured: Boolean(process.env.LLM_BASE_URL),
     record: (stream, event) => data.record(stream, event),
     requireRecovery: true,
+    providerId: "primary",
+    policy: aiHealthPolicy,
+  }),
+  secondaryHealth = new AiProviderHealth({
+    configured: Boolean(process.env.LLM_SECONDARY_BASE_URL),
+    record: (stream, event) => data.record(stream, event),
+    requireRecovery: true,
+    providerId: "secondary",
+    policy: aiHealthPolicy,
+  }),
+  aiProviderPool = new AiProviderPool({
+    providers: [
+      {
+        id: "primary",
+        baseUrl: process.env.LLM_BASE_URL,
+        apiKey: process.env.LLM_API_KEY,
+        model: process.env.LLM_MODEL || "local-model",
+        health: primaryHealth,
+        priority: Number(process.env.LLM_PRIORITY || 0),
+        costPer1kTokens: Number(process.env.LLM_COST_PER_1K || 0),
+        maxConcurrent: Number(process.env.LLM_MAX_CONCURRENT || 2),
+      },
+      {
+        id: "secondary",
+        baseUrl: process.env.LLM_SECONDARY_BASE_URL,
+        apiKey: process.env.LLM_SECONDARY_API_KEY,
+        model: process.env.LLM_SECONDARY_MODEL || "local-model",
+        health: secondaryHealth,
+        priority: Number(process.env.LLM_SECONDARY_PRIORITY || 1),
+        costPer1kTokens: Number(process.env.LLM_SECONDARY_COST_PER_1K || 0),
+        maxConcurrent: Number(process.env.LLM_SECONDARY_MAX_CONCURRENT || 2),
+      },
+    ],
     policy: {
-      windowSize: Number(process.env.LLM_HEALTH_WINDOW || 20),
-      minSamples: Number(process.env.LLM_HEALTH_MIN_SAMPLES || 5),
-      failureRate: Number(process.env.LLM_HEALTH_FAILURE_RATE || 0.5),
-      consecutiveFailures: Number(
-        process.env.LLM_HEALTH_CONSECUTIVE_FAILURES || 3,
-      ),
-      latencyP95Ms: Number(process.env.LLM_HEALTH_P95_MS || 5000),
-      cooldownMs: Number(process.env.LLM_HEALTH_COOLDOWN_MS || 30000),
+      maxAttempts: Number(process.env.LLM_POOL_MAX_ATTEMPTS || 2),
+      maxRequestsPerMinute: Number(process.env.LLM_POOL_RPM || 60),
+      latencyWeight: Number(process.env.LLM_POOL_LATENCY_WEIGHT || 1),
+      costWeight: Number(process.env.LLM_POOL_COST_WEIGHT || 1),
+      priorityWeight: Number(process.env.LLM_POOL_PRIORITY_WEIGHT || 0.1),
     },
   }),
-  gateway = createGateway({ aiProviderHealth }),
+  gateway = createGateway({ aiProviderPool }),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
     .map((x) => x.trim())
@@ -158,7 +199,7 @@ const regime = new RegimeService({
     experiments,
     aiEvaluation,
     calibrationGovernance,
-    aiProviderHealth,
+    aiProviderHealth: aiProviderPool,
     record: (stream, event) => data.record(stream, event),
     requireRecovery: true,
     policy: {
@@ -259,14 +300,21 @@ gateway.listen().then(async (address) => {
     pipeline.risk.halt("recovery-failed");
   }
   try {
-    const providerCheckpoints = await data.store.tail(
-        "sre.ai-provider-health",
-        10000,
-      ),
-      providerRecovery = aiProviderHealth.recover(providerCheckpoints);
-    if (providerRecovery.checkpoints)
+    const [primaryCheckpoints, secondaryCheckpoints] = await Promise.all([
+        data.store.tail("sre.ai-provider-health", 10000),
+        data.store.tail("sre.ai-provider-health.secondary", 10000),
+      ]),
+      providerRecovery = aiProviderPool.recover({
+        primary: primaryCheckpoints,
+        secondary: secondaryCheckpoints,
+      }),
+      recoveredCheckpoints = Object.values(providerRecovery.providers).reduce(
+        (total, item) => total + item.checkpoints,
+        0,
+      );
+    if (recoveredCheckpoints)
       console.log(
-        `AI provider health recovered: ${providerRecovery.checkpoints} checkpoints`,
+        `AI provider health recovered: ${recoveredCheckpoints} checkpoints`,
       );
   } catch (e) {
     console.error(`AI provider health recovery blocked: ${e.message}`);
