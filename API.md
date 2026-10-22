@@ -69,6 +69,20 @@ LLM_HEALTH_FAILURE_RATE=0.5
 LLM_HEALTH_CONSECUTIVE_FAILURES=3
 LLM_HEALTH_P95_MS=5000
 LLM_HEALTH_COOLDOWN_MS=30000
+LLM_PRIORITY=0
+LLM_COST_PER_1K=0
+LLM_MAX_CONCURRENT=2
+LLM_SECONDARY_BASE_URL=
+LLM_SECONDARY_API_KEY=
+LLM_SECONDARY_MODEL=local-model
+LLM_SECONDARY_PRIORITY=1
+LLM_SECONDARY_COST_PER_1K=0
+LLM_SECONDARY_MAX_CONCURRENT=2
+LLM_POOL_MAX_ATTEMPTS=2
+LLM_POOL_RPM=60
+LLM_POOL_LATENCY_WEIGHT=1
+LLM_POOL_COST_WEIGHT=1
+LLM_POOL_PRIORITY_WEIGHT=0.1
 ```
 
 Para producción controlada:
@@ -209,6 +223,17 @@ El circuito abre por tasa de error o fallos consecutivos, espera
 `LLM_HEALTH_COOLDOWN_MS` y permite una única prueba `HALF_OPEN`. Si la llamada
 falla o el circuito no la admite, la respuesta usa el motor matemático local e
 incluye `fallback.used=true`; nunca reintenta una orden ni habilita trading real.
+
+El pool admite un proveedor primario y uno secundario OpenAI-compatible. Cada
+uno conserva circuito, historial durable y límite de concurrencia independiente.
+El score menor se elige de forma determinista:
+
+`penalidadEstado + pesoLatencia × (p95/límiteP95) + pesoCosto × costoPor1k + pesoPrioridad × prioridad`
+
+Sólo se realiza failover después de un fallo terminado; no hay llamadas
+especulativas paralelas. `LLM_POOL_MAX_ATTEMPTS` limita proveedores por request
+y `LLM_POOL_RPM` reserva un presupuesto rodante por proveedor. Si todos están
+abiertos, saturados, sin presupuesto o fallan, se usa el motor matemático local.
 
 ## 3. APIs externas necesarias para completar todos los agentes
 
@@ -672,12 +697,14 @@ habilita `aiSignals` cuando el proveedor está configurado, fue observado,
 permanece `CLOSED` y su p95 está dentro de política. Esta degradación no bloquea
 la ejecución paper independiente de IA.
 
-El campo `recovery` informa `recovered`, cantidad de checkpoints, revisión,
-último ID y si la retención truncó el comienzo de la cadena. Durante el arranque
-las llamadas externas quedan bloqueadas con `provider-health-not-recovered` y
-usan fallback local hasta validar `sre.ai-provider-health`. También se bloquean
-si no puede persistirse una observación; URL, credenciales y mensajes internos
-del transporte nunca se escriben en el checkpoint.
+La respuesta incluye un arreglo `providers` sin URLs ni claves, con salud,
+latencia, error, bulkhead, presupuesto y contadores por proveedor. El campo
+`recovery` agregado sólo queda listo cuando se validaron todos los proveedores
+configurados. Durante el arranque las llamadas externas usan fallback local.
+Los historiales son `sre.ai-provider-health` para el primario y
+`sre.ai-provider-health.secondary` para el secundario. Una falla de persistencia
+retira sólo ese proveedor, pero readiness degrada `aiSignals` si la recuperación
+agregada no está completa.
 
 ## 5. Ejemplos internos
 

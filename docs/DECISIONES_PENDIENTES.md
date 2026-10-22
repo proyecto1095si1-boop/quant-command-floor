@@ -194,8 +194,8 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Estado:** defaults y persistencia local implementados para paper;
   calibración y backend externo pendientes.
 - **Decisión necesaria:** aprobar ventana, muestra mínima, tasa de fallos,
-  fallos consecutivos, p95, cooldown, estrategia multi-proveedor y retención
-  WORM/firma externa, estrategia multi-proveedor y retención del historial.
+  fallos consecutivos, p95, cooldown, pesos de selección, costos declarados,
+  presupuesto, bulkheads, retención WORM/firma externa y proveedores admitidos.
 - **Acción bloqueada:** considerar estos defaults un SLA contractual, habilitar
   señales IA para capital real o ocultar el fallback matemático al usuario.
 

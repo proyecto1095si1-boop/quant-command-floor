@@ -29,8 +29,8 @@ violación de PAPER_ONLY bloquea todas las capacidades.
 - ausencia de burn slow;
 - cola y tasa de rechazo de ejecución dentro de política;
 - recuperación sana de modelos, experimentos, evaluaciones y calibración IA;
-- proveedor LLM configurado, observado, con circuito cerrado y p95 dentro de
-  política;
+- pool LLM recuperado y al menos un proveedor configurado, observado, con
+  circuito cerrado y p95 dentro de política;
 - champion IA cuando la política lo exige.
 
 La tasa de rechazo sólo se activa con muestra suficiente:
