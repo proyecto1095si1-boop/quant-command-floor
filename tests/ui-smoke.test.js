@@ -99,6 +99,7 @@ for (const file of [
     true,
     "the AI cost console requests invoice reconciliation",
   );
+  assert.ok(document.querySelector("#aiCostSigned"));
 
   await new Promise((resolve) => setImmediate(resolve));
 
