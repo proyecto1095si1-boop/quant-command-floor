@@ -243,6 +243,39 @@ function createGateway(options = {}) {
         },
         headers,
       );
+    if (req.method === "GET" && req.url === "/v1/intelligence/status")
+      return json(
+        res,
+        options.intelligence ? 200 : 503,
+        options.intelligence?.status() || {
+          error: "intelligence-service-disabled",
+        },
+        headers,
+      );
+    if (req.method === "POST" && req.url === "/v1/intelligence/query") {
+      if (!options.intelligence)
+        return json(
+          res,
+          503,
+          { error: "intelligence-service-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await options.intelligence.query(await body(req)),
+          headers,
+        );
+      } catch (error) {
+        return json(
+          res,
+          error.status || 502,
+          { error: error.message },
+          headers,
+        );
+      }
+    }
     if (
       req.method === "POST" &&
       req.url === "/v1/sre/ai-cost-reconciliation/invoices"
