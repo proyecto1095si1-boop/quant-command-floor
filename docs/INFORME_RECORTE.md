@@ -358,3 +358,44 @@ con `MODULE_NOT_FOUND`. El patrón explícito mantiene el descubrimiento
 automático para cualquier prueba nueva que respete la convención `.test.js`.
 CI ejecuta `npm test` con ese mismo runner antes de `npm run coverage`, que lo
 reutiliza para medir el umbral de líneas.
+
+## Cierre R0–R5
+
+Estado al 23 de octubre de 2026: **completado**. El tag local y remoto
+`pre-recorte` apunta a `28bf10be30b3f9cf6176ab3e12ced3c8bbbfb0b3`.
+
+### Resultado consolidado
+
+- Retirado: conectores Yahoo Finance, Polygon y FMP; categorías no cripto de
+  Finnhub; diez módulos offline de gobernanza y sus pruebas/rutas asociadas.
+- Congelado: gobierno cuantitativo que participa en el camino real, research,
+  cartera, stress, TCA, SRE y operaciones de IA.
+- Preservado sin cambios funcionales: riesgo, ejecución paper, contabilidad,
+  auditoría y la restricción `PAPER_ONLY`.
+- Archivado: diez documentos temáticos y once ADRs, todos recuperables desde
+  `pre-recorte`.
+- Automatizado: 57 archivos `.test.js` descubiertos por el runner nativo, frente
+  a 48 archivos ejecutados por las listas manuales posteriores a R4.
+
+| Directorio | R0 archivos | R0 líneas | Cierre archivos | Cierre líneas | Diferencia líneas |
+| ---------- | ----------: | --------: | --------------: | ------------: | ----------------: |
+| `server/`  |          78 |    18.905 |              68 |        13.780 |            −5.125 |
+| `tests/`   |          74 |     8.811 |              59 |         6.204 |            −2.607 |
+| `docs/`    |          81 |     4.297 |              84 |         4.741 |              +444 |
+
+La documentación creció porque el material retirado fue archivado, no borrado.
+La búsqueda de `yahoo`, `polygon`, `forex`, `merger` y `stock-latest` en
+`server/`, `dist/` y `tests/` devuelve cero coincidencias.
+
+### Próximos pasos permitidos
+
+1. Resolver la licencia pendiente antes de distribuir el repositorio.
+2. Mantener actualizados tests, dependencias de desarrollo y parches de
+   seguridad sin ampliar el alcance funcional.
+3. Calibrar y documentar límites paper ya existentes únicamente cuando sea
+   necesario para corregir seguridad, integridad monetaria o defectos.
+4. Tratar cualquier reintroducción desde `pre-recorte` como una nueva decisión
+   explícita de alcance, con rama, PR y aprobación humana.
+
+Noticias, copy trading y micro-trading pertenecen a una fase posterior y no se
+inician como parte de este cierre.
