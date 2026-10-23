@@ -11,6 +11,15 @@ const assert = require("node:assert/strict"),
         calls.push(request);
         return { paperOnly: true, readOnly: true, data: [] };
       },
+      newsSignal: async (request) => {
+        calls.push(request);
+        return {
+          asset: request.asset,
+          paperOnly: true,
+          signal: 0.25,
+          confidence: 0.4,
+        };
+      },
     },
     intelligenceDag = {
       status: () => ({ paperOnly: true, assets: {} }),
@@ -39,6 +48,14 @@ const assert = require("node:assert/strict"),
     assert.equal(query.status, 200);
     assert.equal((await query.json()).readOnly, true);
     assert.equal(calls[0].params.seriesId, "CPIAUCSL");
+    const news = await fetch(`${base}/v1/intelligence/news/signal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ asset: "BTC" }),
+    });
+    assert.equal(news.status, 200);
+    assert.equal((await news.json()).asset, "BTC");
+    assert.equal(calls[1].asset, "BTC");
     const dagStatus = await fetch(`${base}/v1/intelligence/dag/status`);
     assert.equal(dagStatus.status, 200);
     assert.equal((await dagStatus.json()).paperOnly, true);

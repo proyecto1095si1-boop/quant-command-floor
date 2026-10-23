@@ -28,7 +28,7 @@ const assert = require("node:assert/strict"),
           data: [
             {
               source: provider,
-              headline: "Bullish adoption surge",
+              headline: "Bitcoin bullish adoption surge",
               publishedAt: now - 3600000,
               receivedAt: now - 1000,
             },
