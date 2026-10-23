@@ -65,6 +65,60 @@ function pointInTime(rows, asOf, maxAgeMs) {
   });
 }
 
+function validateSnapshot(snapshot, expectedAsset, now) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot))
+    throw new Error("invalid-intelligence-snapshot");
+  const { hash, ...body } = snapshot;
+  const nodeIds = Array.isArray(body.nodes)
+      ? body.nodes.map((node) => String(node?.id || "")).sort()
+      : [],
+    nodesValid =
+      nodeIds.join(",") === "macro,market,news" &&
+      body.nodes.every(
+        (node) =>
+          Number.isFinite(node.signal) &&
+          node.signal >= -1 &&
+          node.signal <= 1 &&
+          Number.isFinite(node.confidence) &&
+          node.confidence >= 0 &&
+          node.confidence <= 1 &&
+          Number.isInteger(node.observations) &&
+          node.observations >= 0,
+      ),
+    consensusValid =
+      body.consensus &&
+      ["ready", "blocked"].includes(body.consensus.status) &&
+      Number.isFinite(body.consensus.signal) &&
+      body.consensus.signal >= -1 &&
+      body.consensus.signal <= 1 &&
+      Number.isFinite(body.consensus.confidence) &&
+      body.consensus.confidence >= 0 &&
+      body.consensus.confidence <= 1,
+    provenanceValid =
+      Array.isArray(body.provenance) &&
+      body.provenance.every(
+        (row) =>
+          ["finnhub", "fred", "fmp", "polygon"].includes(row?.provider) &&
+          Number.isInteger(row.records) &&
+          row.records >= 0 &&
+          /^[a-f0-9]{64}$/.test(String(row.dataHash || "")),
+      );
+  if (
+    body.version !== 1 ||
+    body.paperOnly !== true ||
+    body.asset !== expectedAsset ||
+    !Number.isFinite(body.asOf) ||
+    body.asOf < 0 ||
+    body.asOf > now ||
+    !nodesValid ||
+    !consensusValid ||
+    !provenanceValid ||
+    hash !== fingerprint(body)
+  )
+    throw new Error("invalid-intelligence-snapshot");
+  return structuredClone(snapshot);
+}
+
 function lexicalScore(text) {
   const words =
     String(text || "")
@@ -214,6 +268,7 @@ class IntelligenceDag {
     this.maxSnapshotAgeMs = maxSnapshotAgeMs;
     this.record = record;
     this.snapshots = new Map();
+    this.recovery = { recovered: false, snapshots: 0, assets: 0 };
   }
 
   async refresh(asset, { asOf, from, to } = {}) {
@@ -298,9 +353,41 @@ class IntelligenceDag {
     return structuredClone(snapshot);
   }
 
+  recover(histories = {}) {
+    if (!histories || typeof histories !== "object" || Array.isArray(histories))
+      throw new Error("invalid-intelligence-recovery");
+    const restored = new Map(),
+      now = this.clock();
+    let count = 0;
+    for (const [rawAsset, history] of Object.entries(histories)) {
+      const asset = String(rawAsset).toUpperCase();
+      if (!/^[A-Z0-9]{2,10}$/.test(asset) || !Array.isArray(history))
+        throw new Error("invalid-intelligence-recovery");
+      let previous = -Infinity,
+        latest = null;
+      for (const row of history) {
+        const snapshot = validateSnapshot(row, asset, now);
+        if (snapshot.asOf <= previous)
+          throw new Error("invalid-intelligence-snapshot-sequence");
+        previous = snapshot.asOf;
+        latest = snapshot;
+        count++;
+      }
+      if (latest) restored.set(asset, latest);
+    }
+    this.snapshots = restored;
+    this.recovery = {
+      recovered: true,
+      snapshots: count,
+      assets: restored.size,
+    };
+    return { ...this.recovery };
+  }
+
   status() {
     return {
       paperOnly: true,
+      recovery: { ...this.recovery },
       assets: Object.fromEntries(
         [...this.snapshots].map(([asset, snapshot]) => [
           asset,
@@ -327,4 +414,5 @@ module.exports = {
   marketNode,
   newsNode,
   pointInTime,
+  validateSnapshot,
 };
