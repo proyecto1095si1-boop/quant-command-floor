@@ -163,10 +163,17 @@ class MarketDataService {
       const inventory = await this.store.inventory();
       for (const { stream } of inventory.streams.filter((row) =>
         MARKET_STREAM.test(row.stream),
-      ))
-        this.provenance.verify(stream, await this.store.replay(stream), {
-          restore: true,
-        });
+      )) {
+        if (typeof this.store.events === "function")
+          await this.provenance.restoreStream(
+            stream,
+            this.store.events(stream),
+          );
+        else
+          this.provenance.verify(stream, await this.store.replay(stream), {
+            restore: true,
+          });
+      }
     }
     for (const product of this.products) {
       const trades = await this.store.tail(`trades.${product}`, 1000);

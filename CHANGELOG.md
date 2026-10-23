@@ -33,6 +33,11 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- La recuperación JSONL/gzip lee por bloques y valida checksums sin convertir
+  archivos completos a strings. `tail` retiene solo su ventana y `verify` cuenta
+  sin acumular eventos. La restauración de procedencia recorre la historia
+  completa, incluso después del límite de 10.000 eventos del endpoint replay.
+
 - La ejecución de pruebas usa el runner nativo de Node y descubre
   automáticamente todos los archivos `tests/*.test.js`; CI ejecuta el mismo
   comando antes de medir cobertura.
