@@ -34,6 +34,10 @@ const assert = require("node:assert/strict"),
     },
     backfillCalls = [];
   gateway.setDataService({
+    snapshot: (symbol) => ({
+      symbol,
+      ticker: { price: 100, receivedAt: "2026-10-23T00:00:00Z" },
+    }),
     planBackfill: async (input) => {
       backfillCalls.push({ operation: "plan", input });
       return backfillPlan;
@@ -54,6 +58,25 @@ const assert = require("node:assert/strict"),
   assert.equal(topology.paperOnly, true);
   assert.deepEqual(topology.assets, ["BTC", "ETH", "SOL", "BNB"]);
   assert.equal(topology.areas.length, 9);
+  gateway.publish({
+    type: "desk.analysis",
+    report: { asset: "BTC", signal: 0.7 },
+  });
+  gateway.publish({
+    type: "desk.analysis",
+    report: { asset: "BTC", signal: 0.8 },
+  });
+  const floorSnapshot = await (await fetch(base + "/v1/floor/snapshot")).json();
+  assert.equal(floorSnapshot.paperOnly, true);
+  assert.equal(floorSnapshot.markets.length, 4);
+  assert.equal(floorSnapshot.events.length, 1);
+  assert.equal(floorSnapshot.events[0].report.signal, 0.8);
+  assert.equal(floorSnapshot.pipeline, null);
+  assert.equal(
+    backfillCalls.length,
+    0,
+    "reading floor state performs no external operations",
+  );
   const denied = await fetch(base + "/v1/health", {
     headers: { origin: "https://evil.example" },
   });

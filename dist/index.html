@@ -39,9 +39,11 @@
         </div>
       </div>
       <div class="market">
-        <span class="dot"></span><b>MARKET OPEN</b><span>BTC <i>+2.41%</i></span
-        ><span>SPY <i>+0.68%</i></span
-        ><span>CCL <em>1,476.20</em></span>
+        <span class="dot"></span><b id="floorConnection">CONECTANDO</b>
+        <span>BTC <i id="floorPriceBTC">—</i></span>
+        <span>ETH <i id="floorPriceETH">—</i></span>
+        <span>SOL <i id="floorPriceSOL">—</i></span>
+        <span>BNB <i id="floorPriceBNB">—</i></span>
       </div>
       <div class="clock">
         <span id="time">00:00:00</span
@@ -178,7 +180,7 @@
         <h2 id="detailName">Pipeline de intake</h2>
         <p id="detailDesc"></p>
         <div class="metric">
-          <span>ESTADO</span><b><i class="status active"></i> OPERATIVO</b>
+          <span>ESTADO</span><b id="nodeLiveStatus">SIN DATOS</b>
         </div>
         <div class="metric"><span>AGENTES</span><b id="agentCount">08</b></div>
         <h3>EQUIPO</h3>
@@ -188,6 +190,10 @@
             <span>CEREBRO DEL AGENTE</span><b id="modelType">HYBRID</b>
           </div>
           <h3 id="modelName">Signal Hub</h3>
+          <p id="nodeLiveActivity" role="status">
+            Esperando datos del servidor.
+          </p>
+          <small id="nodeLiveTime">Sin actualización</small>
           <p id="modelMission" class="model-mission">
             Consolida señales y produce una decisión probabilística.
           </p>

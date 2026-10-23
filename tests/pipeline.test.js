@@ -59,7 +59,9 @@ const intelligenceSnapshot = {
       tickers: new Map([["BTC-USD", { price: 160 }]]),
     },
     ledger = new PaperLedger({ cash: 100000 }),
+    events = [],
     pipeline = new TradingPipeline({
+      publish: (event) => events.push(event),
       dataService: data,
       desks: desk,
       ledger,
@@ -67,6 +69,11 @@ const intelligenceSnapshot = {
     });
   const run = await pipeline.run("BTC", { runId: "run-1" });
   assert.equal(run.status, "completed");
+  assert.deepEqual(
+    events.find((event) => event.type === "desk.analysis")?.report,
+    run.desk,
+    "the map receives the actual pipeline desk analysis",
+  );
   assert.equal(run.execution.status, "filled");
   assert.equal(run.execution.fill.fillModel, "l2");
   assert.equal(deskContext.intelligence.hash, intelligenceSnapshot.hash);

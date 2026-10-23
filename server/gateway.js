@@ -145,7 +145,18 @@ function createGateway(options = {}) {
     regime = options.regime || null,
     governance = options.governance || null,
     readiness = options.readiness || null;
+  const floorEvents = new Map();
   const publish = (event) => {
+    if (
+      ["desk.analysis", "agent.result", "pipeline.stage"].includes(event.type)
+    ) {
+      event = { ...event, observedAt: Date.now() };
+      const key = `${event.type}:${event.report?.asset || event.result?.agent_id || event.asset || ""}:${event.stage?.name || ""}`;
+      floorEvents.delete(key);
+      floorEvents.set(key, event);
+      if (floorEvents.size > 100)
+        floorEvents.delete(floorEvents.keys().next().value);
+    }
     const frame = wsFrame(JSON.stringify(event));
     for (const socket of clients) {
       if (socket.destroyed) clients.delete(socket);
@@ -222,6 +233,27 @@ function createGateway(options = {}) {
       return json(res, 200, security.status(), headers);
     if (req.method === "GET" && req.url === "/v1/floor/topology")
       return json(res, 200, FLOOR_TOPOLOGY, headers);
+    if (req.method === "GET" && req.url === "/v1/floor/snapshot") {
+      const markets = FLOOR_TOPOLOGY.assets
+        .map((asset) => dataService?.snapshot?.(`${asset}-USD`))
+        .filter(Boolean);
+      return json(
+        res,
+        200,
+        {
+          paperOnly: true,
+          at: Date.now(),
+          markets,
+          intelligence: FLOOR_TOPOLOGY.assets
+            .map((asset) => options.intelligenceDag?.snapshot(asset))
+            .filter(Boolean),
+          events: [...floorEvents.values()],
+          pipeline: pipeline?.status() || null,
+          execution: execution?.status() || null,
+        },
+        headers,
+      );
+    }
     if (req.method === "GET" && req.url === "/v1/ai/provider-health")
       return json(
         res,

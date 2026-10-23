@@ -9,6 +9,12 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Sincronización inicial y periódica del mapa 2D con precios, inteligencia y
+  estado operativo; carteles con actividad observada, antigüedad y conexión.
+- El pipeline publica su análisis de mesas para actualizar los empleados durante
+  una ejecución. Los valores de confianza y fórmulas fijos se sustituyen por
+  resultados observados; la cabecera muestra precios cripto del mismo feed.
+
 - El mapa 2D consume una topología canónica del backend y refleja en cada nodo
   los eventos reales de agentes, mesas y etapas del pipeline paper.
 - Cada empleado incluye un inspector de sus últimos eventos reales con fuente,
