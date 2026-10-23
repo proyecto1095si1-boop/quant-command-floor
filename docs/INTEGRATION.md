@@ -2,6 +2,17 @@
 
 El navegador solo conoce el gateway. Las credenciales de LLM, exchanges, RPC y noticias deben existir como secretos del backend y jamás aparecer en `localStorage`, URLs o respuestas.
 
+## Datos visibles en hosting estático
+
+Si el backend configurado no responde, el panel de mercado consulta únicamente
+los endpoints públicos read-only allowlisted de Coinbase y Kraken para mostrar
+BTC-USD, spread y divergencia. No envía órdenes ni credenciales y no sustituye
+al backend gobernado para pipeline, cartera, riesgo o auditoría.
+
+El fallback se identifica por las fuentes `COINBASE + KRAKEN`. Cuando el backend
+HTTPS esté disponible, la UI vuelve a preferir `/v1/data/health` y
+`/v1/data/snapshot/BTC-USD`.
+
 ## Variables del backend
 
 ```env
