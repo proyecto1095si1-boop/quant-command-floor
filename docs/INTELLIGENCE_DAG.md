@@ -10,7 +10,7 @@ hasheado y `paperOnly` que alimenta al empleado `Intel Hub`.
 |---|---|---|---|
 | `news` | Finnhub + FMP | Noticias / Sentimiento | diccionario bipolar, promedio ponderado y decaimiento exponencial con semivida de 24 h |
 | `macro` | FRED `CPIAUCSL` | Macro | cambio relativo, volatilidad realizada y compresión `-tanh(z/3)` |
-| `market` | Polygon agregados | Técnico externo | log-return acumulado dividido por volatilidad realizada y `tanh(x/2)` |
+| `market` | Polygon + Yahoo, reconciliados por timestamp | Técnico externo | mediana de cierres, log-return acumulado dividido por volatilidad realizada y `tanh(x/2)` |
 | `consensus` | los tres nodos | Intel Hub | media por `peso × confianza`, cobertura y penalización `exp(-2 × dispersión)` |
 
 Pesos iniciales: macro 0,25; noticias 0,35; mercado 0,40. Son parámetros de

@@ -110,6 +110,7 @@ FMP_API_KEY=
 FMP_RPM=60
 POLYGON_API_KEY=
 POLYGON_RPM=60
+YAHOO_RPM=30
 INTELLIGENCE_GOVERNANCE_TRUSTED_REVIEWERS=
 ```
 
@@ -135,6 +136,7 @@ exponer claves. `POST /v1/intelligence/query` acepta únicamente estas parejas:
 - `fred/series`
 - `fmp/profile` y `fmp/news`
 - `polygon/aggregates`
+- `yahoo/chart`
 
 No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
 
@@ -149,7 +151,7 @@ No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
 El contrato completo está en
 [`docs/INTELLIGENCE_CONNECTORS.md`](docs/INTELLIGENCE_CONNECTORS.md).
 
-`POST /v1/intelligence/dag/refresh` consulta las cuatro fuentes permitidas para
+`POST /v1/intelligence/dag/refresh` consulta las cinco fuentes permitidas para
 un `asset`, aplica filtros point-in-time y guarda un snapshot hasheado. Acepta
 opcionalmente `asOf`, `from` y `to`. `GET /v1/intelligence/dag/status` devuelve
 estado, confianza y hash por activo, sin exponer el contenido ni secretos. El
