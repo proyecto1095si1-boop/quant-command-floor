@@ -82,6 +82,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Señal read-only de noticias para BTC, ETH, SOL y BNB con causalidad
+  point-in-time, deduplicación, relevancia por activo, sentimiento explicable,
+  decaimiento temporal, penalización por desacuerdo y evidencia hasheada.
 - Conectores read-only para Finnhub y FRED, con operaciones allowlisted,
   secretos solo backend, límites por minuto, timeout, retry, normalización, API
   interna y consola visual de estado.

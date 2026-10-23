@@ -135,6 +135,13 @@ No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
 El contrato completo está en
 [`docs/INTELLIGENCE_CONNECTORS.md`](docs/INTELLIGENCE_CONNECTORS.md).
 
+`POST /v1/intelligence/news/signal` obtiene exclusivamente noticias Finnhub de
+categoría `crypto` y calcula una señal para BTC, ETH, SOL o BNB. Aplica filtros
+point-in-time, deduplicación por URL/titular, relevancia por activo, sentimiento
+léxico, semivida de 24 horas y penalización por desacuerdo. Acepta `asset`,
+`asOf` y `limit` (1–100); no recibe URLs ni credenciales. El método y sus límites
+están en [`docs/CRYPTO_NEWS_SIGNAL.md`](docs/CRYPTO_NEWS_SIGNAL.md).
+
 `POST /v1/intelligence/dag/refresh` consulta las fuentes cripto permitidas para
 un `asset`, aplica filtros point-in-time y guarda un snapshot hasheado. Acepta
 opcionalmente `asOf`. `GET /v1/intelligence/dag/status` devuelve
