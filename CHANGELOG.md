@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- La UI publicada usa Coinbase y Kraken como fallback público read-only cuando
+  el backend configurado no está disponible, en vez de mostrar datos vacíos.
 - Yahoo Finance aporta velas read-only al nodo técnico mediante un conector Node
   sin clave ni dependencia runtime, reconciliado por timestamp con Polygon.
 - Intel Hub conecta forecasts, resultados del oracle, graduación y activación

@@ -125,6 +125,29 @@ for (const file of [
 
   await new Promise((resolve) => setImmediate(resolve));
 
+  window.fetch = async (url) => {
+    if (url.includes("api.exchange.coinbase.com"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ price: "100", bid: "99.9", ask: "100.1" }),
+      };
+    if (url.includes("api.kraken.com"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ result: { XXBTZUSD: { c: ["101"] } } }),
+      };
+    throw new Error("hosted-backend-unavailable");
+  };
+  await window.refreshMarketData();
+  assert.equal(document.querySelector("#dataStatus").textContent, "HEALTHY");
+  assert.equal(
+    document.querySelector("#dataSource").textContent,
+    "COINBASE + KRAKEN",
+  );
+  assert.match(document.querySelector("#dataPrice").textContent, /100/);
+
   dom.window.close();
   console.log("ui smoke tests: ok");
 })().catch((error) => {
