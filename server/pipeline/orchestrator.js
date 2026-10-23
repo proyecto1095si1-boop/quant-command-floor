@@ -12,6 +12,7 @@ class TradingPipeline {
     risk = new RiskGate(),
     ledger = new PaperLedger(),
     regime = null,
+    intelligence = null,
     publish = () => {},
   } = {}) {
     this.dataService = dataService;
@@ -19,6 +20,7 @@ class TradingPipeline {
     this.risk = risk;
     this.ledger = ledger;
     this.regime = regime;
+    this.intelligence = intelligence;
     this.publish = publish;
     this.audit = new Sha256AuditChain();
     this.runs = new Map();
@@ -71,13 +73,22 @@ class TradingPipeline {
       const context =
         options.context ||
         (await this.dataService.analysisContext(spec.product));
+      const intelligence = this.intelligence?.snapshot(asset) || null;
       this.stage(run, "intake", "ok", {
         candles: context.candles.length,
         trades: context.trades.length,
         quality: context.quality.status,
+        intelligence: intelligence
+          ? {
+              status: intelligence.consensus.status,
+              confidence: intelligence.consensus.confidence,
+              hash: intelligence.hash,
+            }
+          : null,
       });
       const desk = this.desks.analyze(asset, {
         ...context,
+        intelligence,
         regime: context.regime || this.regime?.latest?.get(asset) || null,
       });
       run.desk = desk;

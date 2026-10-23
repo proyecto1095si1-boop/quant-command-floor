@@ -1834,10 +1834,12 @@ function closeIntelligence() {
 }
 async function refreshIntelligence() {
   try {
-    const response = await fetch(
-        platformConfig.backendBaseUrl + "/v1/intelligence/status",
-      ),
-      data = await response.json();
+    const [response, dagResponse] = await Promise.all([
+        fetch(platformConfig.backendBaseUrl + "/v1/intelligence/status"),
+        fetch(platformConfig.backendBaseUrl + "/v1/intelligence/dag/status"),
+      ]),
+      data = await response.json(),
+      dag = await dagResponse.json();
     if (!response.ok)
       throw new Error(data.error || "intelligence-service-unavailable");
     const providers = Object.values(data.providers || {}),
@@ -1848,8 +1850,17 @@ async function refreshIntelligence() {
           `<div class="sre-service ${provider.configured && !provider.healthy ? "bad" : ""}"><b>${esc(provider.id.toUpperCase())}</b><span>${provider.configured ? (provider.healthy ? "READY" : "DEGRADED") : "SIN CLAVE"} · READ ONLY · ${esc(provider.requestsLastMinute)}/${esc(provider.limitPerMinute)} RPM</span></div>`,
       )
       .join("");
+    const assets = Object.entries(dag.assets || {});
+    document.querySelector("#intelligenceDag").innerHTML = assets.length
+      ? assets
+          .map(
+            ([asset, state]) =>
+              `<div class="sre-service ${state.status !== "ready" ? "bad" : ""}"><b>INTEL HUB · ${esc(asset)}</b><span>${esc(state.status.toUpperCase())} · confianza ${esc((Number(state.confidence) * 100).toFixed(1))}% · PIT ${esc(new Date(state.asOf).toISOString())}</span></div>`,
+          )
+          .join("")
+      : '<div class="sre-service"><b>INTEL HUB</b><span>SIN SNAPSHOTS · requiere refresh autenticado del DAG</span></div>';
     document.querySelector("#intelligenceStatus").textContent =
-      `${configured}/${providers.length} proveedores configurados · PAPER ONLY · sin órdenes ni secretos en UI`;
+      `${configured}/${providers.length} proveedores configurados · ${assets.length} activos con consenso PIT · PAPER ONLY`;
   } catch (error) {
     document.querySelector("#intelligenceStatus").textContent =
       `DATA API ERROR · ${error.message}`;

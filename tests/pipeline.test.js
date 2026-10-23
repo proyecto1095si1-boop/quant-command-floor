@@ -30,18 +30,27 @@ const context = {
   ticker: { price: 160 },
   quality: { status: "healthy" },
 };
-const desk = {
-  assets: { BTC: { product: "BTC-USD", maxWeight: 0.35 } },
-  analyze: () => ({
-    status: "ok",
-    action: "LONG",
-    signal: 0.8,
-    confidence: 0.8,
-    blockers: [],
-    agents: [{ agent: "Technical", metrics: { atr: 2 } }],
-    policy: { maxPortfolioWeight: 0.35, riskClass: "major" },
-  }),
-};
+let deskContext;
+const intelligenceSnapshot = {
+    hash: "a".repeat(64),
+    asOf: Date.now(),
+    consensus: { status: "ready", signal: 0.3, confidence: 0.7 },
+  },
+  desk = {
+    assets: { BTC: { product: "BTC-USD", maxWeight: 0.35 } },
+    analyze: (_asset, input) => {
+      deskContext = input;
+      return {
+        status: "ok",
+        action: "LONG",
+        signal: 0.8,
+        confidence: 0.8,
+        blockers: [],
+        agents: [{ agent: "Technical", metrics: { atr: 2 } }],
+        policy: { maxPortfolioWeight: 0.35, riskClass: "major" },
+      };
+    },
+  };
 (async () => {
   const recorded = [],
     data = {
@@ -50,11 +59,18 @@ const desk = {
       tickers: new Map([["BTC-USD", { price: 160 }]]),
     },
     ledger = new PaperLedger({ cash: 100000 }),
-    pipeline = new TradingPipeline({ dataService: data, desks: desk, ledger });
+    pipeline = new TradingPipeline({
+      dataService: data,
+      desks: desk,
+      ledger,
+      intelligence: { snapshot: () => intelligenceSnapshot },
+    });
   const run = await pipeline.run("BTC", { runId: "run-1" });
   assert.equal(run.status, "completed");
   assert.equal(run.execution.status, "filled");
   assert.equal(run.execution.fill.fillModel, "l2");
+  assert.equal(deskContext.intelligence.hash, intelligenceSnapshot.hash);
+  assert.equal(run.stages[1].payload.intelligence.status, "ready");
   assert.equal(
     run.stages.map((x) => x.name).join(","),
     "intake,intake,signal,proposal,risk,execution,reconcile",

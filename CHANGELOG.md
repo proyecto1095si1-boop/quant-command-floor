@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Las APIs externas alimentan un DAG point-in-time hasheado con nodos Macro,
+  Noticias/Sentimiento y Técnico externo; su consenso penaliza desacuerdo y se
+  incorpora a las mesas como `Intel Hub` solo con dos fuentes activas.
 - Cada llamada IA reserva y concilia tokens/costo con aritmética decimal fija,
   presupuestos diarios por proveedor y agente, ledger durable y una consola
   visual `AI COST` integrada al mapa.

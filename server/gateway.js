@@ -276,6 +276,35 @@ function createGateway(options = {}) {
         );
       }
     }
+    if (req.method === "GET" && req.url === "/v1/intelligence/dag/status")
+      return json(
+        res,
+        options.intelligenceDag ? 200 : 503,
+        options.intelligenceDag?.status() || {
+          error: "intelligence-dag-disabled",
+        },
+        headers,
+      );
+    if (req.method === "POST" && req.url === "/v1/intelligence/dag/refresh") {
+      if (!options.intelligenceDag)
+        return json(res, 503, { error: "intelligence-dag-disabled" }, headers);
+      try {
+        const request = await body(req);
+        return json(
+          res,
+          200,
+          await options.intelligenceDag.refresh(request.asset, request),
+          headers,
+        );
+      } catch (error) {
+        return json(
+          res,
+          error.status || 502,
+          { error: error.message },
+          headers,
+        );
+      }
+    }
     if (
       req.method === "POST" &&
       req.url === "/v1/sre/ai-cost-reconciliation/invoices"

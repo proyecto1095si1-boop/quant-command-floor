@@ -14,6 +14,7 @@ const DEFAULT_WEIGHTS = {
   Liquidity: 1.1,
   "Market Structure": 1.2,
   "Order Block": 0.85,
+  "Intel Hub": 0.9,
 };
 const ASSETS = {
   BTC: {
@@ -88,17 +89,47 @@ class DeskRegistry {
         A.marketStructure(candles),
         A.orderBlock(candles),
       ],
-      dispersion = M.std(results.map((x) => x.signal)),
+      intel = context.intelligence,
+      intelResult =
+        intel?.consensus?.status === "ready"
+          ? M.result(
+              "Intel Hub",
+              intel.consensus.signal,
+              intel.consensus.confidence,
+              intel.nodes.map(
+                (node) =>
+                  `${node.employee}: signal=${node.signal.toFixed(3)}, confidence=${node.confidence.toFixed(3)}`,
+              ),
+              {
+                snapshotHash: intel.hash,
+                asOf: intel.asOf,
+                dispersion: intel.consensus.dispersion,
+                coverage: intel.consensus.coverage,
+              },
+            )
+          : M.result(
+              "Intel Hub",
+              0,
+              0,
+              [
+                intel
+                  ? `external-intelligence:${intel.consensus.status}`
+                  : "external-intelligence:missing",
+              ],
+              { snapshotHash: intel?.hash || null, asOf: intel?.asOf || null },
+            ),
+      activeResults = [...results, intelResult],
+      dispersion = M.std(activeResults.map((x) => x.signal)),
       agreement = Math.max(0, 1 - dispersion),
       estimator = this.dependenceFor(asset),
       dependence = estimator.current(DEFAULT_CORRELATIONS),
-      consensus = this.consensus.combine(results, {
+      consensus = this.consensus.combine(activeResults, {
         weights: this.weights,
         regime: context.regime,
         blockers,
         correlations: dependence.correlations,
       });
-    dependence.afterObservation = estimator.observe(results);
+    dependence.afterObservation = estimator.observe(activeResults);
     return {
       asset,
       product: spec.product,
@@ -111,13 +142,14 @@ class DeskRegistry {
       consensus,
       dependence,
       blockers,
-      agents: results,
+      agents: activeResults,
       inputSummary: {
         candles: candles.length,
         trades: trades.length,
         bids: context.book?.bids?.length || 0,
         asks: context.book?.asks?.length || 0,
         quality: quality.status,
+        intelligence: intel?.consensus?.status || "missing",
       },
       policy: {
         paperOnly: true,

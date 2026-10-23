@@ -148,6 +148,13 @@ No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
 El contrato completo está en
 [`docs/INTELLIGENCE_CONNECTORS.md`](docs/INTELLIGENCE_CONNECTORS.md).
 
+`POST /v1/intelligence/dag/refresh` consulta las cuatro fuentes permitidas para
+un `asset`, aplica filtros point-in-time y guarda un snapshot hasheado. Acepta
+opcionalmente `asOf`, `from` y `to`. `GET /v1/intelligence/dag/status` devuelve
+estado, confianza y hash por activo, sin exponer el contenido ni secretos. El
+modelo matemático está en
+[`docs/INTELLIGENCE_DAG.md`](docs/INTELLIGENCE_DAG.md).
+
 `POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
 parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales
 con `timestamp`, `outcome`, `regime` y `signals`; acepta políticas `folds`,
