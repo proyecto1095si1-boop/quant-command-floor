@@ -2,26 +2,8 @@
 
 const { environmentFetch } = require("../data/http-client.js");
 
-const SYMBOL = /^[A-Z0-9][A-Z0-9._:-]{0,19}$/,
-  YAHOO_SYMBOL = /^[A-Z0-9^][A-Z0-9.^=_:-]{0,29}$/,
-  SERIES = /^[A-Z0-9][A-Z0-9._-]{0,79}$/,
-  DAY = /^\d{4}-\d{2}-\d{2}$/,
-  TIMESPANS = new Set(["minute", "hour", "day", "week", "month"]),
-  YAHOO_INTERVALS = new Set([
-    "1m",
-    "2m",
-    "5m",
-    "15m",
-    "30m",
-    "60m",
-    "90m",
-    "1h",
-    "1d",
-    "5d",
-    "1wk",
-    "1mo",
-    "3mo",
-  ]);
+const SERIES = /^[A-Z0-9][A-Z0-9._-]{0,79}$/,
+  DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function bounded(value, fallback, minimum, maximum) {
   const number = Number(value ?? fallback);
@@ -153,84 +135,6 @@ class ReadOnlyConnector {
   }
 }
 
-class YahooFinanceConnector extends ReadOnlyConnector {
-  constructor(options = {}) {
-    super({
-      id: "yahoo",
-      baseUrl: "https://query1.finance.yahoo.com",
-      keyMode: null,
-      requiresKey: false,
-      ...options,
-    });
-  }
-
-  async chart({ symbol, from, to, interval = "1d", limit = 500 } = {}) {
-    const ticker = identifier(symbol, YAHOO_SYMBOL, "yahoo-symbol"),
-      start = Date.parse(`${from}T00:00:00Z`),
-      end = Date.parse(`${to}T00:00:00Z`);
-    if (
-      !DAY.test(String(from || "")) ||
-      !DAY.test(String(to || "")) ||
-      !Number.isFinite(start) ||
-      !Number.isFinite(end) ||
-      end < start
-    )
-      throw Object.assign(new Error("invalid-yahoo-chart-range"), {
-        status: 422,
-      });
-    if (!YAHOO_INTERVALS.has(interval))
-      throw Object.assign(new Error("invalid-yahoo-interval"), { status: 422 });
-    const raw = await this.get(
-        `/v8/finance/chart/${encodeURIComponent(ticker)}`,
-        {
-          period1: Math.floor(start / 1000),
-          period2: Math.floor((end + 86400000) / 1000),
-          interval,
-          events: "div,splits",
-          includeAdjustedClose: "true",
-        },
-      ),
-      result = raw?.chart?.result?.[0],
-      timestamps = result?.timestamp,
-      quote = result?.indicators?.quote?.[0],
-      adjusted = result?.indicators?.adjclose?.[0]?.adjclose || [];
-    if (!Array.isArray(timestamps) || !quote)
-      throw new Error("yahoo-invalid-response");
-    return timestamps
-      .map((timestamp, index) => ({
-        source: "yahoo",
-        ticker,
-        timestamp: finite(timestamp, "yahoo") * 1000,
-        open: Number.isFinite(Number(quote.open?.[index]))
-          ? Number(quote.open[index])
-          : null,
-        high: Number.isFinite(Number(quote.high?.[index]))
-          ? Number(quote.high[index])
-          : null,
-        low: Number.isFinite(Number(quote.low?.[index]))
-          ? Number(quote.low[index])
-          : null,
-        close: Number.isFinite(Number(quote.close?.[index]))
-          ? Number(quote.close[index])
-          : null,
-        adjustedClose: Number.isFinite(Number(adjusted[index]))
-          ? Number(adjusted[index])
-          : null,
-        volume: Number.isFinite(Number(quote.volume?.[index]))
-          ? Number(quote.volume[index])
-          : null,
-        receivedAt: Date.now(),
-      }))
-      .filter(
-        (row) =>
-          row.close !== null &&
-          row.timestamp >= start &&
-          row.timestamp < end + 86400000,
-      )
-      .slice(-bounded(limit, 500, 1, 5000));
-  }
-}
-
 class FinnhubConnector extends ReadOnlyConnector {
   constructor(options = {}) {
     super({
@@ -241,9 +145,8 @@ class FinnhubConnector extends ReadOnlyConnector {
     });
   }
 
-  async news({ category = "general", minId = 0 } = {}) {
-    const allowed = new Set(["general", "forex", "crypto", "merger"]);
-    if (!allowed.has(category))
+  async news({ category = "crypto", minId = 0 } = {}) {
+    if (category !== "crypto")
       throw Object.assign(new Error("invalid-news-category"), { status: 422 });
     const rows = await this.get("/news", {
       category,
@@ -310,125 +213,15 @@ class FredConnector extends ReadOnlyConnector {
   }
 }
 
-class FmpConnector extends ReadOnlyConnector {
-  constructor(options = {}) {
-    super({
-      id: "fmp",
-      baseUrl: "https://financialmodelingprep.com/stable",
-      keyMode: "apikey",
-      ...options,
-    });
-  }
-
-  async profile({ symbol } = {}) {
-    const ticker = identifier(symbol, SYMBOL, "symbol"),
-      rows = await this.get("/profile", { symbol: ticker });
-    if (!Array.isArray(rows)) throw new Error("fmp-invalid-response");
-    return rows.slice(0, 1).map((row) => ({
-      source: "fmp",
-      symbol: ticker,
-      companyName: String(row.companyName || ""),
-      exchange: String(row.exchange || ""),
-      sector: String(row.sector || ""),
-      industry: String(row.industry || ""),
-      marketCap: finite(row.marketCap, "fmp"),
-      price: finite(row.price, "fmp"),
-      currency: String(row.currency || ""),
-      receivedAt: Date.now(),
-    }));
-  }
-
-  async news({ symbols, limit = 50 } = {}) {
-    const normalized = symbols
-        ? String(symbols)
-            .split(",")
-            .map((value) => identifier(value, SYMBOL, "symbol"))
-            .join(",")
-        : undefined,
-      rows = await this.get("/news/stock-latest", {
-        symbols: normalized,
-        page: 0,
-        limit: bounded(limit, 50, 1, 100),
-      });
-    if (!Array.isArray(rows)) throw new Error("fmp-invalid-response");
-    return rows.map((row) => ({
-      source: "fmp",
-      symbol: String(row.symbol || ""),
-      title: String(row.title || ""),
-      text: String(row.text || ""),
-      url: String(row.url || ""),
-      publishedAt: String(row.publishedDate || ""),
-      receivedAt: Date.now(),
-    }));
-  }
-}
-
-class PolygonConnector extends ReadOnlyConnector {
-  constructor(options = {}) {
-    super({
-      id: "polygon",
-      baseUrl: "https://api.polygon.io",
-      keyMode: "bearer",
-      ...options,
-    });
-  }
-
-  async aggregates({
-    ticker,
-    from,
-    to,
-    multiplier = 1,
-    timespan = "day",
-    limit = 500,
-  } = {}) {
-    const symbol = identifier(ticker, SYMBOL, "ticker");
-    if (!DAY.test(from) || !DAY.test(to) || to < from)
-      throw Object.assign(new Error("invalid-aggregate-range"), {
-        status: 422,
-      });
-    if (!TIMESPANS.has(timespan))
-      throw Object.assign(new Error("invalid-timespan"), { status: 422 });
-    const raw = await this.get(
-      `/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/${bounded(multiplier, 1, 1, 60)}/${timespan}/${from}/${to}`,
-      {
-        adjusted: "true",
-        sort: "asc",
-        limit: bounded(limit, 500, 1, 50000),
-      },
-    );
-    if (!Array.isArray(raw.results))
-      throw new Error("polygon-invalid-response");
-    return raw.results.map((row) => ({
-      source: "polygon",
-      ticker: symbol,
-      timestamp: finite(row.t, "polygon"),
-      open: finite(row.o, "polygon"),
-      high: finite(row.h, "polygon"),
-      low: finite(row.l, "polygon"),
-      close: finite(row.c, "polygon"),
-      volume: finite(row.v, "polygon"),
-      transactions: finite(row.n ?? 0, "polygon"),
-      vwap: finite(row.vw ?? 0, "polygon"),
-      receivedAt: Date.now(),
-    }));
-  }
-}
-
 class IntelligenceService {
   constructor({ connectors = {} } = {}) {
     this.connectors = {
       finnhub: connectors.finnhub || new FinnhubConnector(),
       fred: connectors.fred || new FredConnector(),
-      fmp: connectors.fmp || new FmpConnector(),
-      polygon: connectors.polygon || new PolygonConnector(),
-      yahoo: connectors.yahoo || new YahooFinanceConnector(),
     };
     this.operations = {
       finnhub: new Set(["news"]),
       fred: new Set(["series"]),
-      fmp: new Set(["profile", "news"]),
-      polygon: new Set(["aggregates"]),
-      yahoo: new Set(["chart"]),
     };
   }
 
@@ -464,9 +257,6 @@ class IntelligenceService {
 
 module.exports = {
   FinnhubConnector,
-  FmpConnector,
   FredConnector,
   IntelligenceService,
-  PolygonConnector,
-  YahooFinanceConnector,
 };

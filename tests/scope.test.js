@@ -11,12 +11,7 @@ const ALLOWED_ASSETS = new Set(["BTC", "ETH", "SOL", "BNB"]);
 const ALLOWED_PRODUCTS = new Set(
   [...ALLOWED_ASSETS].map((asset) => `${asset}-USD`),
 );
-const OUT_OF_SCOPE_PROVIDERS = new Map([
-  ["fmp", "acciones"],
-  ["polygon", "acciones/forex"],
-  ["yahoo", "acciones/ETFs/forex"],
-]);
-const OUT_OF_SCOPE_CATEGORIES = new Set(["general", "forex", "merger"]);
+const ALLOWED_PROVIDERS = new Set(["finnhub", "fred"]);
 
 function configuredProducts() {
   const source = fs.readFileSync(path.join(ROOT, ".env.example"), "utf8");
@@ -27,16 +22,14 @@ function configuredProducts() {
     .filter(Boolean);
 }
 
-function configuredNewsCategories() {
+function cryptoNewsOnly() {
   const source = fs.readFileSync(
     path.join(ROOT, "server/intelligence/connectors.js"),
     "utf8",
   );
-  const match = source.match(
-    /const allowed = new Set\(\[([^\]]*)\]\);\s*if \(!allowed\.has\(category\)\)/,
-  );
-  return [...(match?.[1] || "").matchAll(/["']([^"']+)["']/g)].map(
-    ([, category]) => category,
+  return (
+    /news\(\{ category = "crypto", minId = 0 \} = \{\}\)/.test(source) &&
+    /if \(category !== "crypto"\)/.test(source)
   );
 }
 
@@ -54,13 +47,11 @@ function scopeViolations() {
 
   const service = new IntelligenceService();
   for (const provider of Object.keys(service.connectors)) {
-    const market = OUT_OF_SCOPE_PROVIDERS.get(provider);
-    if (market)
-      violations.push(`proveedor fuera de alcance: ${provider} (${market})`);
+    if (!ALLOWED_PROVIDERS.has(provider))
+      violations.push(`proveedor fuera de alcance: ${provider}`);
   }
-  for (const category of configuredNewsCategories())
-    if (OUT_OF_SCOPE_CATEGORIES.has(category))
-      violations.push(`categoría de noticias fuera de alcance: ${category}`);
+  if (!cryptoNewsOnly())
+    violations.push("categoría de noticias: solo crypto debe estar habilitada");
 
   return violations.sort();
 }

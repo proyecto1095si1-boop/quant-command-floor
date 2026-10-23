@@ -24,15 +24,6 @@ const assert = require("node:assert/strict"),
               receivedAt: now - 1000,
             })),
           };
-        if (["polygon", "yahoo"].includes(provider))
-          return {
-            data: Array.from({ length: 30 }, (_, index) => ({
-              source: provider,
-              timestamp: now - (29 - index) * 86400000,
-              close: 100 + index,
-              receivedAt: now - 1000,
-            })),
-          };
         return {
           data: [
             {
@@ -58,25 +49,22 @@ const assert = require("node:assert/strict"),
     }),
     snapshot = await dag.refresh("btc", { asOf: now });
 
-  assert.equal(calls.length, 5);
-  assert.equal(snapshot.provenance.length, 5);
+  assert.equal(calls.length, 2);
+  assert.equal(snapshot.provenance.length, 2);
   assert.equal(
     snapshot.nodes.find((node) => node.id === "market").observations,
-    30,
+    0,
   );
   assert.equal(snapshot.asset, "BTC");
   assert.equal(snapshot.paperOnly, true);
   assert.equal(snapshot.consensus.status, "ready");
-  assert.deepEqual(snapshot.consensus.activeSources, [
-    "macro",
-    "news",
-    "market",
-  ]);
-  assert.ok(snapshot.consensus.signal > 0);
+  assert.deepEqual(snapshot.consensus.activeSources, ["macro", "news"]);
+  assert.ok(Number.isFinite(snapshot.consensus.signal));
+  assert.ok(Math.abs(snapshot.consensus.signal) <= 1);
   assert.ok(snapshot.consensus.confidence > 0);
   assert.equal(
     snapshot.nodes.find((node) => node.id === "news").observations,
-    2,
+    1,
   );
   assert.match(snapshot.hash, /^[a-f0-9]{64}$/);
   assert.equal(dag.snapshot("BTC", now - 1), null);
@@ -125,12 +113,12 @@ const assert = require("node:assert/strict"),
   );
   assert.deepEqual(
     reconcileMarketRows([
-      { source: "polygon", timestamp: 1, close: 100, receivedAt: 3 },
-      { source: "yahoo", timestamp: 1, close: 102, receivedAt: 4 },
+      { source: "source-a", timestamp: 1, close: 100, receivedAt: 3 },
+      { source: "source-b", timestamp: 1, close: 102, receivedAt: 4 },
     ])[0],
     {
       source: "market-consensus",
-      sources: ["polygon", "yahoo"],
+      sources: ["source-a", "source-b"],
       timestamp: 1,
       close: 101,
       receivedAt: 4,
@@ -139,15 +127,7 @@ const assert = require("node:assert/strict"),
 
   const blocked = new IntelligenceDag({
       service: {
-        query: async ({ provider }) => {
-          if (!new Set(["polygon", "yahoo"]).has(provider))
-            throw new Error("provider-down");
-          return service.query({
-            provider,
-            operation: provider === "polygon" ? "aggregates" : "chart",
-            params: {},
-          });
-        },
+        query: async () => Promise.reject(new Error("provider-down")),
       },
       clock: () => now,
     }),

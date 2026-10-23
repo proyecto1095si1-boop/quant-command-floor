@@ -19,11 +19,8 @@ const {
 const { FxOracle } = require("./finance/provenance.js");
 const {
   FinnhubConnector,
-  FmpConnector,
   FredConnector,
   IntelligenceService,
-  PolygonConnector,
-  YahooFinanceConnector,
 } = require("./intelligence/connectors.js");
 const { IntelligenceDag } = require("./intelligence/dag.js");
 const { RegimeService } = require("./regime/service.js");
@@ -176,17 +173,6 @@ const aiHealthPolicy = {
       fred: new FredConnector({
         apiKey: process.env.FRED_API_KEY,
         maxRequestsPerMinute: Number(process.env.FRED_RPM || 60),
-      }),
-      fmp: new FmpConnector({
-        apiKey: process.env.FMP_API_KEY,
-        maxRequestsPerMinute: Number(process.env.FMP_RPM || 60),
-      }),
-      polygon: new PolygonConnector({
-        apiKey: process.env.POLYGON_API_KEY,
-        maxRequestsPerMinute: Number(process.env.POLYGON_RPM || 60),
-      }),
-      yahoo: new YahooFinanceConnector({
-        maxRequestsPerMinute: Number(process.env.YAHOO_RPM || 30),
       }),
     },
   }),

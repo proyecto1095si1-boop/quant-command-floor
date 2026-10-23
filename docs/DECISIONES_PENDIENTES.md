@@ -211,8 +211,9 @@ propietario del repositorio. No se adoptan valores por omisión.
 
 ## Proveedores externos de inteligencia
 
-- **Estado:** adaptadores read-only de Finnhub, FRED, FMP y Polygon implementados;
-  credenciales reales no se almacenan en el repositorio.
+- **Estado:** adaptadores read-only de Finnhub (`crypto`) y FRED implementados;
+  los proveedores bursátiles fueron retirados según ADR 0042 y las credenciales
+  reales no se almacenan en el repositorio.
 - **Decisión necesaria:** revocar cualquier clave compartida fuera del secret
   manager, elegir planes, límites, licencias, retención y datasets point-in-time.
 - **Acción bloqueada:** usar datos externos como fuente única de una orden real,

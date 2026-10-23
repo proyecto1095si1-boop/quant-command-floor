@@ -1855,7 +1855,7 @@ nav {
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
-.dashboard-chart polygon {
+.dashboard-chart .chart-area {
   fill: #b9f34a10;
 }
 .dashboard-columns {
