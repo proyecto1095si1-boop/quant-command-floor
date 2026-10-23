@@ -18,6 +18,9 @@ const dist = path.resolve(__dirname, "../dist"),
 window.alert = () => {
   throw new Error("alert-must-not-run");
 };
+window.WebSocket = class {
+  close() {}
+};
 for (const file of [
   "platform-config.js",
   "runtime.js",
@@ -34,7 +37,10 @@ const app = fs
   .replace('"Strategy Miner",', `${JSON.stringify(payload)},`);
 window.eval(app);
 
-const agent = window.document.querySelector(".agent-name");
+const agent = [...window.document.querySelectorAll(".agent-name")].find(
+  (element) => element.textContent === payload,
+);
+assert.ok(agent, "the hostile agent name is rendered");
 assert.equal(agent.textContent, payload);
 assert.equal(window.document.querySelectorAll('#rooms img[src="x"]').length, 0);
 

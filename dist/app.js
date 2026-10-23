@@ -1,18 +1,19 @@
-const areas = [
+let areas = [
   {
     id: 1,
-    key: "mining",
-    name: "Mining & Testing",
-    type: "STRATEGY LAB",
+    key: "intake",
+    name: "Intake & Intelligence",
+    type: "MARKET DATA + NEWS",
     color: "#f1d24a",
     desc: "Descubre, codifica y somete estrategias a backtesting y pruebas fuera de muestra antes de asignar capital.",
     agents: [
-      "Strategy Miner",
-      "Backtest Engine",
-      "Walk-Forward Optimizer",
-      "Code Generator",
+      "Data Collector",
+      "Crypto News Reader",
+      "Sentiment Scanner",
+      "On-Chain Analyst",
+      "Intel Hub",
     ],
-    signal: "Walk-forward · robustez 0.81",
+    signal: "Esperando datos verificados",
     x: 50,
     y: 58,
     w: 400,
@@ -20,23 +21,12 @@ const areas = [
   },
   {
     id: 2,
-    key: "trading",
-    name: "Trading Floor",
-    type: "REAL-TIME OPS",
+    key: "desks",
+    name: "Mesas de Activos",
+    type: "BTC · ETH · SOL · BNB",
     color: "#6d8cff",
     desc: "Cuatro mesas de majors con plantilla cuantitativa compartida y mandatos de riesgo independientes.",
-    agents: [
-      "BTC Desk",
-      "ETH Desk",
-      "SOL Desk",
-      "BNB Desk",
-      "Whale",
-      "Volume",
-      "Liquidity",
-      "Market Structure",
-      "Order Block",
-      "Technical",
-    ],
+    agents: ["BTC Desk", "ETH Desk", "SOL Desk", "BNB Desk"],
     signal: "Majors · esperando análisis consolidado",
     x: 540,
     y: 58,
@@ -45,17 +35,21 @@ const areas = [
   },
   {
     id: 3,
-    key: "intel",
-    name: "Intel & Data",
-    type: "MARKET INTELLIGENCE",
+    key: "consensus",
+    name: "Consenso",
+    type: "MULTI-SIGNAL DECISION",
     color: "#42d7d0",
     desc: "Convierte redes sociales, blockchain y macroeconomía en señales estructuradas y verificables.",
     agents: [
-      "Social Sentiment Scanner",
-      "On-Chain Analyst",
-      "Macro News Reader",
+      "Technical",
+      "Volume",
+      "Whale",
+      "Liquidity",
+      "Market Structure",
+      "Order Block",
+      "Signal Hub",
     ],
-    signal: "Fear & Greed · 63/100",
+    signal: "Sin consenso reciente",
     x: 1080,
     y: 58,
     w: 365,
@@ -68,8 +62,13 @@ const areas = [
     type: "RISK CONTROL · VETO",
     color: "#ff5864",
     desc: "Control independiente con autoridad para cortar capital, limitar drawdown y bloquear exposición correlacionada.",
-    agents: ["Drawdown Controller", "Capital Allocator", "Exposure Monitor"],
-    signal: "VaR 1d · 2.3% · dentro del mandato",
+    agents: [
+      "Risk Manager",
+      "Drawdown Controller",
+      "Exposure Monitor",
+      "Position Size",
+    ],
+    signal: "Risk Gate listo",
     x: 50,
     y: 335,
     w: 400,
@@ -77,17 +76,13 @@ const areas = [
   },
   {
     id: 5,
-    key: "defi",
-    name: "DeFi Yield & Arbitrage",
-    type: "MARKET NEUTRAL",
+    key: "execution",
+    name: "Ejecución Paper",
+    type: "PAPER ONLY",
     color: "#b9f34a",
-    desc: "Busca rendimiento no direccional mediante funding, arbitraje triangular y optimización de APY.",
-    agents: [
-      "Funding Rate Arbitrageur",
-      "DEX Triangle Scanner",
-      "Yield Farmer",
-    ],
-    signal: "Spread neto · 18 bps",
+    desc: "Enruta micro-órdenes simuladas con fills L2, latencia, fees y slippage.",
+    agents: ["Execution Queue", "Paper Router", "Broker Simulator"],
+    signal: "Sin órdenes pendientes",
     x: 540,
     y: 335,
     w: 440,
@@ -95,17 +90,13 @@ const areas = [
   },
   {
     id: 6,
-    key: "board",
-    name: "AI Board",
-    type: "INVESTMENT COMMITTEE",
+    key: "portfolio",
+    name: "Cartera",
+    type: "ALLOCATION",
     color: "#c585ff",
-    desc: "Consolida inteligencia, riesgo y PnL; coordina el debate y reserva la autoridad final al director humano.",
-    agents: [
-      "Chief Investment Officer (CIO)",
-      "Debate Moderator",
-      "Human Director",
-    ],
-    signal: "Consenso · 72% LONG condicionado",
+    desc: "Controla asignación y concentración de la cartera simulada.",
+    agents: ["Portfolio Manager", "Capital Allocation", "Rebalancing"],
+    signal: "Asignación paper estable",
     x: 1000,
     y: 335,
     w: 445,
@@ -113,17 +104,13 @@ const areas = [
   },
   {
     id: 7,
-    key: "infra",
-    name: "Infraestructura & Servidores",
-    type: "DATA ROOM",
+    key: "audit",
+    name: "Auditoría",
+    type: "IMMUTABLE JOURNAL",
     color: "#4adf89",
-    desc: "Mantiene feeds, límites de API, latencia y salud de servicios para evitar que los bots operen a ciegas.",
-    agents: [
-      "Data Engineer (Feed Manager)",
-      "API Optimizer",
-      "Anomaly Detector",
-    ],
-    signal: "Feeds 99.99% · p95 42ms",
+    desc: "Registra evidencia, decisiones, vetos y fills para reproducir cada operación.",
+    agents: ["Audit Writer"],
+    signal: "Cadena de auditoría íntegra",
     x: 50,
     y: 580,
     w: 470,
@@ -131,17 +118,13 @@ const areas = [
   },
   {
     id: 8,
-    key: "treasury",
-    name: "Tesorería & Seguridad",
-    type: "TREASURY / SECURITY",
+    key: "research",
+    name: "Mining & Backtesting",
+    type: "RESEARCH LAB",
     color: "#a9b8bd",
-    desc: "Custodia, costos de red, conciliación de PnL y auditoría preventiva de contratos inteligentes.",
-    agents: [
-      "Wallet & Gas Manager",
-      "Crypto Accountant (PnL Tracker)",
-      "Smart Contract Auditor",
-    ],
-    signal: "Conciliación completa · sin diferencias",
+    desc: "Prueba estrategias con backtests y validación fuera de muestra antes del paper trading.",
+    agents: ["Strategy Miner", "Backtest Engine", "Walk-Forward Optimizer"],
+    signal: "Laboratorio sin ejecución activa",
     x: 545,
     y: 580,
     w: 440,
@@ -149,13 +132,13 @@ const areas = [
   },
   {
     id: 9,
-    key: "hedging",
-    name: "Derivados & Cobertura",
-    type: "ADVANCED HEDGING",
+    key: "sre",
+    name: "SRE & Data Room",
+    type: "OBSERVABILITY",
     color: "#ff9d48",
-    desc: "Construye coberturas con opciones y estrategias delta-neutral para blindar el portafolio.",
-    agents: ["Options Trader", "Delta-Neutral Strategist"],
-    signal: "Delta cartera · +0.04",
+    desc: "Observa feeds, latencia, disponibilidad y anomalías del sistema paper.",
+    agents: ["Feed Manager", "API Monitor", "Anomaly Detector"],
+    signal: "Monitoreo activo",
     x: 1010,
     y: 580,
     w: 435,
@@ -166,6 +149,63 @@ const areas = [
 const rooms = document.querySelector("#rooms"),
   nav = document.querySelector("#nav"),
   detail = document.querySelector("#detail");
+let floorLinks = [
+    { id: "intake-desks", from: "intake", to: "desks" },
+    { id: "desks-consensus", from: "desks", to: "consensus" },
+    { id: "consensus-risk", from: "consensus", to: "risk", kind: "risk" },
+    { id: "risk-execution", from: "risk", to: "execution", kind: "risk" },
+    { id: "execution-portfolio", from: "execution", to: "portfolio" },
+    { id: "execution-audit", from: "execution", to: "audit" },
+    {
+      id: "research-consensus",
+      from: "research",
+      to: "consensus",
+      kind: "feedback",
+    },
+    { id: "sre-intake", from: "sre", to: "intake" },
+  ],
+  floorNodeState = new Map();
+
+function nodeSlug(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.|\.$/g, "");
+}
+function fallbackNodeId(area, label) {
+  const canonical = {
+    "BTC Desk": "desk.btc",
+    "ETH Desk": "desk.eth",
+    "SOL Desk": "desk.sol",
+    "BNB Desk": "desk.bnb",
+    Technical: "consensus.technical",
+    Volume: "consensus.volume",
+    Whale: "consensus.whale",
+    Liquidity: "consensus.liquidity",
+    "Market Structure": "consensus.structure",
+    "Order Block": "consensus.orderblock",
+    "Signal Hub": "consensus.signal",
+    "Risk Manager": "risk.manager",
+    "Execution Queue": "execution.queue",
+    "Audit Writer": "audit.writer",
+    "Anomaly Detector": "sre.anomaly",
+  };
+  return canonical[label] || `${area.key}.${nodeSlug(label)}`;
+}
+function normalizeAreas(nextAreas) {
+  return nextAreas.map((area) => {
+    const nodes = area.nodes || area.agents.map((label) => ({ label }));
+    return {
+      ...area,
+      nodes: nodes.map((node) => ({
+        ...node,
+        id: node.id || fallbackNodeId(area, node.label),
+      })),
+      agents: nodes.map((node) => node.label),
+    };
+  });
+}
+areas = normalizeAreas(areas);
 const platformStore = new QCFPlatform.ConfigStore(localStorage),
   infraHealth = new QCFPlatform.InfraHealth({
     alpha: 0.2,
@@ -230,7 +270,7 @@ function roomContent(a) {
       });
     });
   } else {
-    a.agents.slice(0, 10).forEach((n, i) => {
+    a.nodes.slice(0, 10).forEach((n, i) => {
       let cols = Math.max(2, Math.floor((a.w - 25) / 68));
       let x = 18 + (i % cols) * 68,
         y = 62 + Math.floor(i / cols) * 70;
@@ -239,47 +279,67 @@ function roomContent(a) {
   }
   return content;
 }
-function sprite(n, x, y, c, i) {
-  const state = i % 4 === 1 ? "idle" : "working";
-  return `<div class="desk" style="left:${x - 14}px;top:${y - 13}px"></div><div class="agent ${state}" data-agent="${esc(n)}" data-state="${state}" style="left:${x}px;top:${y}px;--room-color:${esc(c)};--sprite:url('assets/characters/char_${i % 8}.png')"><i class="head"></i><i class="body"></i><i class="legs"></i><span class="agent-name">${esc(n)}</span></div>`;
+function sprite(node, x, y, c, i) {
+  const normalized =
+      typeof node === "string" ? { id: nodeSlug(node), label: node } : node,
+    runtime = floorNodeState.get(normalized.id),
+    state = runtime?.state || "idle";
+  return `<div class="desk" style="left:${x - 14}px;top:${y - 13}px"></div><div class="agent ${esc(state)}" data-node-id="${esc(normalized.id)}" data-agent="${esc(normalized.label)}" data-state="${esc(state)}" title="${esc(runtime?.detail || "Esperando evento real")}" style="left:${x}px;top:${y}px;--room-color:${esc(c)};--sprite:url('assets/characters/char_${i % 8}.png')"><i class="head"></i><i class="body"></i><i class="legs"></i><span class="agent-name">${esc(normalized.label)}</span></div>`;
 }
-areas.forEach((a, i) => {
-  a.status = i === 3 ? "alert" : i === 1 || i === 7 ? "thinking" : "active";
-  let el = document.createElement("article");
-  el.className = "room";
-  el.dataset.id = a.id;
-  el.dataset.status = a.status;
-  el.setAttribute("tabindex", "0");
-  el.setAttribute("role", "button");
-  el.setAttribute("aria-label", `${a.name}: ${a.agents.length} agentes`);
-  el.style.cssText = `left:${a.x}px;top:${a.y}px;width:${a.w}px;height:${a.h}px;--room-color:${a.color}`;
-  el.innerHTML = roomContent(a);
-  el.addEventListener("click", () => selectArea(a));
-  el.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
+function bindAgentClicks() {
+  document.querySelectorAll(".agent").forEach((el) =>
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const area = areas.find((x) => x.id === +el.closest(".room").dataset.id);
+      selectArea(area);
+      showModel(el.dataset.agent, el.dataset.nodeId);
+    }),
+  );
+}
+function renderFloor() {
+  rooms.replaceChildren();
+  nav.replaceChildren();
+  areas.forEach((a) => {
+    a.status = a.status || "idle";
+    let el = document.createElement("article");
+    el.className = "room";
+    el.dataset.id = a.id;
+    el.dataset.status = a.status;
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", `${a.name}: ${a.agents.length} agentes`);
+    el.style.cssText = `left:${a.x}px;top:${a.y}px;width:${a.w}px;height:${a.h}px;--room-color:${a.color}`;
+    el.innerHTML = roomContent(a);
+    el.addEventListener("click", () => selectArea(a));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectArea(a);
+      }
+    });
+    rooms.append(el);
+    let n = document.createElement("div");
+    n.className = "nav-item";
+    n.style.setProperty("--room-color", a.color);
+    n.innerHTML = `<span class="nav-num">${esc(String(a.id).padStart(2, "0"))}</span><span class="nav-name">${esc(a.name)}</span><span class="nav-count"><i class="status ${esc(a.status)}"></i>${esc(a.agents.length)}</span>`;
+    n.onclick = () => {
+      focusRoom(a);
       selectArea(a);
-    }
+      closeMenu();
+    };
+    nav.append(n);
   });
-  rooms.append(el);
-  let n = document.createElement("div");
-  n.className = "nav-item";
-  n.style.setProperty("--room-color", a.color);
-  n.innerHTML = `<span class="nav-num">${esc(String(a.id).padStart(2, "0"))}</span><span class="nav-name">${esc(a.name)}</span><span class="nav-count"><i class="status ${esc(a.status)}"></i>${esc(a.agents.length)}</span>`;
-  n.onclick = () => {
-    focusRoom(a);
-    selectArea(a);
-    closeMenu();
-  };
-  nav.append(n);
-});
+  bindAgentClicks();
+  drawNetwork();
+}
 let agentConfigs = {};
 try {
   agentConfigs = JSON.parse(localStorage.getItem("qcf-agent-configs") || "{}");
 } catch (e) {
   agentConfigs = {};
 }
-let selectedAgent = "Signal Hub";
+let selectedAgent = "Signal Hub",
+  selectedNodeId = "consensus.signal";
 const agentCatalog = {
   "Strategy Miner": [
     "IA · MACHINE LEARNING",
@@ -557,8 +617,9 @@ function modelFor(name) {
     return models.default;
   return models.technical;
 }
-function showModel(name) {
+function showModel(name, nodeId = null) {
   selectedAgent = name;
+  if (nodeId) selectedNodeId = nodeId;
   const m = modelFor(name),
     info = agentCatalog[name] || [
       m[0],
@@ -596,18 +657,13 @@ function showModel(name) {
   document.querySelector("#connectAgent span").textContent = cfg.connected
     ? "NODO CONECTADO"
     : "CONECTAR NODO";
-  document.querySelector("#connectionState").textContent = cfg.connected
-    ? `${cfg.type.toUpperCase()} · enlace persistido localmente`
-    : "Configuración local · sin credenciales";
+  const live = floorNodeState.get(selectedNodeId);
+  document.querySelector("#connectionState").textContent = live
+    ? `STREAM · ${live.state.toUpperCase()} · ${live.detail}`
+    : cfg.connected
+      ? `${cfg.type.toUpperCase()} · enlace persistido localmente`
+      : "Esperando evento real · configuración local";
 }
-document.querySelectorAll(".agent").forEach((el) =>
-  el.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const a = areas.find((x) => x.id === +el.closest(".room").dataset.id);
-    selectArea(a);
-    showModel(el.dataset.agent);
-  }),
-);
 const thoughts = {
   working: [
     "calibrando señal",
@@ -626,7 +682,7 @@ function ambientThought() {
   if (lastThought) lastThought.remove();
   const b = document.createElement("span"),
     state = el.dataset.state || "working",
-    lines = thoughts[state];
+    lines = thoughts[state] || thoughts.idle;
   b.className = "thought";
   b.textContent = lines[Math.floor(Math.random() * lines.length)];
   el.append(b);
@@ -640,27 +696,18 @@ setTimeout(ambientThought, 1300);
 setInterval(ambientThought, 6200);
 function drawNetwork() {
   const svg = document.querySelector("#nodeLayer"),
-    center = (a) => [a.x + a.w / 2, a.y + a.h / 2],
-    links = [
-      [1, 2, "feedback"],
-      [3, 2, ""],
-      [7, 2, ""],
-      [2, 4, "risk"],
-      [5, 4, "risk"],
-      [9, 4, "risk"],
-      [4, 6, "risk"],
-      [6, 2, ""],
-      [8, 6, ""],
-      [7, 4, "risk"],
-    ];
+    center = (a) => [a.x + a.w / 2, a.y + a.h / 2];
   let html =
     '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#42d7d0"/></marker></defs>';
-  links.forEach(([f, t, k], i) => {
-    const [x1, y1] = center(areas[f - 1]),
-      [x2, y2] = center(areas[t - 1]),
+  floorLinks.forEach((link, i) => {
+    const from = areas.find((area) => area.key === link.from),
+      to = areas.find((area) => area.key === link.to);
+    if (!from || !to) return;
+    const [x1, y1] = center(from),
+      [x2, y2] = center(to),
       mx = (x1 + x2) / 2;
     const d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
-    html += `<path id="edge${i}" class="network-path ${k}" d="${d}" marker-end="url(#arrow)"/><circle class="packet" r="4"><animateMotion dur="${2.2 + (i % 3) * 0.5}s" repeatCount="indefinite"><mpath href="#edge${i}"/></animateMotion></circle>`;
+    html += `<path id="edge${i}" data-link-id="${esc(link.id)}" class="network-path ${esc(link.kind || "")}" d="${d}" marker-end="url(#arrow)"/>`;
   });
   areas.forEach((a) => {
     const [x, y] = center(a);
@@ -668,7 +715,7 @@ function drawNetwork() {
   });
   svg.innerHTML = html;
 }
-drawNetwork();
+renderFloor();
 function selectArea(a) {
   document
     .querySelectorAll(".room,.nav-item")
@@ -694,10 +741,13 @@ function selectArea(a) {
         `<div class="agent-chip" data-agent="${esc(x)}" style="--accent:${esc(a.color)}">● ${esc(x)}</div>`,
     )
     .join("");
-  document
-    .querySelectorAll("#agentList .agent-chip")
-    .forEach((x) => (x.onclick = () => showModel(x.dataset.agent)));
-  showModel(a.agents[0]);
+  document.querySelectorAll("#agentList .agent-chip").forEach((x) => {
+    const node = a.nodes.find(
+      (candidate) => candidate.label === x.dataset.agent,
+    );
+    x.onclick = () => showModel(x.dataset.agent, node?.id);
+  });
+  showModel(a.agents[0], a.nodes[0]?.id);
   detail.classList.add("open");
 }
 document.querySelector("#close").onclick = () =>
@@ -829,6 +879,169 @@ function fillPlatform() {
       (document.querySelector(selector).value = platformConfig[key]),
   );
 }
+function nodeById(id) {
+  return areas.flatMap((area) => area.nodes).find((node) => node.id === id);
+}
+function areaForNode(id) {
+  return areas.find((area) => area.nodes.some((node) => node.id === id));
+}
+function setFloorNodeState(id, state, detail) {
+  if (!nodeById(id)) return;
+  const normalized = [
+      "running",
+      "ok",
+      "approved",
+      "blocked",
+      "veto",
+      "error",
+      "skipped",
+    ].includes(state)
+      ? state
+      : "idle",
+    viewState =
+      normalized === "approved"
+        ? "ok"
+        : normalized === "veto"
+          ? "blocked"
+          : normalized;
+  floorNodeState.set(id, {
+    state: viewState,
+    detail: String(detail || "evento recibido"),
+    at: Date.now(),
+  });
+  const element = document.querySelector(`.agent[data-node-id="${id}"]`),
+    area = areaForNode(id);
+  if (element) {
+    element.classList.remove(
+      "idle",
+      "running",
+      "ok",
+      "blocked",
+      "error",
+      "skipped",
+    );
+    element.classList.add(viewState);
+    element.dataset.state = viewState;
+    element.title = String(detail || "evento recibido");
+  }
+  if (area) {
+    const room = document.querySelector(`.room[data-id="${area.id}"]`);
+    if (room)
+      room.dataset.status =
+        viewState === "error" || viewState === "blocked"
+          ? "alert"
+          : viewState === "running"
+            ? "thinking"
+            : "active";
+  }
+  if (selectedNodeId === id) showModel(nodeById(id).label, id);
+}
+function pulseFloorLink(from, to) {
+  const link = floorLinks.find(
+      (candidate) => candidate.from === from && candidate.to === to,
+    ),
+    element = link && document.querySelector(`[data-link-id="${link.id}"]`);
+  if (!element) return;
+  element.classList.add("live");
+  setTimeout(() => element.classList.remove("live"), 1800);
+}
+function applyFloorEvent(message) {
+  if (message.type === "agent.result" && message.result) {
+    const node = areas
+      .flatMap((area) => area.nodes)
+      .find(
+        (candidate) =>
+          candidate.agent === message.result.agent_id ||
+          candidate.label === message.result.agent_id,
+      );
+    if (node)
+      setFloorNodeState(
+        node.id,
+        "ok",
+        `signal ${Number(message.result.signal || 0).toFixed(3)}`,
+      );
+    pulseFloorLink("intake", "desks");
+    return;
+  }
+  if (message.type === "desk.analysis" && message.report) {
+    const report = message.report,
+      status = report.status === "ok" ? "ok" : "blocked";
+    setFloorNodeState(
+      `desk.${String(report.asset).toLowerCase()}`,
+      status,
+      `${report.action || "NO_TRADE"} · confianza ${Number(report.confidence || 0).toFixed(2)}`,
+    );
+    for (const result of report.agents || []) {
+      const node = areas
+        .flatMap((area) => area.nodes)
+        .find(
+          (candidate) =>
+            candidate.agent === result.agent ||
+            candidate.label === result.agent,
+        );
+      if (node)
+        setFloorNodeState(
+          node.id,
+          status,
+          `signal ${Number(result.signal || 0).toFixed(3)} · confianza ${Number(result.confidence || 0).toFixed(2)}`,
+        );
+    }
+    setFloorNodeState(
+      "consensus.signal",
+      status,
+      `${report.action || "NO_TRADE"} · signal ${Number(report.signal || 0).toFixed(3)}`,
+    );
+    pulseFloorLink("desks", "consensus");
+    return;
+  }
+  if (message.type === "pipeline.stage" && message.stage) {
+    const ids = {
+        intake: "intake.data",
+        signal: "consensus.signal",
+        proposal: "portfolio.manager",
+        risk: "risk.manager",
+        execution: "execution.queue",
+        reconcile: "audit.writer",
+        error: "sre.anomaly",
+      },
+      id = ids[message.stage.name];
+    if (id)
+      setFloorNodeState(
+        id,
+        message.stage.status,
+        `${message.asset || "pipeline"} · run ${message.runId || "—"}`,
+      );
+    const flow = {
+      signal: ["desks", "consensus"],
+      risk: ["consensus", "risk"],
+      execution: ["risk", "execution"],
+      reconcile: ["execution", "audit"],
+    }[message.stage.name];
+    if (flow) pulseFloorLink(...flow);
+  }
+}
+async function loadFloorTopology() {
+  try {
+    const response = await fetch(
+      platformConfig.backendBaseUrl + "/v1/floor/topology",
+    );
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const topology = await response.json();
+    if (
+      topology.paperOnly !== true ||
+      !Array.isArray(topology.areas) ||
+      topology.areas.length !== 9
+    )
+      throw new Error("invalid-topology");
+    areas = normalizeAreas(topology.areas);
+    floorLinks = Array.isArray(topology.links) ? topology.links : floorLinks;
+    renderFloor();
+  } catch (error) {
+    document
+      .querySelector("#platformStatus")
+      ?.setAttribute("data-topology", "fallback");
+  }
+}
 function readPlatform() {
   return Object.fromEntries(
     Object.entries(platformFields).map(([key, selector]) => [
@@ -863,6 +1076,7 @@ function connectPlatformStream() {
     platformSocket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
+        applyFloorEvent(message);
         if (message.type === "agent.result") {
           engine.events++;
           document.querySelector("#eventCount").textContent = engine.events
@@ -2348,6 +2562,8 @@ function tick() {
 setInterval(tick, 1000);
 tick();
 apply();
+loadFloorTopology();
+connectPlatformStream();
 setTimeout(() => selectArea(areas[0]), 300);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
