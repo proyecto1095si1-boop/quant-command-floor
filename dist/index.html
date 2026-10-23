@@ -234,6 +234,14 @@
               >Configuración local · sin credenciales</small
             >
           </div>
+          <section class="node-events" aria-live="polite">
+            <div class="node-events-head">
+              <span>EVENTOS REALES DEL NODO</span>
+              <b id="nodeEventCount">0</b>
+            </div>
+            <p id="nodeEventEmpty">Esperando el primer evento del stream.</p>
+            <ol id="nodeEventList"></ol>
+          </section>
         </div>
         <div class="signal-card">
           <span>ÚLTIMA SEÑAL</span><b id="signal">Datos sincronizados</b

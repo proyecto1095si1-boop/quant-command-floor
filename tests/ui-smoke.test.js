@@ -73,6 +73,8 @@ for (const file of [
         action: "BUY",
         signal: 0.7,
         confidence: 0.8,
+        inputSummary: { candles: 120, apiKey: "must-not-render" },
+        formula: "weighted consensus",
         agents: [{ agent: "Technical", signal: 0.6, confidence: 0.75 }],
       },
     }),
@@ -88,6 +90,17 @@ for (const file of [
       .classList.contains("live"),
     true,
     "a real event activates its data-flow link",
+  );
+  assert.equal(document.querySelector("#nodeEventCount").textContent, "1");
+  assert.match(document.querySelector("#nodeEventList").textContent, /candles/);
+  assert.match(
+    document.querySelector("#nodeEventList").textContent,
+    /\[redacted\]/,
+  );
+  assert.doesNotMatch(
+    document.querySelector("#nodeEventList").textContent,
+    /must-not-render/,
+    "sensitive payload fields are redacted",
   );
   assert.equal(
     requests.some(({ url }) => url.endsWith("/v1/floor/topology")),

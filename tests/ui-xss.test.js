@@ -44,6 +44,22 @@ assert.ok(agent, "the hostile agent name is rendered");
 assert.equal(agent.textContent, payload);
 assert.equal(window.document.querySelectorAll('#rooms img[src="x"]').length, 0);
 
+window.showModel("BTC Desk", "desk.btc");
+window.recordNodeEvent("desk.btc", {
+  type: payload,
+  source: payload,
+  evidence: [payload],
+  output: { text: payload },
+});
+assert.match(
+  window.document.querySelector("#nodeEventList").textContent,
+  /<img/,
+);
+assert.equal(
+  window.document.querySelectorAll('#nodeEventList img[src="x"]').length,
+  0,
+);
+
 window.renderDesk({
   action: "LONG",
   signal: 0.5,
