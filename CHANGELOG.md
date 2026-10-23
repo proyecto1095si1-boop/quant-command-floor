@@ -19,6 +19,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- La ejecución de pruebas usa el runner nativo de Node y descubre
+  automáticamente todos los archivos `tests/*.test.js`; CI ejecuta el mismo
+  comando antes de medir cobertura.
 - La inteligencia externa queda limitada a Finnhub `crypto` y FRED; se retiran
   los conectores multiactivo, sus variables, UI y pruebas conforme al ADR 0042.
 - El nodo técnico externo queda sin observaciones y degrada explícitamente en

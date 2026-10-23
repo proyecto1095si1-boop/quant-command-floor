@@ -343,3 +343,18 @@ El aumento de documentación se debe a que el material retirado se archivó en
 vez de borrarse y al informe/ADR de alcance. El código activo de servidor bajó
 5.125 líneas (27,1 %) y las pruebas retiradas corresponden solo a los módulos
 aprobados. Todo es recuperable desde `pre-recorte`.
+
+## R5 · Ejecución mantenible de pruebas
+
+La línea base posterior a R4 ejecutaba 48 archivos enumerados manualmente: 11
+en `pretest` y 37 en `test`. Esa lista omitía nueve archivos `.test.js`
+existentes, incluido el control de alcance. R5 elimina `pretest` y usa el runner
+nativo con el patrón `node --test tests/*.test.js`; ahora se descubren y pasan
+los 57 archivos de prueba activos.
+
+El comando solicitado literalmente como `node --test tests/` no es aceptado por
+las versiones soportadas de Node: trata el directorio como un módulo y termina
+con `MODULE_NOT_FOUND`. El patrón explícito mantiene el descubrimiento
+automático para cualquier prueba nueva que respete la convención `.test.js`.
+CI ejecuta `npm test` con ese mismo runner antes de `npm run coverage`, que lo
+reutiliza para medir el umbral de líneas.
