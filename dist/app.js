@@ -166,6 +166,11 @@ let floorLinks = [
   ],
   floorNodeState = new Map(),
   floorNodeEvents = new Map();
+const floorObservations = new Map();
+let floorConnected = false,
+  floorSyncBusy = false,
+  floorLastSync = 0,
+  floorReconnect = null;
 const MAX_NODE_EVENTS = 20,
   SENSITIVE_FIELD = /token|secret|authorization|api[-_]?key|password/i;
 
@@ -177,6 +182,13 @@ function nodeSlug(value) {
 }
 function fallbackNodeId(area, label) {
   const canonical = {
+    "Data Collector": "intake.data",
+    "Crypto News Reader": "intake.news",
+    "Sentiment Scanner": "intake.sentiment",
+    "On-Chain Analyst": "intake.onchain",
+    "Intel Hub": "intake.intel",
+    "Feed Manager": "sre.feeds",
+    "Portfolio Manager": "portfolio.manager",
     "BTC Desk": "desk.btc",
     "ETH Desk": "desk.eth",
     "SOL Desk": "desk.sol",
@@ -247,7 +259,10 @@ function recordNodeEvent(id, event) {
     output: eventText(event.output),
   });
   floorNodeEvents.set(id, history.slice(0, MAX_NODE_EVENTS));
-  if (selectedNodeId === id) renderNodeEvents(id);
+  if (selectedNodeId === id) {
+    renderNodeEvents(id);
+    renderLiveEmployee();
+  }
 }
 function renderNodeEvents(id) {
   const history = floorNodeEvents.get(id) || [],
@@ -316,7 +331,7 @@ function esc(value) {
   );
 }
 function roomContent(a) {
-  let content = `<div class="room-head"><span class="room-label">${esc(String(a.id).padStart(2, "0"))} · ${esc(a.name)}</span><span class="room-code">${esc(a.type)}</span></div><span class="room-sub">${esc(a.agents.length)} AGENTS / ONLINE</span>`;
+  let content = `<div class="room-head"><span class="room-label">${esc(String(a.id).padStart(2, "0"))} · ${esc(a.name)}</span><span class="room-code">${esc(a.type)}</span></div><span class="room-sub">${esc(a.agents.length)} NODOS · ESTADO OBSERVADO</span>`;
   if (a.groups) {
     let gx = 15,
       gy = 60;
@@ -700,11 +715,7 @@ function showModel(name, nodeId = null) {
   document.querySelector("#modelName").textContent = name;
   document.querySelector("#modelMission").textContent = info[1];
   document.querySelector("#modelType").textContent = info[0];
-  document.querySelector("#modelFormula").textContent = m[1];
-  document.querySelector("#modelInputs").textContent = info[2];
-  document.querySelector("#modelOutput").textContent = info[3];
-  document.querySelector("#confidenceBar").style.width = m[4] + "%";
-  document.querySelector("#confidenceValue").textContent = m[4] + "%";
+  renderLiveEmployee();
   document.querySelector("#brainType").value = cfg.type;
   document.querySelector("#agentWeight").value = cfg.weight;
   document.querySelector("#weightValue").textContent =
@@ -724,27 +735,69 @@ function showModel(name, nodeId = null) {
       : "Esperando evento real · configuración local";
   renderNodeEvents(selectedNodeId);
 }
-const thoughts = {
-  working: [
-    "calibrando señal",
-    "validando evidencia",
-    "actualizando pesos",
-    "corriendo modelo",
-    "revisando anomalía",
-  ],
-  idle: ["en espera", "feed estable", "sin alertas"],
-};
+function renderLiveEmployee() {
+  document.querySelector("#floorConnection").textContent = floorConnected
+    ? "STREAM CONECTADO"
+    : Date.now() - floorLastSync <= 15000
+      ? "CONSULTA CADA 5 S"
+      : "SIN CONEXIÓN";
+  for (const element of document.querySelectorAll(".agent")) {
+    const state = floorNodeState.get(element.dataset.nodeId);
+    element.dataset.freshness =
+      !floorConnected && Date.now() - floorLastSync > 15000
+        ? "offline"
+        : !state || Date.now() - state.at > 30000
+          ? "stale"
+          : "fresh";
+  }
+  const observed = floorObservations.get(selectedNodeId),
+    live = floorNodeState.get(selectedNodeId),
+    history = floorNodeEvents.get(selectedNodeId)?.[0],
+    age = live ? Date.now() - live.at : Infinity,
+    disconnected = !floorConnected && Date.now() - floorLastSync > 15000,
+    state = disconnected
+      ? "DESCONECTADO"
+      : age > 30000 && live
+        ? "DATOS ANTIGUOS"
+        : live?.state?.toUpperCase() || "SIN DATOS";
+  document.querySelector("#nodeLiveStatus").textContent = state;
+  document.querySelector("#nodeLiveActivity").textContent =
+    live?.detail || "Sin actividad observada para este empleado.";
+  document.querySelector("#nodeLiveTime").textContent = live
+    ? `Última observación: ${new Date(live.at).toLocaleString()} · ${Math.max(0, Math.floor(age / 1000))} s`
+    : "Sin actualización";
+  document.querySelector("#modelFormula").textContent =
+    history?.formula && history.formula !== "—"
+      ? history.formula
+      : "Método no informado por este evento";
+  document.querySelector("#modelInputs").textContent =
+    history?.input || "Sin entrada observada";
+  document.querySelector("#modelOutput").textContent =
+    history?.output || "Sin resultado observado";
+  const confidence = observed?.confidence;
+  document.querySelector("#confidenceBar").style.width = Number.isFinite(
+    confidence,
+  )
+    ? `${Math.max(0, Math.min(1, confidence)) * 100}%`
+    : "0%";
+  document.querySelector("#confidenceValue").textContent = Number.isFinite(
+    confidence,
+  )
+    ? `${(confidence * 100).toFixed(1)}%`
+    : "—";
+  document.querySelector("#signal").textContent =
+    live?.detail || "Sin señal observada";
+}
 let lastThought = null;
 function ambientThought() {
   const pool = [...document.querySelectorAll(".agent")];
   if (!pool.length) return;
   const el = pool[Math.floor(Math.random() * pool.length)];
   if (lastThought) lastThought.remove();
-  const b = document.createElement("span"),
-    state = el.dataset.state || "working",
-    lines = thoughts[state] || thoughts.idle;
+  const b = document.createElement("span");
   b.className = "thought";
-  b.textContent = lines[Math.floor(Math.random() * lines.length)];
+  b.textContent =
+    floorNodeState.get(el.dataset.nodeId)?.detail || "Sin datos observados";
   el.append(b);
   lastThought = b;
   setTimeout(() => {
@@ -945,8 +998,9 @@ function nodeById(id) {
 function areaForNode(id) {
   return areas.find((area) => area.nodes.some((node) => node.id === id));
 }
-function setFloorNodeState(id, state, detail) {
+function setFloorNodeState(id, state, detail, at = Date.now()) {
   if (!nodeById(id)) return;
+  if (!Number.isFinite(at) || (floorNodeState.get(id)?.at || 0) > at) return;
   const normalized = [
       "running",
       "ok",
@@ -967,7 +1021,7 @@ function setFloorNodeState(id, state, detail) {
   floorNodeState.set(id, {
     state: viewState,
     detail: String(detail || "evento recibido"),
-    at: Date.now(),
+    at,
   });
   const element = document.querySelector(`.agent[data-node-id="${id}"]`),
     area = areaForNode(id);
@@ -1006,6 +1060,26 @@ function pulseFloorLink(from, to) {
   setTimeout(() => element.classList.remove("live"), 1800);
 }
 function applyFloorEvent(message) {
+  if (message.type === "market.snapshot" || message.type === "market.ticker") {
+    applyMarketObservation(
+      message.type === "market.ticker"
+        ? { symbol: message.data?.symbol, ticker: message.data }
+        : message,
+    );
+    return;
+  }
+  const eventKey = `${message.type}:${message.report?.asset || message.result?.agent_id || message.asset || ""}:${message.stage?.name || ""}`,
+    eventTime =
+      message.observedAt ||
+      message.report?.at ||
+      message.stage?.at ||
+      Date.now(),
+    eventAt = typeof eventTime === "number" ? eventTime : Date.parse(eventTime),
+    signature = JSON.stringify(message);
+  if (floorObservations.get(eventKey) === signature) return;
+  floorObservations.set(eventKey, signature);
+  if (floorObservations.size > 200)
+    floorObservations.delete(floorObservations.keys().next().value);
   if (message.type === "agent.result" && message.result) {
     const node = areas
       .flatMap((area) => area.nodes)
@@ -1015,12 +1089,15 @@ function applyFloorEvent(message) {
           candidate.label === message.result.agent_id,
       );
     if (node) {
+      floorObservations.set(node.id, { confidence: message.result.confidence });
       setFloorNodeState(
         node.id,
         "ok",
         `signal ${Number(message.result.signal || 0).toFixed(3)}`,
+        eventAt,
       );
       recordNodeEvent(node.id, {
+        at: new Date(eventAt).toISOString(),
         type: message.type,
         source:
           message.result.provider ||
@@ -1029,7 +1106,7 @@ function applyFloorEvent(message) {
         status: "ok",
         input: { requestId: message.request_id || null },
         evidence: message.result.evidence,
-        formula: modelFor(node.label)[1],
+        formula: message.result.formula,
         output: {
           signal: message.result.signal,
           confidence: message.result.confidence,
@@ -1043,10 +1120,18 @@ function applyFloorEvent(message) {
   if (message.type === "desk.analysis" && message.report) {
     const report = message.report,
       status = report.status === "ok" ? "ok" : "blocked";
+    floorObservations.set("consensus.signal", {
+      confidence: report.confidence,
+    });
+    floorObservations.set(`desk.${String(report.asset).toLowerCase()}`, {
+      confidence: report.confidence,
+      analysis: true,
+    });
     setFloorNodeState(
       `desk.${String(report.asset).toLowerCase()}`,
       status,
       `${report.action || "NO_TRADE"} · confianza ${Number(report.confidence || 0).toFixed(2)}`,
+      eventAt,
     );
     recordNodeEvent(`desk.${String(report.asset).toLowerCase()}`, {
       type: message.type,
@@ -1074,10 +1159,12 @@ function applyFloorEvent(message) {
             candidate.label === result.agent,
         );
       if (node) {
+        floorObservations.set(node.id, { confidence: result.confidence });
         setFloorNodeState(
           node.id,
           status,
           `signal ${Number(result.signal || 0).toFixed(3)} · confianza ${Number(result.confidence || 0).toFixed(2)}`,
+          eventAt,
         );
         recordNodeEvent(node.id, {
           type: "desk.agent-result",
@@ -1085,7 +1172,7 @@ function applyFloorEvent(message) {
           status,
           input: report.inputSummary,
           evidence: result.evidence,
-          formula: modelFor(node.label)[1],
+          formula: result.formula,
           output: {
             signal: result.signal,
             confidence: result.confidence,
@@ -1099,6 +1186,7 @@ function applyFloorEvent(message) {
       "consensus.signal",
       status,
       `${report.action || "NO_TRADE"} · signal ${Number(report.signal || 0).toFixed(3)}`,
+      eventAt,
     );
     recordNodeEvent("consensus.signal", {
       type: "desk.consensus",
@@ -1137,6 +1225,7 @@ function applyFloorEvent(message) {
         id,
         message.stage.status,
         `${message.asset || "pipeline"} · run ${message.runId || "—"}`,
+        eventAt,
       );
       recordNodeEvent(id, {
         type: `pipeline.${message.stage.name}`,
@@ -1147,7 +1236,7 @@ function applyFloorEvent(message) {
           asset: message.asset,
         },
         evidence: message.stage.payload?.blockers,
-        formula: nodeById(id)?.engine || "pipeline policy",
+        formula: message.stage.payload?.formula,
         output: message.stage.payload,
         at: message.stage.at,
       });
@@ -1159,6 +1248,164 @@ function applyFloorEvent(message) {
       reconcile: ["execution", "audit"],
     }[message.stage.name];
     if (flow) pulseFloorLink(...flow);
+  }
+  renderLiveEmployee();
+}
+function observeFloorNode(
+  id,
+  {
+    at = Date.now(),
+    state = "ok",
+    detail,
+    input,
+    output,
+    evidence,
+    formula,
+    source = "backend",
+  },
+) {
+  if (!nodeById(id)) return;
+  const timestamp = typeof at === "number" ? at : Date.parse(at),
+    signature = JSON.stringify({ timestamp, state, detail, input, output });
+  if (
+    !Number.isFinite(timestamp) ||
+    floorObservations.get(`snapshot:${id}`) === signature
+  )
+    return;
+  floorObservations.set(`snapshot:${id}`, signature);
+  if ((floorNodeState.get(id)?.at || 0) > timestamp) return;
+  setFloorNodeState(id, state, detail, timestamp);
+  recordNodeEvent(id, {
+    at: new Date(timestamp).toISOString(),
+    type: "observación",
+    source,
+    status: state,
+    input,
+    output,
+    evidence,
+    formula,
+  });
+  renderLiveEmployee();
+}
+function applyMarketObservation(snapshot) {
+  const ticker = snapshot.ticker,
+    asset = String(snapshot.symbol || "").split("-")[0];
+  if (
+    !["BTC", "ETH", "SOL", "BNB"].includes(asset) ||
+    !Number.isFinite(ticker?.price)
+  )
+    return;
+  const at = ticker.receivedAt || ticker.exchangeAt,
+    state =
+      snapshot.health && snapshot.health.status !== "healthy"
+        ? "blocked"
+        : "ok",
+    observation = {
+      at,
+      state,
+      detail: `${asset}: ${ticker.price} USD · ${ticker.source || "feed"} · dato de mercado`,
+      source: ticker.source || "data plane",
+      input: { symbol: snapshot.symbol, receivedAt: at },
+      output: {
+        price: ticker.price,
+        bid: ticker.bid,
+        ask: ticker.ask,
+        bids: snapshot.book?.bids?.length,
+        asks: snapshot.book?.asks?.length,
+      },
+      evidence: snapshot.reconciliation,
+    };
+  if (!at) return;
+  const priceLabel = document.querySelector(`#floorPrice${asset}`);
+  priceLabel.textContent = ticker.price.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+  });
+  priceLabel.title = `USD · ${ticker.source || "feed"} · ${at}`;
+  observeFloorNode("intake.data", observation);
+  observeFloorNode("sre.feeds", observation);
+  const desk = `desk.${asset.toLowerCase()}`;
+  if (!floorObservations.get(desk)?.analysis)
+    observeFloorNode(desk, {
+      ...observation,
+      detail: `${observation.detail} · esperando análisis`,
+    });
+  pulseFloorLink("intake", "desks");
+}
+async function syncFloor() {
+  if (floorSyncBusy) return;
+  floorSyncBusy = true;
+  const base = platformConfig.backendBaseUrl,
+    controller = new AbortController(),
+    timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(base + "/v1/floor/snapshot", {
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const snapshot = await response.json();
+    if (snapshot.paperOnly !== true || !Array.isArray(snapshot.markets))
+      throw new Error("invalid-floor-snapshot");
+    if (base !== platformConfig.backendBaseUrl) return;
+    floorLastSync = Date.now();
+    for (const market of snapshot.markets) applyMarketObservation(market);
+    for (const event of snapshot.events || []) applyFloorEvent(event);
+    for (const intel of snapshot.intelligence || []) {
+      for (const node of intel.nodes || []) {
+        const id = { news: "intake.news", market: "intake.intel" }[node.id];
+        if (!id) continue;
+        floorObservations.set(id, { confidence: node.confidence });
+        observeFloorNode(id, {
+          at: intel.asOf,
+          state: node.observations ? "ok" : "blocked",
+          detail: `${intel.asset} · ${node.employee} · ${node.observations} observaciones`,
+          input: { asset: intel.asset, observations: node.observations },
+          output: { signal: node.signal, confidence: node.confidence },
+          evidence: intel.provenance,
+          formula: node.method,
+          source: "intelligence DAG",
+        });
+      }
+    }
+    if (snapshot.pipeline) {
+      const p = snapshot.pipeline;
+      observeFloorNode("risk.manager", {
+        at: snapshot.at,
+        state:
+          p.halted || p.risk?.lastReview?.approved === false ? "blocked" : "ok",
+        detail: p.halted
+          ? `HALT: ${p.haltReason || "riesgo bloqueado"}`
+          : p.risk?.lastReview
+            ? `Última revisión: ${p.risk.lastReview.approved ? "aprobada" : "veto"} · ${(p.risk.lastReview.failed || []).join(", ")}`
+            : "Risk Gate disponible · esperando propuesta",
+        output: p.risk,
+      });
+      observeFloorNode("portfolio.manager", {
+        at: snapshot.at,
+        detail: "Observando saldos y posiciones paper",
+        output: p.portfolio,
+      });
+      observeFloorNode("audit.writer", {
+        at: snapshot.at,
+        state: p.audit?.valid === false ? "error" : "ok",
+        detail: "Verificación de cadena de auditoría",
+        output: p.audit,
+      });
+    }
+    if (snapshot.execution)
+      observeFloorNode("execution.queue", {
+        at: snapshot.at,
+        detail: `${snapshot.execution.queue} órdenes paper en cola`,
+        output: {
+          queue: snapshot.execution.queue,
+          metrics: snapshot.execution.metrics,
+        },
+      });
+  } catch (error) {
+    platformStatus(`Mapa sin sincronización · ${error.message}`, "error");
+  } finally {
+    clearTimeout(timeout);
+    floorSyncBusy = false;
+    renderLiveEmployee();
   }
 }
 async function loadFloorTopology() {
@@ -1174,9 +1421,19 @@ async function loadFloorTopology() {
       topology.areas.length !== 9
     )
       throw new Error("invalid-topology");
+    const selectedArea = document.querySelector(".room.selected")?.dataset.id,
+      previousNode = selectedNodeId;
     areas = normalizeAreas(topology.areas);
     floorLinks = Array.isArray(topology.links) ? topology.links : floorLinks;
     renderFloor();
+    if (selectedArea) {
+      selectArea(
+        areas.find((area) => String(area.id) === selectedArea) || areas[0],
+      );
+      if (nodeById(previousNode))
+        showModel(nodeById(previousNode).label, previousNode);
+    }
+    syncFloor();
   } catch (error) {
     document
       .querySelector("#platformStatus")
@@ -1209,11 +1466,19 @@ platformModal.onclick = (e) => {
   if (e.target === platformModal) closePlatform();
 };
 function connectPlatformStream() {
-  if (platformSocket) platformSocket.close();
+  clearTimeout(floorReconnect);
+  if (platformSocket) {
+    platformSocket.onclose = null;
+    platformSocket.close();
+  }
+  floorConnected = false;
   try {
     platformSocket = new WebSocket(platformConfig.streamUrl);
-    platformSocket.onopen = () =>
+    platformSocket.onopen = () => {
+      floorConnected = true;
+      syncFloor();
       platformStatus("Gateway y stream conectados · esperando eventos", "ok");
+    };
     platformSocket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
@@ -1229,6 +1494,9 @@ function connectPlatformStream() {
       } catch (e) {}
     };
     platformSocket.onclose = () => {
+      floorConnected = false;
+      renderLiveEmployee();
+      floorReconnect = setTimeout(connectPlatformStream, 5000);
       if (platformModal.classList.contains("open"))
         platformStatus(
           "Stream desconectado · el modo local sigue disponible",
@@ -2640,26 +2908,6 @@ document.querySelector("#scenario").onchange = (e) => {
   }
   runTrace();
 };
-setInterval(() => {
-  if (engine.state !== "running") return;
-  engine.events += Math.floor(Math.random() * 4);
-  document.querySelector("#eventCount").textContent = engine.events
-    .toLocaleString("en-US")
-    .padStart(7, "0");
-  dataPlane.ingest(
-    {
-      symbol: "BTCUSDT",
-      price: 68420 + Math.random() * 12,
-      volume: 8 + Math.random() * 5,
-      timestamp: Date.now(),
-    },
-    "exchange-a",
-  );
-  const health = dataPlane.health("BTCUSDT");
-  if (engine.scenario === "normal")
-    document.querySelector("#feedHealth").textContent =
-      health.status.toUpperCase();
-}, 1600);
 renderEngine();
 function focusRoom(a) {
   scale = Math.min(
@@ -2705,6 +2953,9 @@ tick();
 apply();
 loadFloorTopology();
 connectPlatformStream();
+syncFloor();
+setInterval(syncFloor, 5000);
+setInterval(renderLiveEmployee, 1000);
 setTimeout(() => selectArea(areas[0]), 300);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {

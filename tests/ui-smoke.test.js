@@ -175,6 +175,82 @@ for (const file of [
   );
   await new Promise((resolve) => setImmediate(resolve));
 
+  const snapshotAt = Date.now(),
+    snapshot = {
+      paperOnly: true,
+      at: snapshotAt,
+      markets: [
+        {
+          symbol: "SOL-USD",
+          ticker: {
+            price: 123.45,
+            source: "coinbase",
+            receivedAt: new Date(snapshotAt).toISOString(),
+          },
+        },
+      ],
+      events: [],
+      intelligence: [],
+      pipeline: {
+        halted: true,
+        haltReason: "manual",
+        risk: { halted: true },
+        portfolio: { equity: 100000 },
+        audit: { valid: true },
+      },
+      execution: { queue: 2, metrics: { fills: 1 } },
+    };
+  window.fetch = async () => ({ ok: true, json: async () => snapshot });
+  await window.syncFloor();
+  document.querySelector('.agent[data-node-id="desk.sol"]').click();
+  assert.match(
+    document.querySelector("#nodeLiveActivity").textContent,
+    /123.45.*esperando análisis/,
+  );
+  assert.match(document.querySelector("#modelOutput").textContent, /123.45/);
+  assert.equal(
+    document.querySelector("#confidenceValue").textContent,
+    "—",
+    "market prices must not invent analytical confidence",
+  );
+  assert.equal(document.querySelector("#nodeEventCount").textContent, "1");
+  await window.syncFloor();
+  assert.equal(
+    document.querySelector("#nodeEventCount").textContent,
+    "1",
+    "unchanged market snapshots are deduplicated",
+  );
+  document.querySelector('.agent[data-node-id="risk.manager"]').click();
+  assert.match(
+    document.querySelector("#nodeLiveActivity").textContent,
+    /HALT: manual/,
+  );
+  assert.equal(
+    document.querySelector("#nodeLiveStatus").textContent,
+    "BLOCKED",
+  );
+  document.querySelector('.agent[data-node-id="desk.sol"]').click();
+  const originalNow = window.Date.now;
+  window.Date.now = () => snapshotAt + 60000;
+  MockWebSocket.instances[0].onopen();
+  window.renderLiveEmployee();
+  assert.equal(
+    document.querySelector("#nodeLiveStatus").textContent,
+    "DATOS ANTIGUOS",
+  );
+  MockWebSocket.instances[0].onclose();
+  window.renderLiveEmployee();
+  assert.equal(
+    document.querySelector("#nodeLiveStatus").textContent,
+    "DESCONECTADO",
+  );
+  assert.equal(
+    document.querySelector('.agent[data-node-id="desk.sol"]').dataset.freshness,
+    "offline",
+  );
+
+  window.Date.now = originalNow;
+  await new Promise((resolve) => setImmediate(resolve));
   window.fetch = async (url) => {
     if (url.includes("api.exchange.coinbase.com"))
       return {

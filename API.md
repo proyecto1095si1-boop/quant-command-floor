@@ -2,6 +2,21 @@
 
 ## Mapa operativo 2D
 
+`GET /v1/floor/snapshot` consulta el estado actual sin ejecutar operaciones:
+precios/libros disponibles, snapshots vigentes de inteligencia, estado del
+pipeline, cartera, auditoría, cola paper y últimos eventos por empleado/activo.
+Usa la autenticación de lectura del gateway; no es un endpoint público en
+producción. La caché de eventos conserva hasta 100 claves y se pierde al reiniciar
+el backend. Abrir el mapa no inicia análisis, órdenes ni llamadas a IA.
+
+El mapa carga ese estado al abrir y cada cinco segundos, además del WebSocket.
+Tras una desconexión intenta reconectar cada cinco segundos. Cada cartel muestra
+la actividad observada, la hora, entradas, salidas y confianza si existe. Un
+precio recibido no equivale a un análisis. Los nodos sin telemetría quedan sin
+datos; después de 30 segundos la última observación se marca antigua. Si falla
+el stream y la última consulta tiene más de 15 segundos, se indica desconexión.
+Las fórmulas del inspector solo se muestran si están presentes en el resultado.
+
 `GET /v1/floor/topology` devuelve la topología canónica del camino real
 `datos → mesas → consenso → riesgo → ejecución paper → auditoría`. Incluye
 nueve áreas, identificadores estables de nodo, enlaces visuales y el universo

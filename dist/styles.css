@@ -381,7 +381,7 @@ nav {
   stroke: #42d7d066;
   stroke-width: 2;
   stroke-dasharray: 7 8;
-  animation: dataflow 1.6s linear infinite;
+  animation: none;
 }
 .network-path.risk {
   stroke: #ff586488;
@@ -1290,6 +1290,34 @@ nav {
   border: 1px solid #26383e;
   background: #071116;
   padding: 9px;
+}
+#nodeLiveActivity {
+  padding: 12px;
+  border-left: 3px solid var(--accent);
+  background: #13252d;
+  color: #e0f4ef;
+  font:
+    12px/1.6 Manrope,
+    sans-serif;
+  overflow-wrap: anywhere;
+}
+#nodeLiveTime {
+  display: block;
+  margin: 8px 0 14px;
+  color: #9ab4c1;
+  font: 10px/1.5 monospace;
+}
+.io-grid b {
+  overflow-wrap: anywhere;
+  max-height: 120px;
+  overflow: auto;
+}
+.agent[data-freshness="stale"] {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+.agent[data-freshness="offline"] {
+  opacity: 0.35;
 }
 .node-events-head {
   display: flex;
