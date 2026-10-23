@@ -77,15 +77,7 @@ el gobierno en estado no disponible y bloquean nuevas mutaciones.
 Los GET requieren viewer. Los POST requieren admin; promoción además necesita
 un segundo aprobador.
 
-Antes de promover, T19 permite ejecutar el challenger en shadow o canary paper
-contra el champion. La asignación, métricas pareadas, privacidad y rollback se
-documentan en `SHADOW_CANARY.md`.
-
-Los modelos IA usan además la suite adversarial T20 antes de quedar elegibles.
-No reutiliza artificialmente p-values financieros: registra una evaluación
-tipada con gates de seguridad, grounding, schema, sesgo, estabilidad, costo y
-latencia descritos en `AI_EVALUATION.md`.
-
-T21 incorpora procedencia firmada, linaje, hashes de reproducibilidad,
-calibración ECE/Brier e intervalos Wilson. La decisión criptográfica y sus
-límites están en `adr/0012-signed-dataset-provenance.md`.
+La plataforma avanzada de experimentos, evaluación adversarial y procedencia
+de datasets fue retirada del alcance activo en R4. Su implementación y diseño
+histórico siguen recuperables en el tag `pre-recorte`; no forman parte de esta
+API congelada.

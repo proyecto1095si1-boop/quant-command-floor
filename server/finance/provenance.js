@@ -14,6 +14,32 @@ function financialError(message, status = 422) {
   return Object.assign(new Error(message), { status });
 }
 
+function parseTrustedIssuers(value) {
+  if (!value) return new Map();
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw financialError("invalid-trusted-issuers-config");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+    throw financialError("invalid-trusted-issuers-config");
+  const issuers = new Map();
+  try {
+    for (const [issuerId, publicKey] of Object.entries(parsed)) {
+      if (!ID.test(issuerId) || typeof publicKey !== "string")
+        throw new Error("invalid-issuer");
+      const key = crypto.createPublicKey(publicKey);
+      if (key.asymmetricKeyType !== "ed25519")
+        throw new Error("invalid-key-type");
+      issuers.set(issuerId, key);
+    }
+  } catch {
+    throw financialError("invalid-trusted-issuers-config");
+  }
+  return issuers;
+}
+
 function verifyInvoiceAttestation(invoice, input, trustedIssuers) {
   const attestation = {
       issuerId: String(input?.issuerId || "").trim(),
@@ -149,4 +175,4 @@ class FxOracle {
   }
 }
 
-module.exports = { FxOracle, verifyInvoiceAttestation };
+module.exports = { FxOracle, parseTrustedIssuers, verifyInvoiceAttestation };

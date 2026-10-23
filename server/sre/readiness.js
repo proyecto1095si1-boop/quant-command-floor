@@ -113,9 +113,6 @@ class ReadinessService {
     execution,
     sre,
     governance,
-    experiments,
-    aiEvaluation,
-    calibrationGovernance,
     aiProviderHealth,
     record = async () => {},
     clock = () => new Date(),
@@ -127,9 +124,6 @@ class ReadinessService {
     this.execution = execution;
     this.sre = sre;
     this.governance = governance;
-    this.experiments = experiments;
-    this.aiEvaluation = aiEvaluation;
-    this.calibrationGovernance = calibrationGovernance;
     this.aiProviderHealth = aiProviderHealth;
     this.record = record;
     this.clock = clock;
@@ -139,9 +133,6 @@ class ReadinessService {
       typeof execution?.status !== "function" ||
       typeof sre?.snapshot !== "function" ||
       typeof governance?.status !== "function" ||
-      typeof experiments?.list !== "function" ||
-      typeof aiEvaluation?.status !== "function" ||
-      typeof calibrationGovernance?.status !== "function" ||
       typeof aiProviderHealth?.status !== "function"
     )
       throw new Error("invalid-readiness-dependencies");
@@ -186,9 +177,6 @@ class ReadinessService {
       execution = this.execution.status(),
       sre = await this.sre.snapshot(),
       governance = this.governance.status(),
-      experiments = this.experiments.list(),
-      aiEvaluation = this.aiEvaluation.status(),
-      calibration = this.calibrationGovernance.status(),
       providerHealth = this.aiProviderHealth.status(),
       executions = execution.metrics.children || 0,
       rejectionRate = executions ? execution.metrics.rejected / executions : 0,
@@ -303,33 +291,6 @@ class ReadinessService {
           "degrade",
           governance.ready === true,
           governance.recoveryError || governance.ready,
-          true,
-          ["aiSignals"],
-        ),
-        check(
-          "governance.experiments",
-          "ai",
-          "degrade",
-          experiments.ready === true,
-          experiments.ready,
-          true,
-          ["aiSignals"],
-        ),
-        check(
-          "governance.evaluations",
-          "ai",
-          "degrade",
-          aiEvaluation.ready === true,
-          aiEvaluation.ready,
-          true,
-          ["aiSignals"],
-        ),
-        check(
-          "governance.calibration",
-          "ai",
-          "degrade",
-          calibration.ready === true,
-          calibration.ready,
           true,
           ["aiSignals"],
         ),

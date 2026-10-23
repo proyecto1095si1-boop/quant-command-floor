@@ -1884,14 +1884,12 @@ function closeIntelligence() {
 }
 async function refreshIntelligence() {
   try {
-    const [response, dagResponse, governanceResponse] = await Promise.all([
+    const [response, dagResponse] = await Promise.all([
         fetch(platformConfig.backendBaseUrl + "/v1/intelligence/status"),
         fetch(platformConfig.backendBaseUrl + "/v1/intelligence/dag/status"),
-        fetch(platformConfig.backendBaseUrl + "/v1/governance/intelligence"),
       ]),
       data = await response.json(),
-      dag = await dagResponse.json(),
-      governance = await governanceResponse.json();
+      dag = await dagResponse.json();
     if (!response.ok)
       throw new Error(data.error || "intelligence-service-unavailable");
     const providers = Object.values(data.providers || {}),
@@ -1913,19 +1911,6 @@ async function refreshIntelligence() {
       : '<div class="sre-service"><b>INTEL HUB</b><span>SIN SNAPSHOTS · requiere refresh autenticado del DAG</span></div>';
     document.querySelector("#intelligenceStatus").textContent =
       `${configured}/${providers.length} proveedores configurados · ${assets.length} activos con consenso PIT · recovery ${dag.recovery?.recovered ? "VERIFIED" : "PENDING"} · PAPER ONLY`;
-    const governedExperiments = Array.isArray(governance.experiments)
-        ? governance.experiments
-        : [],
-      forecasts = governedExperiments.reduce(
-        (total, experiment) => total + Number(experiment.forecasts || 0),
-        0,
-      ),
-      resolved = governedExperiments.reduce(
-        (total, experiment) => total + Number(experiment.labels?.resolved || 0),
-        0,
-      );
-    document.querySelector("#intelligenceGovernance").textContent =
-      `GOVERNANCE ${governance.ready ? "READY" : "BLOCKED"} · datasets ${Number(governance.datasets || 0)} · holdouts sellados ${Number(governance.sealedHoldouts || 0)} · runs ${Number(governance.runs || 0)} · experimentos ${governedExperiments.length} · forecasts ${forecasts} · resueltos ${resolved}`;
   } catch (error) {
     document.querySelector("#intelligenceStatus").textContent =
       `DATA API ERROR · ${error.message}`;
