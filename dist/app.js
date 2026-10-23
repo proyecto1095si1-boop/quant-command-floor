@@ -1863,8 +1863,19 @@ async function refreshIntelligence() {
       : '<div class="sre-service"><b>INTEL HUB</b><span>SIN SNAPSHOTS · requiere refresh autenticado del DAG</span></div>';
     document.querySelector("#intelligenceStatus").textContent =
       `${configured}/${providers.length} proveedores configurados · ${assets.length} activos con consenso PIT · recovery ${dag.recovery?.recovered ? "VERIFIED" : "PENDING"} · PAPER ONLY`;
+    const governedExperiments = Array.isArray(governance.experiments)
+        ? governance.experiments
+        : [],
+      forecasts = governedExperiments.reduce(
+        (total, experiment) => total + Number(experiment.forecasts || 0),
+        0,
+      ),
+      resolved = governedExperiments.reduce(
+        (total, experiment) => total + Number(experiment.labels?.resolved || 0),
+        0,
+      );
     document.querySelector("#intelligenceGovernance").textContent =
-      `GOVERNANCE ${governance.ready ? "READY" : "BLOCKED"} · datasets ${Number(governance.datasets || 0)} · holdouts sellados ${Number(governance.sealedHoldouts || 0)} · runs ${Number(governance.runs || 0)} · aprobaciones ${Number(governance.approvals || 0)}`;
+      `GOVERNANCE ${governance.ready ? "READY" : "BLOCKED"} · datasets ${Number(governance.datasets || 0)} · holdouts sellados ${Number(governance.sealedHoldouts || 0)} · runs ${Number(governance.runs || 0)} · experimentos ${governedExperiments.length} · forecasts ${forecasts} · resueltos ${resolved}`;
   } catch (error) {
     document.querySelector("#intelligenceStatus").textContent =
       `DATA API ERROR · ${error.message}`;
