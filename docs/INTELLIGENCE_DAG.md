@@ -26,6 +26,10 @@ queda `blocked`, con señal y confianza cero.
 - Cada respuesta conserva proveedor, operación, cantidad, error y SHA-256.
 - El snapshot completo tiene SHA-256 y se registra en
   `intelligence.<ASSET>`.
+- Al arrancar se relee cada stream, se verifican hash, activo, versión,
+  causalidad y secuencia monotónica antes de restaurar el último snapshot.
+- La recuperación es atómica: una historia inválida nunca reemplaza un estado
+  previamente verificado.
 - El pipeline conserva hash, estado y confianza en su etapa de intake.
 - `Intel Hub` participa del consenso de mesa solo cuando el snapshot está
   `ready`; en otro caso permanece con confianza cero.

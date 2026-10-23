@@ -155,6 +155,12 @@ estado, confianza y hash por activo, sin exponer el contenido ni secretos. El
 modelo matemático está en
 [`docs/INTELLIGENCE_DAG.md`](docs/INTELLIGENCE_DAG.md).
 
+`POST /v1/research/intelligence-calibration` recibe observaciones causales con
+`timestamp`, `outcomeAt`, `outcome` y nodos `macro/news/market`. Ejecuta
+walk-forward anidado con purga y embargo, y devuelve únicamente una
+recomendación `research-only` con `autoApply: false`. Contrato matemático:
+[`docs/INTELLIGENCE_CALIBRATION.md`](docs/INTELLIGENCE_CALIBRATION.md).
+
 `POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
 parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales
 con `timestamp`, `outcome`, `regime` y `signals`; acepta políticas `folds`,

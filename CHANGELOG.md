@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Intelligence DAG recupera snapshots con verificación SHA-256 y secuencia
+  causal; sus pesos pueden evaluarse mediante walk-forward anidado purgado y
+  embargado, sin autoaplicación.
 - Las APIs externas alimentan un DAG point-in-time hasheado con nodos Macro,
   Noticias/Sentimiento y Técnico externo; su consenso penaliza desacuerdo y se
   incorpora a las mesas como `Intel Hub` solo con dos fuentes activas.
