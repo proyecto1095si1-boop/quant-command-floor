@@ -40,8 +40,7 @@ const clamp = (value, min = -1, max = 1) =>
   deviation = (values) => {
     const center = mean(values);
     return Math.sqrt(mean(values.map((value) => (value - center) ** 2)));
-  },
-  isoDay = (timestamp) => new Date(timestamp).toISOString().slice(0, 10);
+  };
 
 function observedAt(row) {
   const candidate = row.publishedAt ?? row.timestamp ?? row.date;
@@ -98,9 +97,7 @@ function validateSnapshot(snapshot, expectedAsset, now) {
       Array.isArray(body.provenance) &&
       body.provenance.every(
         (row) =>
-          ["finnhub", "fred", "fmp", "polygon", "yahoo"].includes(
-            row?.provider,
-          ) &&
+          ["finnhub", "fred"].includes(row?.provider) &&
           Number.isInteger(row.records) &&
           row.records >= 0 &&
           /^[a-f0-9]{64}$/.test(String(row.dataHash || "")),
@@ -300,7 +297,7 @@ class IntelligenceDag {
     this.recovery = { recovered: false, snapshots: 0, assets: 0 };
   }
 
-  async refresh(asset, { asOf, from, to } = {}) {
+  async refresh(asset, { asOf } = {}) {
     const symbol = String(asset || "").toUpperCase();
     if (!/^[A-Z0-9]{2,10}$/.test(symbol))
       throw Object.assign(new Error("invalid-intelligence-asset"), {
@@ -312,22 +309,9 @@ class IntelligenceDag {
       throw Object.assign(new Error("invalid-intelligence-as-of"), {
         status: 422,
       });
-    const end = to || isoDay(decisionAt),
-      start = from || isoDay(Date.parse(`${end}T00:00:00Z`) - 30 * DAY_MS),
-      requests = [
+    const requests = [
         ["finnhub", "news", { category: "crypto" }],
-        ["fmp", "news", { symbols: symbol, limit: 50 }],
         ["fred", "series", { seriesId: "CPIAUCSL", limit: 13 }],
-        [
-          "polygon",
-          "aggregates",
-          { ticker: `X:${symbol}USD`, from: start, to: end },
-        ],
-        [
-          "yahoo",
-          "chart",
-          { symbol: `${symbol}-USD`, from: start, to: end, interval: "1d" },
-        ],
       ],
       settled = await Promise.all(
         requests.map(async ([provider, operation, params]) => {
@@ -347,11 +331,7 @@ class IntelligenceDag {
         .filter((row) => row.operation === "news")
         .flatMap((row) => row.data),
       macro = settled.find((row) => row.provider === "fred")?.data || [],
-      market = reconcileMarketRows(
-        settled
-          .filter((row) => ["polygon", "yahoo"].includes(row.provider))
-          .flatMap((row) => row.data),
-      ),
+      market = [],
       nodes = [
         macroNode(macro, decisionAt),
         newsNode(news, decisionAt),

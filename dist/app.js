@@ -1225,7 +1225,8 @@ function drawEquity(points) {
           `${(i / (values.length - 1 || 1)) * 700},${140 - ((v - min) / range) * 130}`,
       )
       .join(" ");
-  svg.innerHTML = `<polygon points="0,150 ${coords} 700,150"/><polyline points="${coords}"/>`;
+  const area = `M 0 150 L ${coords.replaceAll(" ", " L ")} L 700 150 Z`;
+  svg.innerHTML = `<path class="chart-area" d="${area}"/><polyline points="${coords}"/>`;
   document.querySelector("#dashChartRange").textContent =
     `${money(min)} → ${money(max)}`;
 }
