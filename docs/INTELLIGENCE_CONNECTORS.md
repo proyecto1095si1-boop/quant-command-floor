@@ -3,10 +3,14 @@
 El runtime admite solamente dos proveedores read-only y nunca acepta
 credenciales desde el navegador.
 
-| Proveedor | Operación | Uso permitido |
-|---|---|---|
-| Finnhub | `news` | Noticias de categoría `crypto` |
-| FRED | `series` | Series macroeconómicas que contextualizan cripto |
+| Proveedor | Operación | Uso permitido                                    |
+| --------- | --------- | ------------------------------------------------ |
+| Finnhub   | `news`    | Noticias de categoría `crypto`                   |
+| FRED      | `series`  | Series macroeconómicas que contextualizan cripto |
+
+La agregación por activo se expone en
+`POST /v1/intelligence/news/signal`. Es una operación interna del servicio: no
+amplía la allowlist externa ni permite controlar el request hacia Finnhub.
 
 ## Contrato de seguridad
 

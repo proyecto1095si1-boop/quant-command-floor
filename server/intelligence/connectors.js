@@ -1,6 +1,7 @@
 "use strict";
 
 const { environmentFetch } = require("../data/http-client.js");
+const { analyzeCryptoNews } = require("./news.js");
 
 const SERIES = /^[A-Z0-9][A-Z0-9._-]{0,79}$/,
   DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -239,6 +240,19 @@ class IntelligenceService {
       receivedAt: Date.now(),
       data,
     };
+  }
+
+  async newsSignal({ asset, asOf, limit = 100 } = {}) {
+    const now = Date.now(),
+      requestedAsOf = asOf === undefined ? null : Number(asOf);
+    if (
+      requestedAsOf !== null &&
+      (!Number.isFinite(requestedAsOf) || requestedAsOf > now)
+    )
+      throw Object.assign(new Error("invalid-news-as-of"), { status: 422 });
+    const rows = await this.connectors.finnhub.news({ category: "crypto" });
+    const decisionAt = requestedAsOf ?? Date.now();
+    return analyzeCryptoNews(rows, { asset, asOf: decisionAt, limit });
   }
 
   status() {

@@ -1,33 +1,11 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const { analyzeCryptoNews } = require("./news.js");
 
 const DAY_MS = 86400000,
   NODE_WEIGHTS = { macro: 0.25, news: 0.35, market: 0.4 },
-  POSITIVE = new Set([
-    "adoption",
-    "approval",
-    "beat",
-    "bullish",
-    "growth",
-    "gain",
-    "record",
-    "rally",
-    "surge",
-    "upgrade",
-  ]),
-  NEGATIVE = new Set([
-    "ban",
-    "bearish",
-    "decline",
-    "downgrade",
-    "fraud",
-    "hack",
-    "loss",
-    "lawsuit",
-    "risk",
-    "selloff",
-  ]);
+  NEWS_MAX_AGE_MS = 3 * DAY_MS;
 
 const clamp = (value, min = -1, max = 1) =>
     Math.max(min, Math.min(max, Number(value) || 0)),
@@ -118,48 +96,26 @@ function validateSnapshot(snapshot, expectedAsset, now) {
   return structuredClone(snapshot);
 }
 
-function lexicalScore(text) {
-  const words =
-    String(text || "")
-      .toLowerCase()
-      .match(/[a-z]+/g) || [];
-  let positive = 0,
-    negative = 0;
-  for (const word of words) {
-    if (POSITIVE.has(word)) positive++;
-    if (NEGATIVE.has(word)) negative++;
-  }
-  return positive + negative
-    ? (positive - negative) / (positive + negative)
-    : 0;
-}
-
-function newsNode(rows, asOf) {
-  const eligible = pointInTime(rows, asOf, 3 * DAY_MS),
-    weighted = eligible.map((row) => {
-      const age = Math.max(0, asOf - observedAt(row)),
-        decay = Math.exp((-Math.log(2) * age) / DAY_MS),
-        score = lexicalScore(
-          `${row.headline || row.title || ""} ${row.summary || row.text || ""}`,
-        );
-      return { score, decay };
-    }),
-    denominator = weighted.reduce((sum, row) => sum + row.decay, 0),
-    signal = denominator
-      ? weighted.reduce((sum, row) => sum + row.score * row.decay, 0) /
-        denominator
-      : 0;
+function newsNode(rows, asOf, asset) {
+  const analysis = analyzeCryptoNews(rows, {
+    asset,
+    asOf,
+    maxAgeMs: NEWS_MAX_AGE_MS,
+    halfLifeMs: DAY_MS,
+  });
   return {
     id: "news",
     employee: "Noticias / Sentimiento",
-    method: "lexicon-score + exponential-decay(halfLife=24h)",
-    signal: clamp(signal),
-    confidence: clamp(
-      (1 - Math.exp(-eligible.length / 5)) * (denominator ? 1 : 0),
-      0,
-      1,
-    ),
-    observations: eligible.length,
+    method:
+      "asset-relevance × lexicon-sentiment × exponential-decay(halfLife=24h)",
+    signal: analysis.signal,
+    confidence: analysis.confidence,
+    observations: analysis.observations,
+    metrics: {
+      dispersion: analysis.dispersion,
+      rejected: analysis.rejected,
+      evidenceHash: analysis.evidenceHash,
+    },
   };
 }
 
@@ -334,7 +290,7 @@ class IntelligenceDag {
       market = [],
       nodes = [
         macroNode(macro, decisionAt),
-        newsNode(news, decisionAt),
+        newsNode(news, decisionAt, symbol),
         marketNode(market, decisionAt),
       ],
       combined = consensus(nodes, this.minimumSources),
@@ -427,7 +383,6 @@ class IntelligenceDag {
 module.exports = {
   IntelligenceDag,
   consensus,
-  lexicalScore,
   macroNode,
   marketNode,
   newsNode,

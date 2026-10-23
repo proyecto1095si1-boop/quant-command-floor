@@ -55,6 +55,9 @@ function response(data, status = 200) {
     });
   assert.equal(result.readOnly, true);
   assert.equal(result.paperOnly, true);
+  const newsSignal = await service.newsSignal({ asset: "BTC" });
+  assert.equal(newsSignal.paperOnly, true);
+  assert.equal(newsSignal.observations, 1);
   assert.deepEqual(Object.keys(service.status().providers).sort(), [
     "finnhub",
     "fred",
