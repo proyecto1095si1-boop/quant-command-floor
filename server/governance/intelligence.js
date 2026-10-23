@@ -134,6 +134,22 @@ class IntelligenceGovernanceService {
     return run;
   }
 
+  approvedExperiment(experimentId) {
+    const approval = this.approvals.find(
+      (item) => item.experimentId === String(experimentId || ""),
+    );
+    if (!approval) invalid("intelligence-experiment-not-approved", 404);
+    const run = this.runById(approval.runId),
+      experiment = this.experiments.get(approval.experimentId);
+    if (
+      experiment.modelId !== approval.modelId ||
+      experiment.challengerVersion !== approval.version ||
+      run.approvalId !== approval.id
+    )
+      invalid("intelligence-experiment-binding-mismatch", 409);
+    return { approval, run, experiment };
+  }
+
   async registerDataset(input = {}, actor = "system") {
     this.ensureReady();
     const datasetId = String(input.datasetId || "").trim(),
@@ -315,6 +331,85 @@ class IntelligenceGovernanceService {
     return { paperOnly: true, approval, experiment };
   }
 
+  async forecast(input = {}) {
+    this.ensureReady();
+    const { experiment } = this.approvedExperiment(input.experimentId);
+    if (experiment.state !== "running")
+      invalid("intelligence-experiment-not-running", 409);
+    const updated = await this.experiments.observeForecast(experiment.id, {
+      requestId: input.requestId,
+      symbol: input.symbol,
+      horizonMs: input.horizonMs,
+      thresholdBps: input.thresholdBps,
+      championProbability: input.championProbability,
+      challengerProbability: input.challengerProbability,
+      regime: input.regime,
+    });
+    return { paperOnly: true, experiment: updated };
+  }
+
+  async resolve(input = {}, actor = "system") {
+    this.ensureReady();
+    const { experiment } = this.approvedExperiment(input.experimentId);
+    if (input.outcome !== undefined || input.outcomeAt !== undefined)
+      invalid("manual-outcome-not-allowed");
+    const updated = await this.experiments.labelForecast(
+      experiment.id,
+      { requestId: input.requestId },
+      actor,
+    );
+    return { paperOnly: true, experiment: updated };
+  }
+
+  async graduate(input = {}, approvals = {}, actor = "system") {
+    this.ensureReady();
+    const { approval, run, experiment } = this.approvedExperiment(
+        input.experimentId,
+      ),
+      result = await this.experiments.graduate(
+        experiment.id,
+        actor,
+        String(input.reason || ""),
+        approvals,
+      );
+    return {
+      paperOnly: true,
+      runId: run.id,
+      approvalId: approval.id,
+      ...result,
+    };
+  }
+
+  async activate(input = {}, approvals = {}) {
+    this.ensureReady();
+    const { approval, run, experiment } = this.approvedExperiment(
+      input.experimentId,
+    );
+    if (experiment.state !== "graduated" || !experiment.graduation)
+      invalid("intelligence-experiment-graduation-required", 409);
+    if (
+      experiment.graduation.modelId !== approval.modelId ||
+      experiment.graduation.challengerVersion !== approval.version
+    )
+      invalid("intelligence-graduation-binding-mismatch", 409);
+    const result = await this.governance.promote(
+      {
+        modelId: approval.modelId,
+        version: approval.version,
+        reason: String(input.reason || "intelligence-paper-activation"),
+      },
+      approvals,
+    );
+    return {
+      paperOnly: true,
+      activation: "paper-champion",
+      experimentId: experiment.id,
+      runId: run.id,
+      graduationHash: experiment.graduation.hash,
+      ...result,
+    };
+  }
+
   status() {
     return {
       paperOnly: true,
@@ -326,6 +421,17 @@ class IntelligenceGovernanceService {
       ).length,
       runs: this.runs.length,
       approvals: this.approvals.length,
+      experiments: this.approvals.map((approval) => {
+        const experiment = this.experiments.get(approval.experimentId);
+        return {
+          experimentId: approval.experimentId,
+          modelId: approval.modelId,
+          version: approval.version,
+          state: experiment.state,
+          forecasts: experiment.forecasts.length,
+          labels: experiment.labels,
+        };
+      }),
       lastRun: this.runs.at(-1) || null,
     };
   }

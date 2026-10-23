@@ -16,6 +16,21 @@ trazable. No cambia los pesos activos y no autoriza capital real.
 7. Ejecutar shadow con 0% o canary paper con un máximo de 5%.
 8. Graduar el experimento con evidencia positiva antes de solicitar promoción.
 
+## Ciclo de resultados y activación paper
+
+Cada experimento aprobado registra probabilidades champion/challenger antes del
+vencimiento. El oracle fija el precio de origen, espera el horizonte y obtiene
+evidencia final de fuentes independientes. La API prohíbe escribir manualmente
+el outcome o su timestamp.
+
+La graduación exige scoring secuencial prequential, no inferioridad, cobertura
+por regímenes, tasa de censura, resolución completa y guardrails operativos.
+Requiere dos aprobadores independientes. Solo después puede promoverse la
+versión a `paper-champion`, nuevamente con cuatro ojos.
+
+Esta activación cambia únicamente el champion del registro de modelos paper. No
+modifica `PAPER_ONLY`, no habilita conectores de órdenes ni autoriza trading real.
+
 ## Gates del holdout
 
 | Gate | Default |

@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Intel Hub conecta forecasts, resultados del oracle, graduación y activación
+  gobernada exclusivamente como champion paper.
 - Los parámetros de Intel Hub pasan por datasets Ed25519, holdout sellado de uso
   único, gates probabilísticos, cuatro ojos y shadow/canary paper antes de poder
   solicitar graduación.
