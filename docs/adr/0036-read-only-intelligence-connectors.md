@@ -1,6 +1,6 @@
 # ADR 0036: conectores de inteligencia read-only
 
-- Estado: aceptada para paper
+- Estado: reemplazada por ADR 0042
 - Fecha: 2026-10-22
 
 ## Contexto

@@ -106,11 +106,6 @@ FINNHUB_API_KEY=
 FINNHUB_RPM=60
 FRED_API_KEY=
 FRED_RPM=60
-FMP_API_KEY=
-FMP_RPM=60
-POLYGON_API_KEY=
-POLYGON_RPM=60
-YAHOO_RPM=30
 INTELLIGENCE_GOVERNANCE_TRUSTED_REVIEWERS=
 ```
 
@@ -134,9 +129,6 @@ exponer claves. `POST /v1/intelligence/query` acepta únicamente estas parejas:
 
 - `finnhub/news`
 - `fred/series`
-- `fmp/profile` y `fmp/news`
-- `polygon/aggregates`
-- `yahoo/chart`
 
 No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
 
@@ -322,13 +314,12 @@ especulativas paralelas. `LLM_POOL_MAX_ATTEMPTS` limita proveedores por request
 y `LLM_POOL_RPM` reserva un presupuesto rodante por proveedor. Si todos están
 abiertos, saturados, sin presupuesto o fallan, se usa el motor matemático local.
 
-## 3. APIs externas necesarias para completar todos los agentes
+## 3. APIs externas dentro del alcance cripto
 
-### Noticias financieras
+### Noticias cripto
 
-Elegir inicialmente **un proveedor**, no todos.
-
-Proveedores posibles: Benzinga, Finnhub, Polygon.io, Alpha Vantage News o NewsAPI.
+El proveedor configurado es Finnhub y la categoría admitida es únicamente
+`crypto`.
 
 Datos mínimos requeridos:
 
@@ -436,68 +427,6 @@ MACRO_POLL_MS=3600000
 Series iniciales: CPI, Core CPI, PCE, Fed Funds, 2Y/10Y yields, unemployment, payrolls, DXY proxy y balance de la Fed.
 
 Consumidores: Macro, Economy, Macro News Reader y CIO.
-
-### Acciones, ETFs e índices
-
-Elegir Polygon.io, Finnhub, Twelve Data, Tiingo o un feed profesional según latencia/licencia.
-
-Datos requeridos:
-
-- OHLCV ajustado y corporate actions.
-- Quotes y trades si se necesita intradía.
-- Fundamentals normalizados.
-- Earnings calendar y estimates.
-- Insider transactions.
-- Constituents de índices/ETFs.
-
-```env
-EQUITIES_PROVIDER=polygon
-EQUITIES_BASE_URL=https://api.polygon.io
-EQUITIES_API_KEY=
-```
-
-Consumidores: Fundamental, Growth, Value, Cashflow, Balance Sheet, Insider y Earnings.
-
-### Argentina, CEDEARs y tipo de cambio
-
-Se necesitan fuentes autorizadas para:
-
-- Cotizaciones CEDEAR y Merval.
-- Ratios de conversión CEDEAR/acción.
-- CCL y MEP reproducibles.
-- Bonos soberanos para riesgo país.
-- BCRA para variables monetarias y FX oficial.
-
-Posibles integraciones: BYMA Data, Matba Rofex, broker argentino autorizado, BCRA API y datos públicos oficiales.
-
-```env
-AR_MARKET_BASE_URL=
-AR_MARKET_API_KEY=
-BCRA_BASE_URL=https://api.bcra.gob.ar
-CEDEAR_RATIOS_FILE=./config/cedear-ratios.json
-```
-
-Consumidores: Scanner, CCL, MEP, Argentina Risk, Merval y Macro Argentina.
-
-### DeFi
-
-Fuentes recomendadas:
-
-- DefiLlama para TVL y yields agregados.
-- APIs/subgraphs oficiales de Aave, Compound y Maker/Sky.
-- RPC propio o proveedor para verificar on-chain.
-- 0x/1inch solo para cotizaciones; nunca firmar desde el servicio de análisis.
-
-```env
-DEFI_LLAMA_BASE_URL=https://api.llama.fi
-EVM_RPC_URL=
-RPC_API_KEY=
-DEX_QUOTE_BASE_URL=
-```
-
-Datos: APY base/rewards, TVL, utilization, borrow rate, chain ID, contract address, block number y timestamp.
-
-Consumidores: Yield Farmer, Funding Arbitrageur y DEX Triangle Scanner.
 
 ### Derivados y opciones
 

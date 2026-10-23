@@ -2,7 +2,8 @@
 
 ## Estado
 
-Aceptado.
+Reemplazado por ADR 0042. El conector fue retirado del alcance activo y es
+recuperable desde el tag `pre-recorte`.
 
 ## Decisión
 

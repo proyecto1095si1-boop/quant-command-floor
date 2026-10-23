@@ -9,10 +9,12 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- La inteligencia externa queda limitada a Finnhub `crypto` y FRED; se retiran
+  los conectores multiactivo, sus variables, UI y pruebas conforme al ADR 0042.
+- El nodo técnico externo queda sin observaciones y degrada explícitamente en
+  vez de usar una fuente fuera del alcance.
 - La UI publicada usa Coinbase y Kraken como fallback público read-only cuando
   el backend configurado no está disponible, en vez de mostrar datos vacíos.
-- Yahoo Finance aporta velas read-only al nodo técnico mediante un conector Node
-  sin clave ni dependencia runtime, reconciliado por timestamp con Polygon.
 - Intel Hub conecta forecasts, resultados del oracle, graduación y activación
   gobernada exclusivamente como champion paper.
 - Los parámetros de Intel Hub pasan por datasets Ed25519, holdout sellado de uso
@@ -67,9 +69,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
-- Conectores read-only para Finnhub, FRED, Financial Modeling Prep y Polygon,
-  con operaciones allowlisted, secretos solo backend, límites por minuto,
-  timeout, retry, normalización, API interna y consola visual de estado.
+- Conectores read-only para Finnhub y FRED, con operaciones allowlisted,
+  secretos solo backend, límites por minuto, timeout, retry, normalización, API
+  interna y consola visual de estado.
 
 - Procedencia financiera de facturas IA con firma Ed25519, allowlist de emisores,
   oracle FX multifFuente, límites de frescura/divergencia y aprobación contable

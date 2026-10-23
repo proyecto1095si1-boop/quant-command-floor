@@ -1,60 +1,42 @@
 # Conectores externos de inteligencia
 
-La capa integra cinco proveedores exclusivamente read-only. Las claves se resuelven
-en el backend y nunca se devuelven por API, se guardan en la UI ni se registran
-en checkpoints.
+El runtime admite solamente dos proveedores read-only y nunca acepta
+credenciales desde el navegador.
 
-| Proveedor | Operaciones implementadas | Uso previsto |
+| Proveedor | Operación | Uso permitido |
 |---|---|---|
-| Finnhub | `news` | Noticias generales, cripto, forex y M&A |
-| FRED | `series` | Inflación, tasas, empleo y macroeconomía |
-| Financial Modeling Prep | `profile`, `news` | Fundamentales y noticias de acciones |
-| Polygon | `aggregates` | Barras históricas de acciones, ETFs e índices |
-| Yahoo Finance | `chart` | Barras de cripto, acciones, ETFs e índices sin clave |
+| Finnhub | `news` | Noticias de categoría `crypto` |
+| FRED | `series` | Series macroeconómicas que contextualizan cripto |
 
-## Contrato interno
+## Contrato de seguridad
 
-- `GET /v1/intelligence/status`: configuración y salud sin secretos.
-- `POST /v1/intelligence/query`: consulta una operación allowlisted.
-- El resultado siempre declara `readOnly: true` y `paperOnly: true`.
-- No existe operación genérica por URL, escritura remota, orden ni endpoint de
-  administración de claves.
+- Todas las respuestas declaran `readOnly: true`, `paperOnly: true` y
+  `liveTrading: false`.
+- Finnhub rechaza cualquier categoría diferente de `crypto`.
+- El servidor aplica allowlist de proveedor/operación, timeout, reintentos y
+  límite de solicitudes por minuto.
+- El cliente no puede suministrar URL, método HTTP ni cabeceras.
+- Los fallos externos se normalizan y el DAG degrada su cobertura; nunca
+  habilitan ejecución real.
 
-Cada adaptador impone timeout, retries acotados, límite rodante por minuto y
-normalización. Finnhub y Polygon usan cabeceras; FRED y FMP requieren la clave
-en query según su contrato. Yahoo no recibe secretos. Los errores externos se reducen a códigos internos
-y no incluyen URLs con credenciales.
-
-## Operaciones
+Ejemplo permitido:
 
 ```json
-{"provider":"finnhub","operation":"news","params":{"category":"crypto"}}
+{
+  "provider": "finnhub",
+  "operation": "news",
+  "params": { "category": "crypto", "minId": 0 }
+}
 ```
 
-```json
-{"provider":"fred","operation":"series","params":{"seriesId":"CPIAUCSL","limit":100}}
+Variables de entorno:
+
+```env
+FINNHUB_API_KEY=
+FINNHUB_RPM=60
+FRED_API_KEY=
+FRED_RPM=60
 ```
 
-```json
-{"provider":"fmp","operation":"profile","params":{"symbol":"AAPL"}}
-```
-
-```json
-{"provider":"polygon","operation":"aggregates","params":{"ticker":"SPY","from":"2026-10-01","to":"2026-10-22","timespan":"day"}}
-```
-
-```json
-{"provider":"yahoo","operation":"chart","params":{"symbol":"BTC-USD","from":"2026-10-01","to":"2026-10-22","interval":"1d"}}
-```
-
-Yahoo se consume directamente desde Node; no se incorpora Python ni el paquete
-`yfinance`. Es una fuente auxiliar no contractual, por lo que sus fallos no se
-interpretan como señales y Polygon conserva su ruta independiente.
-
-## Seguridad operacional
-
-Una clave expuesta en una captura, chat, commit o archivo compartido debe
-revocarse; no basta con eliminarla del archivo. Las claves nuevas deben entrar
-mediante variables de entorno o secret manager. Antes de producción se requiere
-revisar licencia, cuotas, retención, redistribución y calidad point-in-time de
-cada proveedor.
+Los adaptadores retirados se pueden recuperar desde el tag `pre-recorte`; no
+forman parte del producto cripto definido en `docs/ALCANCE.md`.
