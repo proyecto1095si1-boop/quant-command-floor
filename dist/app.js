@@ -164,7 +164,10 @@ let floorLinks = [
     },
     { id: "sre-intake", from: "sre", to: "intake" },
   ],
-  floorNodeState = new Map();
+  floorNodeState = new Map(),
+  floorNodeEvents = new Map();
+const MAX_NODE_EVENTS = 20,
+  SENSITIVE_FIELD = /token|secret|authorization|api[-_]?key|password/i;
 
 function nodeSlug(value) {
   return String(value)
@@ -204,6 +207,62 @@ function normalizeAreas(nextAreas) {
       agents: nodes.map((node) => node.label),
     };
   });
+}
+function safePayload(value, depth = 0) {
+  if (depth > 4) return "[depth-limit]";
+  if (Array.isArray(value))
+    return value.slice(0, 12).map((item) => safePayload(item, depth + 1));
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value)
+        .slice(0, 30)
+        .map(([key, item]) => [
+          key,
+          SENSITIVE_FIELD.test(key)
+            ? "[redacted]"
+            : safePayload(item, depth + 1),
+        ]),
+    );
+  if (typeof value === "string" && value.length > 400)
+    return value.slice(0, 400) + "…";
+  return value;
+}
+function eventText(value) {
+  if (value === undefined || value === null || value === "") return "—";
+  const text =
+    typeof value === "string" ? value : JSON.stringify(safePayload(value));
+  return text.length > 1000 ? text.slice(0, 1000) + "…" : text;
+}
+function recordNodeEvent(id, event) {
+  if (!nodeById(id)) return;
+  const history = floorNodeEvents.get(id) || [];
+  history.unshift({
+    at: event.at || new Date().toISOString(),
+    type: event.type || "event",
+    source: event.source || "stream",
+    status: event.status || "ok",
+    input: eventText(event.input),
+    evidence: eventText(event.evidence),
+    formula: eventText(event.formula),
+    output: eventText(event.output),
+  });
+  floorNodeEvents.set(id, history.slice(0, MAX_NODE_EVENTS));
+  if (selectedNodeId === id) renderNodeEvents(id);
+}
+function renderNodeEvents(id) {
+  const history = floorNodeEvents.get(id) || [],
+    list = document.querySelector("#nodeEventList"),
+    empty = document.querySelector("#nodeEventEmpty");
+  document.querySelector("#nodeEventCount").textContent = String(
+    history.length,
+  );
+  empty.hidden = history.length > 0;
+  list.innerHTML = history
+    .map(
+      (event) =>
+        `<li class="node-event ${esc(event.status)}"><header><b>${esc(event.type)}</b><time>${esc(new Date(event.at).toLocaleTimeString([], { hour12: false }))}</time></header><dl><dt>FUENTE</dt><dd>${esc(event.source)}</dd><dt>ENTRADA</dt><dd>${esc(event.input)}</dd><dt>EVIDENCIA</dt><dd>${esc(event.evidence)}</dd><dt>FÓRMULA</dt><dd>${esc(event.formula)}</dd><dt>SALIDA</dt><dd>${esc(event.output)}</dd></dl></li>`,
+    )
+    .join("");
 }
 areas = normalizeAreas(areas);
 const platformStore = new QCFPlatform.ConfigStore(localStorage),
@@ -663,6 +722,7 @@ function showModel(name, nodeId = null) {
     : cfg.connected
       ? `${cfg.type.toUpperCase()} · enlace persistido localmente`
       : "Esperando evento real · configuración local";
+  renderNodeEvents(selectedNodeId);
 }
 const thoughts = {
   working: [
@@ -954,12 +1014,29 @@ function applyFloorEvent(message) {
           candidate.agent === message.result.agent_id ||
           candidate.label === message.result.agent_id,
       );
-    if (node)
+    if (node) {
       setFloorNodeState(
         node.id,
         "ok",
         `signal ${Number(message.result.signal || 0).toFixed(3)}`,
       );
+      recordNodeEvent(node.id, {
+        type: message.type,
+        source:
+          message.result.provider ||
+          message.result.fallback?.engine ||
+          "agent gateway",
+        status: "ok",
+        input: { requestId: message.request_id || null },
+        evidence: message.result.evidence,
+        formula: modelFor(node.label)[1],
+        output: {
+          signal: message.result.signal,
+          confidence: message.result.confidence,
+          fallback: message.result.fallback || null,
+        },
+      });
+    }
     pulseFloorLink("intake", "desks");
     return;
   }
@@ -971,6 +1048,23 @@ function applyFloorEvent(message) {
       status,
       `${report.action || "NO_TRADE"} · confianza ${Number(report.confidence || 0).toFixed(2)}`,
     );
+    recordNodeEvent(`desk.${String(report.asset).toLowerCase()}`, {
+      type: message.type,
+      source: `${report.product || report.asset} desk`,
+      status,
+      input: report.inputSummary,
+      evidence: report.blockers?.length
+        ? report.blockers
+        : "quality checks passed",
+      formula: report.formula,
+      output: {
+        action: report.action,
+        signal: report.signal,
+        confidence: report.confidence,
+        agreement: report.agreement,
+      },
+      at: report.at,
+    });
     for (const result of report.agents || []) {
       const node = areas
         .flatMap((area) => area.nodes)
@@ -979,18 +1073,51 @@ function applyFloorEvent(message) {
             candidate.agent === result.agent ||
             candidate.label === result.agent,
         );
-      if (node)
+      if (node) {
         setFloorNodeState(
           node.id,
           status,
           `signal ${Number(result.signal || 0).toFixed(3)} · confianza ${Number(result.confidence || 0).toFixed(2)}`,
         );
+        recordNodeEvent(node.id, {
+          type: "desk.agent-result",
+          source: `${report.asset} desk`,
+          status,
+          input: report.inputSummary,
+          evidence: result.evidence,
+          formula: modelFor(node.label)[1],
+          output: {
+            signal: result.signal,
+            confidence: result.confidence,
+            metadata: result.metadata,
+          },
+          at: report.at,
+        });
+      }
     }
     setFloorNodeState(
       "consensus.signal",
       status,
       `${report.action || "NO_TRADE"} · signal ${Number(report.signal || 0).toFixed(3)}`,
     );
+    recordNodeEvent("consensus.signal", {
+      type: "desk.consensus",
+      source: `${report.asset} desk`,
+      status,
+      input: (report.agents || []).map(({ agent, signal, confidence }) => ({
+        agent,
+        signal,
+        confidence,
+      })),
+      evidence: report.blockers,
+      formula: report.formula,
+      output: report.consensus || {
+        action: report.action,
+        signal: report.signal,
+        confidence: report.confidence,
+      },
+      at: report.at,
+    });
     pulseFloorLink("desks", "consensus");
     return;
   }
@@ -1005,12 +1132,26 @@ function applyFloorEvent(message) {
         error: "sre.anomaly",
       },
       id = ids[message.stage.name];
-    if (id)
+    if (id) {
       setFloorNodeState(
         id,
         message.stage.status,
         `${message.asset || "pipeline"} · run ${message.runId || "—"}`,
       );
+      recordNodeEvent(id, {
+        type: `pipeline.${message.stage.name}`,
+        source: `${message.asset || "pipeline"} orchestrator`,
+        status: message.stage.status,
+        input: {
+          runId: message.runId,
+          asset: message.asset,
+        },
+        evidence: message.stage.payload?.blockers,
+        formula: nodeById(id)?.engine || "pipeline policy",
+        output: message.stage.payload,
+        at: message.stage.at,
+      });
+    }
     const flow = {
       signal: ["desks", "consensus"],
       risk: ["consensus", "risk"],

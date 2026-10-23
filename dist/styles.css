@@ -1285,6 +1285,75 @@ nav {
   padding: 0 !important;
   margin: 0 0 9px !important;
 }
+.node-events {
+  margin-top: 12px;
+  border: 1px solid #26383e;
+  background: #071116;
+  padding: 9px;
+}
+.node-events-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--accent);
+  font: 700 8px DM Mono;
+  letter-spacing: 0.08em;
+}
+.node-events-head b {
+  min-width: 20px;
+  text-align: center;
+  border: 1px solid #334a52;
+  color: #cfe7ed;
+}
+#nodeEventEmpty {
+  margin: 9px 0 0;
+  color: #657a81;
+  font: 8px DM Mono;
+}
+#nodeEventList {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 7px;
+  max-height: 280px;
+  overflow: auto;
+}
+.node-event {
+  border-left: 2px solid #40555d;
+  background: #0c191e;
+  padding: 7px;
+  font: 8px DM Mono;
+}
+.node-event.ok {
+  border-left-color: #4adf89;
+}
+.node-event.blocked,
+.node-event.error {
+  border-left-color: #ff5864;
+}
+.node-event header {
+  display: flex;
+  justify-content: space-between;
+  color: #9eb3ba;
+}
+.node-event header b {
+  color: #d9edf2;
+}
+.node-event dl {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 4px 7px;
+  margin: 7px 0 0;
+}
+.node-event dt {
+  color: #647b83;
+}
+.node-event dd {
+  margin: 0;
+  color: #acc0c6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
 .agent-chip {
   cursor: pointer;
 }
