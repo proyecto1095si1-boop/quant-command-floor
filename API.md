@@ -168,10 +168,20 @@ Gobierno formal:
 - `POST /v1/governance/intelligence/datasets`
 - `POST /v1/governance/intelligence/evaluate`
 - `POST /v1/governance/intelligence/approve-experiment`
+- `POST /v1/governance/intelligence/forecast`
+- `POST /v1/governance/intelligence/resolve`
+- `POST /v1/governance/intelligence/graduate`
+- `POST /v1/governance/intelligence/activate`
 
 El último endpoint exige dos aprobadores distintos. Solo permite `shadow` al 0%
 o `canary` paper hasta 5%. Detalles en
 [`docs/INTELLIGENCE_GOVERNANCE.md`](docs/INTELLIGENCE_GOVERNANCE.md).
+
+El ciclo posterior respeta `forecast → resolve → graduate → activate`.
+`forecast` recibe `requestId`, `symbol`, `horizonMs`, `thresholdBps`, `regime`,
+`championProbability` y `challengerProbability`. `resolve` rechaza outcomes
+aportados por el cliente y usa exclusivamente el oracle. Graduación y activación
+exigen cuatro ojos; activar solo promueve a `paper-champion`.
 
 `POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
 parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales
