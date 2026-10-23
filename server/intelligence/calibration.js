@@ -44,7 +44,11 @@ function normalizeObservations(input, asOf = Date.now()) {
       outcomeAt = Date.parse(row.outcomeAt),
       outcome = Number(row.outcome),
       currentAsset = String(row.asset || "").toUpperCase(),
-      nodes = Array.isArray(row.nodes) ? row.nodes : [];
+      nodes = Array.isArray(row.nodes)
+        ? row.nodes
+        : row.nodes && typeof row.nodes === "object"
+          ? Object.entries(row.nodes).map(([id, node]) => ({ id, ...node }))
+          : [];
     if (
       !Number.isFinite(timestamp) ||
       timestamp <= previous ||

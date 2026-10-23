@@ -110,6 +110,7 @@ FMP_API_KEY=
 FMP_RPM=60
 POLYGON_API_KEY=
 POLYGON_RPM=60
+INTELLIGENCE_GOVERNANCE_TRUSTED_REVIEWERS=
 ```
 
 Para producción controlada:
@@ -160,6 +161,17 @@ modelo matemático está en
 walk-forward anidado con purga y embargo, y devuelve únicamente una
 recomendación `research-only` con `autoApply: false`. Contrato matemático:
 [`docs/INTELLIGENCE_CALIBRATION.md`](docs/INTELLIGENCE_CALIBRATION.md).
+
+Gobierno formal:
+
+- `GET /v1/governance/intelligence`
+- `POST /v1/governance/intelligence/datasets`
+- `POST /v1/governance/intelligence/evaluate`
+- `POST /v1/governance/intelligence/approve-experiment`
+
+El último endpoint exige dos aprobadores distintos. Solo permite `shadow` al 0%
+o `canary` paper hasta 5%. Detalles en
+[`docs/INTELLIGENCE_GOVERNANCE.md`](docs/INTELLIGENCE_GOVERNANCE.md).
 
 `POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
 parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales

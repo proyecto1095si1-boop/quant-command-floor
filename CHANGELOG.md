@@ -9,6 +9,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Los parámetros de Intel Hub pasan por datasets Ed25519, holdout sellado de uso
+  único, gates probabilísticos, cuatro ojos y shadow/canary paper antes de poder
+  solicitar graduación.
 - Intelligence DAG recupera snapshots con verificación SHA-256 y secuencia
   causal; sus pesos pueden evaluarse mediante walk-forward anidado purgado y
   embargado, sin autoaplicación.

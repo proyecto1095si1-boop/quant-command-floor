@@ -81,7 +81,7 @@ class ModelGovernanceService {
       minIndependencePValue: 0.05,
       championTolerance: 0,
       minimumAiCases: 20,
-      requiredGraduationKinds: ["consensus"],
+      requiredGraduationKinds: ["consensus", "intelligence"],
       ...policy,
     };
     this.models = new Map();
