@@ -218,3 +218,12 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** usar datos externos como fuente única de una orden real,
   redistribuirlos sin licencia o considerar una clave visible todavía segura.
 
+## Custodia del gobierno de Intel Hub
+
+- **Estado:** firma Ed25519, holdout de uso único, cuatro ojos y experimento
+  paper implementados; no existe autoaplicación.
+- **Decisión necesaria:** designar revisores, custodiar claves en KMS/HSM,
+  definir revocación, retención WORM, datasets/outcomes admitidos y umbrales.
+- **Acción bloqueada:** promover o aplicar pesos a capital real, aceptar firmas
+  con claves locales o tratar un canary paper como validación independiente.
+
