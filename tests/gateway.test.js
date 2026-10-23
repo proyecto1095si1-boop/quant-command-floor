@@ -48,6 +48,12 @@ const assert = require("node:assert/strict"),
   const health = await fetch(base + "/v1/health");
   assert.equal(health.status, 200);
   assert.equal((await health.json()).services.gateway, "ok");
+  const topologyResponse = await fetch(base + "/v1/floor/topology");
+  assert.equal(topologyResponse.status, 200);
+  const topology = await topologyResponse.json();
+  assert.equal(topology.paperOnly, true);
+  assert.deepEqual(topology.assets, ["BTC", "ETH", "SOL", "BNB"]);
+  assert.equal(topology.areas.length, 9);
   const denied = await fetch(base + "/v1/health", {
     headers: { origin: "https://evil.example" },
   });
