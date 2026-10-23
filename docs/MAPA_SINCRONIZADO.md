@@ -24,6 +24,14 @@ SOL, BNB y noticias sin observaciones permanecieron sin datos.
 
 ## Incidencia observada al reiniciar con datos acumulados
 
+**Corrección posterior:** la recuperación ahora utiliza lectura incremental de
+JSONL y gzip, una ventana acotada para `tail` y validación incremental de la
+procedencia. El almacén original de 825 MB se recuperó en 40,888 segundos con
+heap limitado a 256 MB (RSS máximo: 283,5 MiB), restaurando 2.000 trades y 14
+encabezados. No se modificó el archivo original de 557 MB. La retención y la
+compactación no se modificaron; una llamada explícita a `replay` sigue
+necesitando memoria para la cantidad de resultados solicitada.
+
 El arranque del Data Plane falló con `Cannot create a string longer than
 0x1fffffe8 characters` al usar el almacenamiento de la prueba prolongada.
 `du -ah var/data | sort -rh | head -6` mostró 825 MB totales y un archivo de
