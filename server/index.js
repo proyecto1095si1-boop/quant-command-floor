@@ -24,6 +24,7 @@ const {
   IntelligenceService,
   PolygonConnector,
 } = require("./intelligence/connectors.js");
+const { IntelligenceDag } = require("./intelligence/dag.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const { ExperimentService } = require("./governance/experiments.js");
@@ -182,11 +183,13 @@ const aiHealthPolicy = {
       }),
     },
   }),
+  intelligenceDag = new IntelligenceDag({ service: intelligence }),
   gateway = createGateway({
     aiProviderPool,
     aiCostLedger,
     aiCostReconciliation,
     intelligence,
+    intelligenceDag,
   }),
   products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
     .split(",")
@@ -197,12 +200,14 @@ const aiHealthPolicy = {
     pollMs: Number(process.env.MARKET_POLL_MS || 5000),
     publish: gateway.publish,
   });
+intelligenceDag.record = (stream, event) => data.record(stream, event);
 if (process.env.MARKET_WS_ENABLED === "true") data.enableStream();
 const regime = new RegimeService({
     record: (stream, event) => data.record(stream, event),
   }),
   pipeline = new TradingPipeline({
     dataService: data,
+    intelligence: intelligenceDag,
     regime,
     publish: gateway.publish,
   }),

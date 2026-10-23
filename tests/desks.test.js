@@ -32,7 +32,8 @@ function trades(n = 100) {
     list.map((x) => x.asset),
     ["BTC", "ETH", "SOL", "BNB"],
   );
-  assert.ok(list.every((x) => x.agents.length === 7));
+  assert.ok(list.every((x) => x.agents.length === 8));
+  assert.ok(list.every((x) => x.agents.includes("Intel Hub")));
   const context = {
       candles: candles(),
       trades: trades(),
@@ -46,7 +47,9 @@ function trades(n = 100) {
     report = registry.analyze("BTC", context);
   assert.equal(report.status, "ok");
   assert.ok(["LONG", "SHORT", "NO_TRADE"].includes(report.action));
-  assert.equal(report.agents.length, 6);
+  assert.equal(report.agents.length, 7);
+  assert.equal(report.agents.at(-1).agent, "Intel Hub");
+  assert.equal(report.agents.at(-1).confidence, 0);
   assert.equal(report.inputSummary.candles, 120);
   assert.ok(report.signal >= -1 && report.signal <= 1);
   assert.equal(report.policy.paperOnly, true);
