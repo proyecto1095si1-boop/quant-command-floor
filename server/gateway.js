@@ -759,6 +759,82 @@ function createGateway(options = {}) {
     }
     if (
       req.method === "POST" &&
+      req.url === "/v1/governance/intelligence/forecast"
+    ) {
+      if (!intelligenceGovernance)
+        return json(
+          res,
+          503,
+          { error: "intelligence-governance-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await intelligenceGovernance.forecast(await body(req)),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/intelligence/resolve"
+    ) {
+      if (!intelligenceGovernance)
+        return json(
+          res,
+          503,
+          { error: "intelligence-governance-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await intelligenceGovernance.resolve(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      new Set([
+        "/v1/governance/intelligence/graduate",
+        "/v1/governance/intelligence/activate",
+      ]).has(req.url)
+    ) {
+      if (!intelligenceGovernance)
+        return json(
+          res,
+          503,
+          { error: "intelligence-governance-disabled" },
+          headers,
+        );
+      try {
+        const approvals = fourEyes(req) || {
+            primary: req.auth.sub,
+            secondary: String(req.headers["x-second-approver"] || ""),
+          },
+          input = await body(req),
+          result = req.url.endsWith("/graduate")
+            ? await intelligenceGovernance.graduate(
+                input,
+                approvals,
+                req.auth.sub,
+              )
+            : await intelligenceGovernance.activate(input, approvals);
+        return json(res, 200, result, headers);
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
       req.url === "/v1/governance/calibration/datasets"
     ) {
       if (!calibrationGovernance)

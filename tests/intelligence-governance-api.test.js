@@ -19,6 +19,22 @@ const assert = require("node:assert/strict"),
         calls.push(["approve", input, approvals, actor]);
         return { paperOnly: true, experiment: { mode: "shadow" } };
       },
+      forecast: async (input) => {
+        calls.push(["forecast", input]);
+        return { paperOnly: true, experiment: { forecasts: [input] } };
+      },
+      resolve: async (input, actor) => {
+        calls.push(["resolve", input, actor]);
+        return { paperOnly: true, experiment: { labels: { resolved: 1 } } };
+      },
+      graduate: async (input, approvals, actor) => {
+        calls.push(["graduate", input, approvals, actor]);
+        return { paperOnly: true, artifact: { hash: "graduation" } };
+      },
+      activate: async (input, approvals) => {
+        calls.push(["activate", input, approvals]);
+        return { paperOnly: true, activation: "paper-champion" };
+      },
     },
     gateway = createGateway({ intelligenceGovernance }),
     address = await gateway.listen(0),
@@ -48,9 +64,36 @@ const assert = require("node:assert/strict"),
       { "x-second-approver": "risk-reviewer" },
     );
     assert.equal(approved.experiment.mode, "shadow");
+    await request("/v1/governance/intelligence/forecast", {
+      experimentId: "experiment-1",
+      requestId: "forecast-1",
+    });
+    await request("/v1/governance/intelligence/resolve", {
+      experimentId: "experiment-1",
+      requestId: "forecast-1",
+    });
+    await request(
+      "/v1/governance/intelligence/graduate",
+      { experimentId: "experiment-1" },
+      { "x-second-approver": "risk-reviewer" },
+    );
+    const activation = await request(
+      "/v1/governance/intelligence/activate",
+      { experimentId: "experiment-1" },
+      { "x-second-approver": "risk-reviewer" },
+    );
+    assert.equal(activation.activation, "paper-champion");
     assert.deepEqual(
       calls.map(([name]) => name),
-      ["dataset", "evaluate", "approve"],
+      [
+        "dataset",
+        "evaluate",
+        "approve",
+        "forecast",
+        "resolve",
+        "graduate",
+        "activate",
+      ],
     );
     assert.equal(calls[2][2].secondary, "risk-reviewer");
     assert.notEqual(calls[2][2].primary, calls[2][2].secondary);
