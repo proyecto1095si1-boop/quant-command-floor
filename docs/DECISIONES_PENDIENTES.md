@@ -37,27 +37,10 @@ propietario del repositorio. No se adoptan valores por omisión.
 
 - **Estado:** pendientes de calibración.
 - **Decisión necesaria:** muestra mínima, incremento de error, divergencia
-  numérica, schema, grounding, política, latencia y porcentaje canary para cada
-  empleado IA o motor matemático.
-- **Acción bloqueada:** conectar la selección canary con ejecución o promover
-  automáticamente por resultados online.
-
-## Datasets adversariales confiables
-
-- **Estado:** pendiente por empleado IA y jurisdicción.
-- **Decisión necesaria:** propietario, fuente, licencia, idioma, frecuencia de
-  actualización y revisión humana de casos/ground truth.
-- **Acción bloqueada:** considerar la suite T20 evidencia suficiente para uso
-  con capital real.
-
-## Custodia de revisores de datasets
-
-- **Estado:** pendiente de infraestructura e identidad.
-- **Decisión necesaria:** PKI o registro de claves públicas, responsables de
-  custodia y rotación, revocación, quorum de firmas y conservación externa de
-  manifiestos/fuentes.
-- **Acción bloqueada:** interpretar una firma T21 como autorización operativa o
-  como prueba de veracidad de la fuente.
+  numérica, schema, grounding, política y latencia para cada empleado IA o
+  motor matemático.
+- **Acción bloqueada:** promover automáticamente o conectar modelos a ejecución
+  según resultados online.
 
 ## Calibración del comité multiagente
 
@@ -74,62 +57,6 @@ propietario del repositorio. No se adoptan valores por omisión.
   condition number máximo y umbrales/cooldown de cambio estructural.
 - **Acción bloqueada:** reemplazar límites reales de correlación o exposición con
   los defaults T23 sin walk-forward y stress específicos.
-
-## Política de calibración y holdout del consenso
-
-- **Estado:** pendiente por activo, horizonte y frecuencia.
-- **Decisión necesaria:** definir fuente y propietario del ground truth,
-  horizonte del label, tamaño de purga/embargo, regímenes mínimos, holdout final,
-  límites aceptables de log-loss/ECE/cobertura y frecuencia de recalibración.
-- **Acción bloqueada:** aplicar automáticamente la recomendación T24, promoverla
-  a parámetros productivos o usarla para dimensionar capital real.
-- **Implicación actual:** T24 compara candidatos de forma causal y reproducible,
-  y T25 sella/consume el holdout una sola vez, pero los thresholds siguen siendo
-  evidencia paper-only sujeta a aprobación humana.
-
-## Custodia del catálogo de calibración
-
-- **Estado:** pendiente de infraestructura.
-- **Decisión necesaria:** almacenamiento WORM, retención, tamaño máximo,
-  versionado, responsable de publicación y proceso de revocación para datasets
-  de calibración firmados.
-- **Acción bloqueada:** cargar datasets mayores al límite del gateway o tratar el
-  journal local como evidencia externa inmutable.
-
-## Política secuencial por horizonte
-
-- **Estado:** pendiente por activo y frecuencia.
-- **Decisión necesaria:** alpha, margen de degradación tolerable, clipping,
-  fracción de apuesta, muestras mínimas, taxonomía de regímenes y tratamiento de
-  labels tardíos/corregidos.
-- **Acción bloqueada:** interpretar los defaults T26 como límites aprobados para
-  promoción o capital real.
-- **Implicación actual:** los breaches solo revierten experimentos paper.
-
-## Margen económico de graduación
-
-- **Estado:** pendiente por activo y horizonte.
-- **Decisión necesaria:** margen máximo de log-loss, mejora objetivo para
-  potencia, tamaño mínimo y regímenes obligatorios.
-- **Acción bloqueada:** interpretar una graduación T27 como autorización para
-  capital real.
-
-## Horizonte y censura de labels
-
-- **Estado:** pendiente por activo y familia de señal.
-- **Decisión necesaria:** aprobar `forecastHorizonMs`, `labelGraceMs` y
-  `maxCensorRate` con validación independiente.
-- **Implicación actual:** los defaults T28 (1 hora, 24 horas y 5 %) son
-  conservadores operativos para paper; no constituyen calibración económica ni
-  autorización para capital real.
-
-## Política económica del Outcome Oracle
-
-- **Estado:** pendiente por activo, venue y horizonte.
-- **Decisión necesaria:** aprobar fuentes, threshold neto de fees/spread,
-  staleness, demora de finalidad, clock skew y divergencia máxima.
-- **Acción bloqueada:** interpretar el outcome paper como benchmark regulatorio
-  o usarlo para promoción vinculada a capital real.
 
 ## Custodia externa de market data
 
@@ -219,12 +146,9 @@ propietario del repositorio. No se adoptan valores por omisión.
 - **Acción bloqueada:** usar datos externos como fuente única de una orden real,
   redistribuirlos sin licencia o considerar una clave visible todavía segura.
 
-## Custodia del gobierno de Intel Hub
+## Funciones de gobernanza retiradas
 
-- **Estado:** firma Ed25519, holdout de uso único, cuatro ojos y experimento
-  paper implementados; no existe autoaplicación.
-- **Decisión necesaria:** designar revisores, custodiar claves en KMS/HSM,
-  definir revocación, retención WORM, datasets/outcomes admitidos y umbrales.
-- **Acción bloqueada:** promover o aplicar pesos a capital real, aceptar firmas
-  con claves locales o tratar un canary paper como validación independiente.
-
+- **Estado:** la calibración gobernada, experimentos, labels, Outcome Oracle y
+  evaluación adversarial fueron retirados en R4 por estar fuera del camino real.
+- **Recuperación:** código, pruebas y documentos están disponibles en el tag
+  `pre-recorte`; reintroducirlos requiere una nueva decisión explícita de alcance.

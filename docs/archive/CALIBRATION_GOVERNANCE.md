@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> Este documento se conserva únicamente como referencia histórica.
+
 # Gobierno de calibraciones y holdout sellado
 
 T25 convierte el reporte de calibración T24 en un artefacto gobernado sin

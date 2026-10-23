@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> ADR histórico; ya no describe módulos cargados por el runtime.
+
 # ADR 0039: gobierno de parámetros de Intel Hub
 
 - Estado: aceptada para paper trading

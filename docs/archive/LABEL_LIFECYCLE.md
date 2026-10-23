@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> Este documento se conserva únicamente como referencia histórica.
+
 # Ciclo de vida temporal de labels
 
 T28 evita que un resultado conocido contamine la evaluación prequential. El

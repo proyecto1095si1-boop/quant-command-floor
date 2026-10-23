@@ -39,6 +39,12 @@ pero queda **congelada**: solo admite correcciones de seguridad, integridad
 monetaria o defectos. No se amplía y no se retira sin la revisión de R2 y la
 aprobación humana requerida para R4.
 
+En concreto, se conservan congelados `server/governance/service.js` y
+`server/governance/math.js`, usados por el hash del consenso y el registro
+champion/challenger. La plataforma offline de calibración, experimentación,
+labels, outcomes y evaluación adversarial fue retirada en R4 con aprobación
+humana y permanece recuperable en el tag `pre-recorte`.
+
 El camino real que debe preservarse es:
 
 `datos → mesas cripto → consenso → risk gate → ejecución paper → auditoría`

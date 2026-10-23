@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> Este documento se conserva únicamente como referencia histórica.
+
 # Gobierno de parámetros de Intel Hub
 
 Este control convierte una calibración de investigación en un challenger

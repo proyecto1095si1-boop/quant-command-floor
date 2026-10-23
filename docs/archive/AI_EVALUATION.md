@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> Este documento se conserva únicamente como referencia histórica.
+
 # Evaluación adversarial de empleados IA
 
 T20 evalúa evidencia estructurada producida fuera del servicio de gobierno. No

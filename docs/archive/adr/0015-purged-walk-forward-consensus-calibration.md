@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> ADR histórico; ya no describe módulos cargados por el runtime.
+
 # ADR 0015: calibración purgada walk-forward del consenso
 
 - Estado: aceptada

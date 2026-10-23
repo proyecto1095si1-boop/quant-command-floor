@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> Este documento se conserva únicamente como referencia histórica.
+
 # Calibración del Intelligence DAG
 
 La calibración estima pesos y penalización por desacuerdo usando únicamente

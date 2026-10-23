@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> ADR histórico; ya no describe módulos cargados por el runtime.
+
 # ADR 0016: holdout firmado de uso único para calibraciones
 
 - Estado: aceptada

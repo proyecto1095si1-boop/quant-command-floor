@@ -7,6 +7,16 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Eliminado
+
+- Se retiró, con aprobación humana, la plataforma offline de calibración,
+  experimentación, labels, Outcome Oracle y evaluación adversarial de IA que no
+  participaba en el camino real de decisiones. Código y diseño siguen
+  recuperables desde el tag `pre-recorte`.
+- Se retiraron sus rutas, composición, estado visual, variables de entorno y
+  pruebas asociadas. Se conservaron sin cambios los controles de riesgo,
+  ejecución paper, contabilidad y auditoría.
+
 ### Cambiado
 
 - La inteligencia externa queda limitada a Finnhub `crypto` y FRED; se retiran
@@ -137,4 +147,3 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 - Lockfile de npm para instalaciones reproducibles en desarrollo y CI.
 - Reglas editoriales compartidas mediante `.editorconfig`.
 - Registro de decisiones del proyecto que requieren definición del propietario.
-

@@ -48,11 +48,6 @@ READINESS_MAX_QUEUE=100
 READINESS_MAX_REJECTION_RATE=0.2
 READINESS_MIN_EXECUTIONS=20
 READINESS_REQUIRE_CHAMPION=false
-OUTCOME_MAX_STALENESS_MS=30000
-OUTCOME_MAX_LAG_MS=30000
-OUTCOME_FINALITY_DELAY_MS=30000
-OUTCOME_MAX_CLOCK_SKEW_MS=2000
-OUTCOME_MAX_DIVERGENCE_BPS=25
 MARKET_WS_ENABLED=false
 DATA_DIR=./var/data
 ```
@@ -106,7 +101,6 @@ FINNHUB_API_KEY=
 FINNHUB_RPM=60
 FRED_API_KEY=
 FRED_RPM=60
-INTELLIGENCE_GOVERNANCE_TRUSTED_REVIEWERS=
 ```
 
 Para producción controlada:
@@ -119,8 +113,6 @@ ALLOWED_ORIGIN=https://tu-dominio-privado.example
 ```
 
 Nunca subir `.env`, API keys, secretos, seed phrases o private keys a GitHub.
-
-### Calibración del consenso (interna, paper-only)
 
 ### Inteligencia externa read-only
 
@@ -136,121 +128,31 @@ No acepta URLs, métodos ni cabeceras suministradas por el usuario. Ejemplo:
 {
   "provider": "fred",
   "operation": "series",
-  "params": {"seriesId": "FEDFUNDS", "limit": 120}
+  "params": { "seriesId": "FEDFUNDS", "limit": 120 }
 }
 ```
 
 El contrato completo está en
 [`docs/INTELLIGENCE_CONNECTORS.md`](docs/INTELLIGENCE_CONNECTORS.md).
 
-`POST /v1/intelligence/dag/refresh` consulta las cinco fuentes permitidas para
+`POST /v1/intelligence/dag/refresh` consulta las fuentes cripto permitidas para
 un `asset`, aplica filtros point-in-time y guarda un snapshot hasheado. Acepta
-opcionalmente `asOf`, `from` y `to`. `GET /v1/intelligence/dag/status` devuelve
+opcionalmente `asOf`. `GET /v1/intelligence/dag/status` devuelve
 estado, confianza y hash por activo, sin exponer el contenido ni secretos. El
 modelo matemático está en
 [`docs/INTELLIGENCE_DAG.md`](docs/INTELLIGENCE_DAG.md).
-
-`POST /v1/research/intelligence-calibration` recibe observaciones causales con
-`timestamp`, `outcomeAt`, `outcome` y nodos `macro/news/market`. Ejecuta
-walk-forward anidado con purga y embargo, y devuelve únicamente una
-recomendación `research-only` con `autoApply: false`. Contrato matemático:
-[`docs/INTELLIGENCE_CALIBRATION.md`](docs/INTELLIGENCE_CALIBRATION.md).
-
-Gobierno formal:
-
-- `GET /v1/governance/intelligence`
-- `POST /v1/governance/intelligence/datasets`
-- `POST /v1/governance/intelligence/evaluate`
-- `POST /v1/governance/intelligence/approve-experiment`
-- `POST /v1/governance/intelligence/forecast`
-- `POST /v1/governance/intelligence/resolve`
-- `POST /v1/governance/intelligence/graduate`
-- `POST /v1/governance/intelligence/activate`
-
-El último endpoint exige dos aprobadores distintos. Solo permite `shadow` al 0%
-o `canary` paper hasta 5%. Detalles en
-[`docs/INTELLIGENCE_GOVERNANCE.md`](docs/INTELLIGENCE_GOVERNANCE.md).
-
-El ciclo posterior respeta `forecast → resolve → graduate → activate`.
-`forecast` recibe `requestId`, `symbol`, `horizonMs`, `thresholdBps`, `regime`,
-`championProbability` y `challengerProbability`. `resolve` rechaza outcomes
-aportados por el cliente y usa exclusivamente el oracle. Graduación y activación
-exigen cuatro ojos; activar solo promueve a `paper-champion`.
-
-`POST /v1/research/consensus-calibration` ejecuta una búsqueda determinista de
-parámetros del consenso y la dependencia EWMA. Requiere observaciones temporales
-con `timestamp`, `outcome`, `regime` y `signals`; acepta políticas `folds`,
-`grid`, `dependencePolicy` y `consensusPolicy`. Devuelve hashes, ranking y una
-recomendación con `autoApply: false`. No necesita API externa ni modifica las
-mesas activas. El detalle matemático está en
-`docs/CONSENSUS_CALIBRATION.md`.
-
-### Gobierno de calibración y holdout
-
-Configuración del registro de revisores:
-
-```env
-CALIBRATION_TRUSTED_REVIEWERS={"risk-reviewer":"-----BEGIN PUBLIC KEY-----..."}
-```
-
-- `GET /v1/governance/calibration`: estado, política y último run.
-- `POST /v1/governance/calibration/datasets`: registra observaciones, split,
-  manifiesto y attestation Ed25519; el holdout queda sellado.
-- `POST /v1/governance/calibration/evaluate`: calibra con desarrollo y consume
-  el holdout una sola vez.
-- `POST /v1/governance/calibration/approve-experiment`: verifica run,
-  challenger y dos aprobadores; inicia únicamente shadow o canary paper.
-
-Para la última ruta se envían `x-second-approver` y, cuando
-`REQUIRE_FOUR_EYES=true`, también `x-approver`. Canary está limitado a 5 %. El
-contrato completo de firma y gates se encuentra en
-`docs/CALIBRATION_GOVERNANCE.md`.
-
-### Monitoreo secuencial del experimento
-
-`POST /v1/governance/experiments/forecast` registra un pronóstico pareado
-pendiente, sin outcome:
-
-```json
-{
-  "experimentId": "uuid",
-  "requestId": "id-estable",
-  "symbol": "BTC-USD",
-  "championProbability": 0.61,
-  "challengerProbability": 0.58,
-  "regime": "risk_on_low_vol",
-  "horizonMs": 3600000,
-  "thresholdBps": 0
-}
-```
-
-El servidor sella un anchor Coinbase/Kraken en esa llamada. Después de
-`maturesAt` y la demora de finalidad,
-`POST /v1/governance/experiments/label` recibe únicamente `experimentId` y
-`requestId`: el Outcome Oracle deriva el resultado desde el retorno point-in-time.
-Enviar `outcome` u `outcomeAt` se rechaza. Una corrección agrega
-`correctionReason` y exige el header `x-second-approver`. Para resultados ausentes,
-`POST /v1/governance/experiments/censor` recibe `reason` una vez agotada la
-gracia. La respuesta incluye estado de labels, e-values y breaches. Véanse
-`docs/OUTCOME_ORACLE.md`, `docs/LABEL_LIFECYCLE.md` y
-`docs/SEQUENTIAL_MONITORING.md`.
-
-`POST /v1/governance/experiments/graduate` recibe `experimentId` y `reason`, y
-requiere dos aprobadores. Solo genera un artefacto si pasan no inferioridad,
-muestra, regímenes y guardrails. Model Governance exige ese artefacto para
-reemplazar un champion de consenso. Véase `docs/EXPERIMENT_GRADUATION.md`.
 
 ## 2. APIs externas implementadas
 
 ### Coinbase Exchange — mercado primario
 
-| Campo | Valor |
-|---|---|
-| Estado | Implementada |
-| Base URL | `https://api.exchange.coinbase.com` |
-| Autenticación | No requerida para market data público |
-| Consumidor | Data Collector, Technical, Volume, Liquidity, Market Structure |
-| Datos | ticker, trades, order book y velas |
+| Campo         | Valor                                                          |
+| ------------- | -------------------------------------------------------------- |
+| Estado        | Implementada                                                   |
+| Base URL      | `https://api.exchange.coinbase.com`                            |
+| Autenticación | No requerida para market data público                          |
+| Consumidor    | Data Collector, Technical, Volume, Liquidity, Market Structure |
+| Datos         | ticker, trades, order book y velas                             |
 
 Rutas utilizadas:
 
@@ -264,12 +166,12 @@ Permisos requeridos: ninguno. No crear credenciales privadas para esta integraci
 
 ### Kraken — fuente secundaria
 
-| Campo | Valor |
-|---|---|
-| Estado | Implementada |
-| Base URL | `https://api.kraken.com` |
-| Autenticación | No requerida |
-| Consumidor | Data Quality, divergencia de precios y fallback |
+| Campo         | Valor                                           |
+| ------------- | ----------------------------------------------- |
+| Estado        | Implementada                                    |
+| Base URL      | `https://api.kraken.com`                        |
+| Autenticación | No requerida                                    |
+| Consumidor    | Data Quality, divergencia de precios y fallback |
 
 Ruta utilizada:
 
@@ -279,13 +181,13 @@ La diferencia Coinbase/Kraken se mide en basis points y puede degradar el Data P
 
 ### LLM OpenAI-compatible
 
-| Campo | Valor |
-|---|---|
-| Estado | Adaptador implementado |
-| Base URL | Configurable mediante `LLM_BASE_URL` |
-| Autenticación | Bearer mediante `LLM_API_KEY` |
-| Ruta esperada | `POST /chat/completions` |
-| Consumidor | Sentimiento, Macro News Reader, CIO, Moderator, Code Generator |
+| Campo         | Valor                                                          |
+| ------------- | -------------------------------------------------------------- |
+| Estado        | Adaptador implementado                                         |
+| Base URL      | Configurable mediante `LLM_BASE_URL`                           |
+| Autenticación | Bearer mediante `LLM_API_KEY`                                  |
+| Ruta esperada | `POST /chat/completions`                                       |
+| Consumidor    | Sentimiento, Macro News Reader, CIO, Moderator, Code Generator |
 
 Compatible con un servidor local Ollama/vLLM o un proveedor que implemente el contrato OpenAI. Parámetros restringidos por el backend:
 
@@ -508,18 +410,18 @@ Los valores deben ser distintos.
 
 ### Sistema y seguridad
 
-| Método | Ruta | Rol | Uso |
-|---|---|---|---|
-| GET | `/v1/health` | Público | Liveness del gateway |
-| GET | `/v1/security/status` | Público | Perfil de seguridad sin exponer secretos |
-| GET | `/v1/stream` | Bearer `viewer` o superior en producción | WebSocket de eventos |
+| Método | Ruta                  | Rol                                      | Uso                                      |
+| ------ | --------------------- | ---------------------------------------- | ---------------------------------------- |
+| GET    | `/v1/health`          | Público                                  | Liveness del gateway                     |
+| GET    | `/v1/security/status` | Público                                  | Perfil de seguridad sin exponer secretos |
+| GET    | `/v1/stream`          | Bearer `viewer` o superior en producción | WebSocket de eventos                     |
 
 ### Régimen de mercado
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/regime/status` | viewer |
-| POST | `/v1/regime/{asset}/analyze` | operator |
+| Método | Ruta                         | Rol      |
+| ------ | ---------------------------- | -------- |
+| GET    | `/v1/regime/status`          | viewer   |
+| POST   | `/v1/regime/{asset}/analyze` | operator |
 
 El handshake WebSocket aplica la misma allowlist de `Origin`, rate limit por IP
 y autenticación Bearer que el gateway HTTP. Los tokens no se aceptan en query
@@ -528,14 +430,14 @@ su sesión segura en una identidad verificable para el upgrade.
 
 ### Data Plane
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/data/health` | viewer |
-| GET | `/v1/data/storage` | viewer |
-| GET | `/v1/data/snapshot/{product}` | viewer |
-| GET | `/v1/data/replay?stream=...&from=...&to=...&limit=...` | viewer |
-| POST | `/v1/data/backfill/plan` | operator |
-| POST | `/v1/data/backfill/execute` | operator + cuatro ojos opcional |
+| Método | Ruta                                                   | Rol                             |
+| ------ | ------------------------------------------------------ | ------------------------------- |
+| GET    | `/v1/data/health`                                      | viewer                          |
+| GET    | `/v1/data/storage`                                     | viewer                          |
+| GET    | `/v1/data/snapshot/{product}`                          | viewer                          |
+| GET    | `/v1/data/replay?stream=...&from=...&to=...&limit=...` | viewer                          |
+| POST   | `/v1/data/backfill/plan`                               | operator                        |
+| POST   | `/v1/data/backfill/execute`                            | operator + cuatro ojos opcional |
 
 `/v1/data/health` incluye `provenance`: algoritmo, alcance diario, heads,
 secuencias, gaps detectados y estado del reloj monotónico. Un reloj no saludable
@@ -553,23 +455,23 @@ no reemplazan `candles.*` ni se vuelven elegibles automáticamente.
 
 ### Agentes y mesas
 
-| Método | Ruta | Rol |
-|---|---|---|
-| POST | `/v1/agents/execute` | operator |
-| GET | `/v1/desks` | viewer |
-| POST | `/v1/desks/{asset}/analyze` | operator |
+| Método | Ruta                        | Rol      |
+| ------ | --------------------------- | -------- |
+| POST   | `/v1/agents/execute`        | operator |
+| GET    | `/v1/desks`                 | viewer   |
+| POST   | `/v1/desks/{asset}/analyze` | operator |
 
 `/v1/agents/execute` exige `policy.paper_only=true`.
 
 ### Pipeline
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/pipeline/status` | viewer |
-| GET | `/v1/pipeline/runs/{runId}` | viewer |
-| POST | `/v1/pipeline/{asset}/run` | operator |
-| POST | `/v1/pipeline/halt` | risk |
-| POST | `/v1/pipeline/resume` | risk + cuatro ojos opcional |
+| Método | Ruta                        | Rol                         |
+| ------ | --------------------------- | --------------------------- |
+| GET    | `/v1/pipeline/status`       | viewer                      |
+| GET    | `/v1/pipeline/runs/{runId}` | viewer                      |
+| POST   | `/v1/pipeline/{asset}/run`  | operator                    |
+| POST   | `/v1/pipeline/halt`         | risk                        |
+| POST   | `/v1/pipeline/resume`       | risk + cuatro ojos opcional |
 
 Activos implementados: `BTC`, `ETH`, `SOL` y `BNB`.
 
@@ -582,14 +484,14 @@ number y detección de cambio estructural.
 
 ### Riesgo
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/risk/status` | viewer |
-| POST | `/v1/risk/preview` | risk |
-| GET | `/v1/risk/scenarios` | viewer |
-| GET | `/v1/risk/stress/status` | viewer |
-| POST | `/v1/risk/stress` | risk |
-| POST | `/v1/risk/reverse-stress` | risk |
+| Método | Ruta                      | Rol    |
+| ------ | ------------------------- | ------ |
+| GET    | `/v1/risk/status`         | viewer |
+| POST   | `/v1/risk/preview`        | risk   |
+| GET    | `/v1/risk/scenarios`      | viewer |
+| GET    | `/v1/risk/stress/status`  | viewer |
+| POST   | `/v1/risk/stress`         | risk   |
+| POST   | `/v1/risk/reverse-stress` | risk   |
 
 El stress engine es paper-only. Evalúa un `portfolioPlanId` existente; los
 overrides se indexan por identificador de escenario y no pueden contener campos
@@ -597,26 +499,26 @@ fuera de shocks, liquidez, venues inaccesibles y haircuts de contraparte.
 
 ### Research
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/research/catalog` | viewer |
-| POST | `/v1/research/evaluate` | operator |
-| POST | `/v1/research/promote` | admin + cuatro ojos opcional |
+| Método | Ruta                    | Rol                          |
+| ------ | ----------------------- | ---------------------------- |
+| GET    | `/v1/research/catalog`  | viewer                       |
+| POST   | `/v1/research/evaluate` | operator                     |
+| POST   | `/v1/research/promote`  | admin + cuatro ojos opcional |
 
 ### Portfolio
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/portfolio/status` | viewer |
-| POST | `/v1/portfolio/plan` | operator |
+| Método | Ruta                   | Rol      |
+| ------ | ---------------------- | -------- |
+| GET    | `/v1/portfolio/status` | viewer   |
+| POST   | `/v1/portfolio/plan`   | operator |
 
 ### Execution
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/execution/status` | viewer |
-| POST | `/v1/execution/submit` | operator + cuatro ojos opcional |
-| POST | `/v1/execution/drain` | operator |
+| Método | Ruta                   | Rol                             |
+| ------ | ---------------------- | ------------------------------- |
+| GET    | `/v1/execution/status` | viewer                          |
+| POST   | `/v1/execution/submit` | operator + cuatro ojos opcional |
+| POST   | `/v1/execution/drain`  | operator                        |
 
 `GET /v1/execution/status` incluye `tca`: costo de precio, fees,
 implementation shortfall ponderado por notional, effective spread y markouts
@@ -631,57 +533,35 @@ Todas las órdenes son paper. `submit` necesita un plan existente y aprobación 
 
 ### Gobierno de modelos
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/governance/status` | viewer |
-| GET | `/v1/governance/models` | viewer |
-| POST | `/v1/governance/register` | admin |
-| POST | `/v1/governance/evaluate` | admin |
-| POST | `/v1/governance/promote` | admin + dos aprobadores |
-| GET | `/v1/governance/experiments` | viewer |
-| POST | `/v1/governance/experiments/start` | admin |
-| POST | `/v1/governance/experiments/assign` | admin |
-| POST | `/v1/governance/experiments/observe` | admin |
-| POST | `/v1/governance/experiments/forecast` | admin |
-| POST | `/v1/governance/experiments/label` | admin |
-| POST | `/v1/governance/experiments/censor` | admin |
-| POST | `/v1/governance/experiments/graduate` | admin |
-| POST | `/v1/governance/experiments/stop` | admin |
-| GET | `/v1/governance/ai-evaluation` | viewer |
-| POST | `/v1/governance/ai-evaluation/datasets` | admin |
-| POST | `/v1/governance/ai-evaluation/run` | admin |
+| Método | Ruta                      | Rol                     |
+| ------ | ------------------------- | ----------------------- |
+| GET    | `/v1/governance/status`   | viewer                  |
+| GET    | `/v1/governance/models`   | viewer                  |
+| POST   | `/v1/governance/register` | admin                   |
+| POST   | `/v1/governance/evaluate` | admin                   |
+| POST   | `/v1/governance/promote`  | admin + dos aprobadores |
 
 El registro acepta configuraciones y hashes, no código ejecutable ni secretos.
 Las promociones requieren evaluación cuantitativa elegible.
-Los experimentos solo enrutan evaluaciones paper y conservan hashes, no prompts
-ni outputs completos.
-La evaluación IA solo admite hashes y evidencia estructurada; rechaza campos de
-prompt o respuesta libre.
-El alta de datasets requiere `manifest` y `attestation`. El manifiesto contiene
-metadatos de procedencia y hashes; `attestation` usa `reviewerId`, algoritmo
-`Ed25519` y firma base64 del hash que vincula manifiesto, identidad, versión y
-casos. La clave pública debe existir en
-`AI_EVALUATION_TRUSTED_REVIEWERS`. Las corridas devuelven hashes de
-reproducibilidad, ECE, Brier e intervalos Wilson 95%.
 
 ### Dashboard
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/dashboard/overview` | viewer |
-| GET | `/v1/dashboard/runs?asset=BTC&status=completed&limit=100` | viewer |
-| GET | `/v1/dashboard/export.csv` | viewer |
+| Método | Ruta                                                      | Rol    |
+| ------ | --------------------------------------------------------- | ------ |
+| GET    | `/v1/dashboard/overview`                                  | viewer |
+| GET    | `/v1/dashboard/runs?asset=BTC&status=completed&limit=100` | viewer |
+| GET    | `/v1/dashboard/export.csv`                                | viewer |
 
 ### SRE y auditoría
 
-| Método | Ruta | Rol |
-|---|---|---|
-| GET | `/v1/sre/status` | viewer |
-| GET | `/v1/readiness` | viewer |
-| GET | `/v1/ai/provider-health` | viewer |
-| GET | `/v1/ai/costs` | viewer |
-| POST | `/v1/sre/backup` | admin |
-| POST | `/v1/sre/incidents/{id}/ack` | admin |
+| Método | Ruta                         | Rol    |
+| ------ | ---------------------------- | ------ |
+| GET    | `/v1/sre/status`             | viewer |
+| GET    | `/v1/readiness`              | viewer |
+| GET    | `/v1/ai/provider-health`     | viewer |
+| GET    | `/v1/ai/costs`               | viewer |
+| POST   | `/v1/sre/backup`             | admin  |
+| POST   | `/v1/sre/incidents/{id}/ack` | admin  |
 
 `GET /v1/sre/status` devuelve `objectives` para availability, latencia,
 frescura e integridad. Cada objetivo incluye cumplimiento, eventos buenos/malos,
@@ -812,8 +692,12 @@ también exige `X-Approver` y `X-Second-Approver` distintos.
     "signature": "BASE64_SIGNATURE"
   },
   "fxObservations": [
-    {"source":"central-bank","observedAt":1792670400000,"rateToUsd":1.2},
-    {"source":"market-data","observedAt":1792670401000,"rateToUsd":1.2001}
+    { "source": "central-bank", "observedAt": 1792670400000, "rateToUsd": 1.2 },
+    {
+      "source": "market-data",
+      "observedAt": 1792670401000,
+      "rateToUsd": 1.2001
+    }
   ],
   "lines": [
     {
@@ -833,23 +717,23 @@ La firma, el oracle FX y sus límites se especifican en
 
 Errores comunes:
 
-| HTTP | Significado |
-|---:|---|
-| 400 | JSON inválido |
-| 401 | Falta autenticación o token inválido/expirado |
-| 403 | Rol insuficiente, origen rechazado o falta segundo aprobador |
-| 404 | Recurso/plan/run inexistente |
-| 409 | Pipeline ocupado, riesgo detenido o candidato no elegible |
-| 413 | Payload mayor a 256 KiB |
-| 422 | Campos, datos o historia insuficientes |
-| 429 | Rate limit excedido |
-| 502 | Error de proveedor IA/upstream |
-| 503 | Servicio interno deshabilitado |
+| HTTP | Significado                                                  |
+| ---: | ------------------------------------------------------------ |
+|  400 | JSON inválido                                                |
+|  401 | Falta autenticación o token inválido/expirado                |
+|  403 | Rol insuficiente, origen rechazado o falta segundo aprobador |
+|  404 | Recurso/plan/run inexistente                                 |
+|  409 | Pipeline ocupado, riesgo detenido o candidato no elegible    |
+|  413 | Payload mayor a 256 KiB                                      |
+|  422 | Campos, datos o historia insuficientes                       |
+|  429 | Rate limit excedido                                          |
+|  502 | Error de proveedor IA/upstream                               |
+|  503 | Servicio interno deshabilitado                               |
 
 Formato:
 
 ```json
-{"error":"machine-readable-code"}
+{ "error": "machine-readable-code" }
 ```
 
 ## 7. Orden recomendado para contratar/conectar

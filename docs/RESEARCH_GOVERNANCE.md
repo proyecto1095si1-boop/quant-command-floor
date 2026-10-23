@@ -14,14 +14,14 @@ El laboratorio convierte una hipótesis en un **challenger** medible, pero no la
 
 ## Política predeterminada
 
-| Gate | Límite |
-|---|---:|
-| Observaciones | ≥ 120 |
-| Probabilidad DSR | ≥ 95% |
-| PBO | ≤ 35% |
-| Maximum drawdown | ≤ 25% |
-| Estabilidad paramétrica | ≥ 55% |
-| Sharpe fuera de muestra | ≥ 0 |
+| Gate                    | Límite |
+| ----------------------- | -----: |
+| Observaciones           |  ≥ 120 |
+| Probabilidad DSR        |  ≥ 95% |
+| PBO                     |  ≤ 35% |
+| Maximum drawdown        |  ≤ 25% |
+| Estabilidad paramétrica |  ≥ 55% |
+| Sharpe fuera de muestra |    ≥ 0 |
 
 Un fallo deja el reporte en `rejected`. Superar todos los gates produce `eligible`, no un despliegue. `POST /v1/research/promote` exige `candidateId` y `approvedBy`; registra el champion anterior, el aprobador y el instante de promoción.
 
@@ -36,14 +36,5 @@ usado queda registrado como `metrics.annualizationPeriods`.
 - `GET /v1/research/catalog`: política, champion, evaluaciones y promociones.
 - `POST /v1/research/evaluate`: acepta `returns`, `returnsMatrix`, `trials`, `folds`, `purge`, `embargo`, `slices` y una política opcional.
 - `POST /v1/research/promote`: promoción controlada, únicamente para candidatos elegibles y con aprobación humana explícita.
-- `POST /v1/research/consensus-calibration`: búsqueda walk-forward purgada y
-  embargada de parámetros T22/T23; produce un ranking paper-only y nunca aplica
-  automáticamente la recomendación. Véase `CONSENSUS_CALIBRATION.md`.
-
-La validación final gobernada se realiza por las rutas
-`/v1/governance/calibration/*`: exige procedencia Ed25519, fija el split antes de
-buscar, consume el holdout una sola vez y requiere dos aprobadores para iniciar
-un shadow/canary paper. No promueve el modelo. Véase
-`CALIBRATION_GOVERNANCE.md`.
 
 Los reportes y eventos se guardan en los streams SHA-256 `research.evaluation` y `research.promotion`. El generador determinista incluido sirve para demos y pruebas; una investigación operativa debe enviar retornos netos de fees y slippage desde un dataset versionado.

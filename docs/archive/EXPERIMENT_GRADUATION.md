@@ -1,3 +1,7 @@
+> **Retirado del alcance activo en R4. Recuperable en el tag `pre-recorte`.**
+>
+> Este documento se conserva únicamente como referencia histórica.
+
 # Graduación gobernada de experimentos paper
 
 T27 impide promover una nueva versión de consenso cuando ya existe un champion
