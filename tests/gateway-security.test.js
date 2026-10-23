@@ -41,6 +41,14 @@ function upgrade(port, { origin, token, path = "/v1/stream" } = {}) {
     },
   });
   try {
+    const floorDenied = await fetch(
+      `http://127.0.0.1:${address.port}/v1/floor/snapshot`,
+    );
+    assert.equal(
+      floorDenied.status,
+      401,
+      "floor operational state requires authentication in production",
+    );
     const failedRequest = await fetch(
       `http://127.0.0.1:${address.port}/v1/data/storage`,
       {

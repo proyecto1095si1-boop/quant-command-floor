@@ -92,6 +92,7 @@ class TradingPipeline {
         regime: context.regime || this.regime?.latest?.get(asset) || null,
       });
       run.desk = desk;
+      this.publish({ type: "desk.analysis", report: desk });
       this.stage(run, "signal", desk.status, {
         action: desk.action,
         signal: desk.signal,
