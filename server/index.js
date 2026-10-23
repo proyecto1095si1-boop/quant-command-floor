@@ -330,6 +330,23 @@ gateway.listen().then(async (address) => {
     `Quant Command Floor gateway listening on http://${address.address}:${address.port}`,
   );
   try {
+    const histories = Object.fromEntries(
+        await Promise.all(
+          Object.keys(pipeline.desks.assets).map(async (asset) => [
+            asset,
+            await data.store.tail(`intelligence.${asset}`, 10000),
+          ]),
+        ),
+      ),
+      recovered = intelligenceDag.recover(histories);
+    if (recovered.snapshots)
+      console.log(
+        `Intelligence DAG recovered: ${recovered.snapshots} snapshots across ${recovered.assets} assets`,
+      );
+  } catch (e) {
+    console.error(`Intelligence DAG recovery blocked: ${e.message}`);
+  }
+  try {
     const telemetry = await data.store.tail("sre.slo-telemetry", 100000),
       recovered = sre.recoverTelemetry(telemetry);
     if (recovered.buckets)

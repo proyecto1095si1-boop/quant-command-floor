@@ -1860,7 +1860,7 @@ async function refreshIntelligence() {
           .join("")
       : '<div class="sre-service"><b>INTEL HUB</b><span>SIN SNAPSHOTS · requiere refresh autenticado del DAG</span></div>';
     document.querySelector("#intelligenceStatus").textContent =
-      `${configured}/${providers.length} proveedores configurados · ${assets.length} activos con consenso PIT · PAPER ONLY`;
+      `${configured}/${providers.length} proveedores configurados · ${assets.length} activos con consenso PIT · recovery ${dag.recovery?.recovered ? "VERIFIED" : "PENDING"} · PAPER ONLY`;
   } catch (error) {
     document.querySelector("#intelligenceStatus").textContent =
       `DATA API ERROR · ${error.message}`;

@@ -4,6 +4,7 @@ const crypto = require("node:crypto"),
   S = require("./statistics.js"),
   V = require("./validation.js"),
   { calibrateConsensus } = require("./consensus-calibration.js");
+const { calibrateIntelligence } = require("../intelligence/calibration.js");
 const DEFAULT_POLICY = {
   minObservations: 120,
   minDsr: 0.95,
@@ -44,6 +45,7 @@ class ResearchLab {
         "parameter-sensitivity",
         "human-approved-promotion",
         "purged-embargoed-consensus-walk-forward",
+        "nested-purged-embargoed-intelligence-walk-forward",
       ],
     };
   }
@@ -133,6 +135,17 @@ class ResearchLab {
       };
     this.calibrations.set(report.id, report);
     await this.record("research.consensus-calibration", report);
+    return report;
+  }
+  async calibrateIntelligence(input = {}) {
+    const result = calibrateIntelligence(input),
+      report = {
+        id: String(input.calibrationId || result.reproducibilityHash),
+        createdAt: new Date().toISOString(),
+        ...result,
+      };
+    this.calibrations.set(report.id, report);
+    await this.record("research.intelligence-calibration", report);
     return report;
   }
   async promote(candidateId, approvedBy) {

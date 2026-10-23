@@ -81,6 +81,27 @@ const assert = require("node:assert/strict"),
     /invalid-intelligence-as-of/,
   );
 
+  const recoveredDag = new IntelligenceDag({ service, clock: () => now }),
+    recovery = recoveredDag.recover({ BTC: [snapshot] });
+  assert.deepEqual(recovery, { recovered: true, snapshots: 1, assets: 1 });
+  assert.equal(recoveredDag.snapshot("BTC", now).hash, snapshot.hash);
+  assert.equal(recoveredDag.status().recovery.recovered, true);
+  const tampered = structuredClone(snapshot);
+  tampered.consensus.signal = -0.99;
+  assert.throws(
+    () => recoveredDag.recover({ BTC: [tampered] }),
+    /invalid-intelligence-snapshot/,
+  );
+  assert.equal(
+    recoveredDag.snapshot("BTC", now).hash,
+    snapshot.hash,
+    "failed recovery preserves the last verified atomic state",
+  );
+  assert.throws(
+    () => recoveredDag.recover({ BTC: [snapshot, snapshot] }),
+    /invalid-intelligence-snapshot-sequence/,
+  );
+
   assert.equal(
     pointInTime(
       [
