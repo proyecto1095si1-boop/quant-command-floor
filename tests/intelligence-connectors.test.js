@@ -7,6 +7,7 @@ const assert = require("node:assert/strict"),
     FredConnector,
     IntelligenceService,
     PolygonConnector,
+    YahooFinanceConnector,
   } = require("../server/intelligence/connectors.js");
 
 function response(data, status = 200) {
@@ -51,6 +52,28 @@ function response(data, status = 200) {
             currency: "USD",
           },
         ]);
+      if (url.pathname.includes("/v8/finance/chart/"))
+        return response({
+          chart: {
+            result: [
+              {
+                timestamp: [1_792_540_800, 1_792_627_200],
+                indicators: {
+                  quote: [
+                    {
+                      open: [100, 101],
+                      high: [102, 103],
+                      low: [99, 100],
+                      close: [101, 102],
+                      volume: [1000, 1100],
+                    },
+                  ],
+                  adjclose: [{ adjclose: [100.5, 101.5] }],
+                },
+              },
+            ],
+          },
+        });
       return response({
         results: [
           { t: 1, o: 10, h: 12, l: 9, c: 11, v: 1000, n: 20, vw: 10.5 },
@@ -60,7 +83,8 @@ function response(data, status = 200) {
     finnhub = new FinnhubConnector({ apiKey: "test-finnhub", fetcher }),
     fred = new FredConnector({ apiKey: "test-fred", fetcher }),
     fmp = new FmpConnector({ apiKey: "test-fmp", fetcher }),
-    polygon = new PolygonConnector({ apiKey: "test-polygon", fetcher });
+    polygon = new PolygonConnector({ apiKey: "test-polygon", fetcher }),
+    yahoo = new YahooFinanceConnector({ fetcher });
 
   assert.equal((await finnhub.news())[0].headline, "Macro event");
   assert.equal(calls[0].options.headers["x-finnhub-token"], "test-finnhub");
@@ -81,9 +105,19 @@ function response(data, status = 200) {
   );
   assert.equal(calls[3].options.headers.authorization, "Bearer test-polygon");
   assert.equal(calls[3].url.searchParams.has("apiKey"), false);
+  const yahooRows = await yahoo.chart({
+    symbol: "BTC-USD",
+    from: "2026-10-01",
+    to: "2026-10-22",
+  });
+  assert.equal(yahooRows.length, 2);
+  assert.equal(yahooRows[1].close, 102);
+  assert.equal(calls[4].url.searchParams.get("interval"), "1d");
+  assert.equal(calls[4].options.headers.authorization, undefined);
+  assert.equal(yahoo.health().configured, true);
 
   const service = new IntelligenceService({
-    connectors: { finnhub, fred, fmp, polygon },
+    connectors: { finnhub, fred, fmp, polygon, yahoo },
   });
   const result = await service.query({
     provider: "fred",
@@ -100,6 +134,14 @@ function response(data, status = 200) {
   await assert.rejects(
     new FredConnector({ fetcher }).series({ seriesId: "FEDFUNDS" }),
     /fred-not-configured/,
+  );
+  await assert.rejects(
+    yahoo.chart({
+      symbol: "BTC-USD",
+      from: "2026-10-22",
+      to: "2026-10-01",
+    }),
+    /invalid-yahoo-chart-range/,
   );
   const limited = new FinnhubConnector({
     apiKey: "test",

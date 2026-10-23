@@ -9,6 +9,8 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Yahoo Finance aporta velas read-only al nodo técnico mediante un conector Node
+  sin clave ni dependencia runtime, reconciliado por timestamp con Polygon.
 - Intel Hub conecta forecasts, resultados del oracle, graduación y activación
   gobernada exclusivamente como champion paper.
 - Los parámetros de Intel Hub pasan por datasets Ed25519, holdout sellado de uso

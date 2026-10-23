@@ -1,7 +1,11 @@
 "use strict";
 
 const assert = require("node:assert/strict"),
-  { IntelligenceDag, pointInTime } = require("../server/intelligence/dag.js"),
+  {
+    IntelligenceDag,
+    pointInTime,
+    reconcileMarketRows,
+  } = require("../server/intelligence/dag.js"),
   { DeskRegistry } = require("../server/desks/registry.js");
 
 (async () => {
@@ -20,10 +24,10 @@ const assert = require("node:assert/strict"),
               receivedAt: now - 1000,
             })),
           };
-        if (provider === "polygon")
+        if (["polygon", "yahoo"].includes(provider))
           return {
             data: Array.from({ length: 30 }, (_, index) => ({
-              source: "polygon",
+              source: provider,
               timestamp: now - (29 - index) * 86400000,
               close: 100 + index,
               receivedAt: now - 1000,
@@ -54,7 +58,12 @@ const assert = require("node:assert/strict"),
     }),
     snapshot = await dag.refresh("btc", { asOf: now });
 
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 5);
+  assert.equal(snapshot.provenance.length, 5);
+  assert.equal(
+    snapshot.nodes.find((node) => node.id === "market").observations,
+    30,
+  );
   assert.equal(snapshot.asset, "BTC");
   assert.equal(snapshot.paperOnly, true);
   assert.equal(snapshot.consensus.status, "ready");
@@ -114,14 +123,28 @@ const assert = require("node:assert/strict"),
     ).length,
     1,
   );
+  assert.deepEqual(
+    reconcileMarketRows([
+      { source: "polygon", timestamp: 1, close: 100, receivedAt: 3 },
+      { source: "yahoo", timestamp: 1, close: 102, receivedAt: 4 },
+    ])[0],
+    {
+      source: "market-consensus",
+      sources: ["polygon", "yahoo"],
+      timestamp: 1,
+      close: 101,
+      receivedAt: 4,
+    },
+  );
 
   const blocked = new IntelligenceDag({
       service: {
         query: async ({ provider }) => {
-          if (provider !== "polygon") throw new Error("provider-down");
+          if (!new Set(["polygon", "yahoo"]).has(provider))
+            throw new Error("provider-down");
           return service.query({
             provider,
-            operation: "aggregates",
+            operation: provider === "polygon" ? "aggregates" : "chart",
             params: {},
           });
         },
