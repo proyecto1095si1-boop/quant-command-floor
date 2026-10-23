@@ -11,6 +11,12 @@ La interfaz combina la topología con los eventos WebSocket `agent.result`,
 `desk.analysis` y `pipeline.stage`. Si el endpoint no responde, conserva una
 topología local equivalente, pero no inventa actividad de los nodos.
 
+Al seleccionar un nodo, el inspector conserva los últimos 20 eventos de la
+sesión y muestra hora, fuente, entrada resumida, evidencia, fórmula y salida.
+Los payloads se limitan en tamaño y cualquier campo con nombre de credencial
+(`token`, `secret`, `authorization`, `apiKey` o `password`) se presenta como
+`[redacted]`. El historial vive solo en memoria del navegador.
+
 Este documento reúne las APIs que necesita Quant Command Floor. Distingue claramente:
 
 - **Implementada:** ya existe un adaptador o endpoint funcional en el repositorio.

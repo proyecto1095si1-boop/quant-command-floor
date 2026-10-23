@@ -11,6 +11,9 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 - El mapa 2D consume una topología canónica del backend y refleja en cada nodo
   los eventos reales de agentes, mesas y etapas del pipeline paper.
+- Cada empleado incluye un inspector de sus últimos eventos reales con fuente,
+  timestamp, entrada, evidencia, fórmula y salida; los campos sensibles se
+  redactan antes de mostrarse.
 
 ### Eliminado
 
