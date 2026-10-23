@@ -112,6 +112,11 @@ for (const file of [
     true,
     "the external data API console requests provider status",
   );
+  assert.equal(
+    requests.some(({ url }) => url.endsWith("/v1/intelligence/dag/status")),
+    true,
+    "the external data API console requests intelligence DAG status",
+  );
 
   await new Promise((resolve) => setImmediate(resolve));
 
