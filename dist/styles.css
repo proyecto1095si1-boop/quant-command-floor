@@ -562,6 +562,35 @@ nav {
   opacity: 1;
   animation: blink 1s infinite;
 }
+.agent.running:after {
+  opacity: 1;
+  animation: blink 0.45s infinite;
+}
+.agent.ok:after {
+  opacity: 1;
+  background: #4adf89;
+  box-shadow: 0 0 9px #4adf89;
+}
+.agent.blocked:after,
+.agent.error:after {
+  opacity: 1;
+  background: #ff5864;
+  box-shadow: 0 0 9px #ff5864;
+}
+.agent.skipped {
+  opacity: 0.55;
+}
+.network-path.live {
+  stroke-width: 3;
+  stroke-dasharray: 7 4;
+  filter: drop-shadow(0 0 5px #42d7d0);
+  animation: dash 0.45s linear infinite;
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
 .agent-name {
   position: absolute;
   top: 21px;

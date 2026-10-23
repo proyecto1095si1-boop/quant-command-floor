@@ -7,6 +7,11 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido
+
+- El mapa 2D consume una topología canónica del backend y refleja en cada nodo
+  los eventos reales de agentes, mesas y etapas del pipeline paper.
+
 ### Eliminado
 
 - Se retiró, con aprobación humana, la plataforma offline de calibración,

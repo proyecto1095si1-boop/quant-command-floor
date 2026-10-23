@@ -1,5 +1,16 @@
 # API master guide
 
+## Mapa operativo 2D
+
+`GET /v1/floor/topology` devuelve la topología canónica del camino real
+`datos → mesas → consenso → riesgo → ejecución paper → auditoría`. Incluye
+nueve áreas, identificadores estables de nodo, enlaces visuales y el universo
+permitido (`BTC`, `ETH`, `SOL`, `BNB`). `paperOnly` siempre debe ser `true`.
+
+La interfaz combina la topología con los eventos WebSocket `agent.result`,
+`desk.analysis` y `pipeline.stage`. Si el endpoint no responde, conserva una
+topología local equivalente, pero no inventa actividad de los nodos.
+
 Este documento reúne las APIs que necesita Quant Command Floor. Distingue claramente:
 
 - **Implementada:** ya existe un adaptador o endpoint funcional en el repositorio.

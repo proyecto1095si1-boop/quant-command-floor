@@ -4,7 +4,8 @@ const http = require("node:http"),
   { execute } = require("./agent-engine.js"),
   { executeLLM } = require("./llm-client.js"),
   { DeskRegistry } = require("./desks/registry.js"),
-  { SecurityManager } = require("./security/manager.js");
+  { SecurityManager } = require("./security/manager.js"),
+  { FLOOR_TOPOLOGY } = require("./floor/topology.js");
 const MAX_BODY = 256 * 1024,
   MAX_CLIENTS = 100;
 function cors(origin, allowed) {
@@ -185,7 +186,11 @@ function createGateway(options = {}) {
         { error: "rate-limit-exceeded", reset_ms: rate.resetMs },
         headers,
       );
-    if (!["/v1/health", "/v1/security/status"].includes(req.url)) {
+    if (
+      !["/v1/health", "/v1/security/status", "/v1/floor/topology"].includes(
+        req.url,
+      )
+    ) {
       try {
         req.auth = security.authenticate(req.headers.authorization);
         security.authorize(
@@ -215,6 +220,8 @@ function createGateway(options = {}) {
       );
     if (req.method === "GET" && req.url === "/v1/security/status")
       return json(res, 200, security.status(), headers);
+    if (req.method === "GET" && req.url === "/v1/floor/topology")
+      return json(res, 200, FLOOR_TOPOLOGY, headers);
     if (req.method === "GET" && req.url === "/v1/ai/provider-health")
       return json(
         res,

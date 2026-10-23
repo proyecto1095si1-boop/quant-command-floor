@@ -15,6 +15,15 @@ const dist = path.resolve(__dirname, "../dist"),
   { window } = dom;
 
 const requests = [];
+class MockWebSocket {
+  static instances = [];
+  constructor(url) {
+    this.url = url;
+    MockWebSocket.instances.push(this);
+  }
+  close() {}
+}
+window.WebSocket = MockWebSocket;
 window.fetch = async (url, options = {}) => {
   requests.push({ url, options });
   return { ok: true, status: 200, json: async () => ({}) };
@@ -41,7 +50,7 @@ for (const file of [
   document.querySelector('.room[data-id="2"]').click();
   assert.equal(
     document.querySelector("#detailName").textContent,
-    "Trading Floor",
+    "Mesas de Activos",
   );
   assert.equal(
     document.querySelector("#detail").classList.contains("open"),
@@ -50,6 +59,40 @@ for (const file of [
   assert.equal(
     document.querySelector('.room[data-id="2"]').classList.contains("selected"),
     true,
+  );
+  assert.ok(
+    document.querySelector('.agent[data-node-id="desk.btc"]'),
+    "employees expose stable backend node IDs",
+  );
+  MockWebSocket.instances[0].onmessage({
+    data: JSON.stringify({
+      type: "desk.analysis",
+      report: {
+        asset: "BTC",
+        status: "ok",
+        action: "BUY",
+        signal: 0.7,
+        confidence: 0.8,
+        agents: [{ agent: "Technical", signal: 0.6, confidence: 0.75 }],
+      },
+    }),
+  });
+  assert.equal(
+    document.querySelector('.agent[data-node-id="desk.btc"]').dataset.state,
+    "ok",
+    "desk stream events update the corresponding employee",
+  );
+  assert.equal(
+    document
+      .querySelector('[data-link-id="desks-consensus"]')
+      .classList.contains("live"),
+    true,
+    "a real event activates its data-flow link",
+  );
+  assert.equal(
+    requests.some(({ url }) => url.endsWith("/v1/floor/topology")),
+    true,
+    "the map requests its canonical topology from the backend",
   );
 
   document.querySelector("#engineToggle").click();
