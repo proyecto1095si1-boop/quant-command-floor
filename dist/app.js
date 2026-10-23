@@ -897,48 +897,97 @@ async function refreshMarketData() {
         `HTTP ${healthResponse.status}/${snapshotResponse.status}`,
       );
     const health = await healthResponse.json(),
-      snapshot = await snapshotResponse.json(),
-      book = snapshot.book || {},
-      ticker = snapshot.ticker || {};
-    document.querySelector("#dataSource").textContent =
-      `${(health.source?.source || "—").toUpperCase()} + ${(health.secondary?.source || "—").toUpperCase()}`;
-    document.querySelector("#dataStatus").textContent = (
-      health.status || "unknown"
-    ).toUpperCase();
-    document.querySelector("#dataStatus").style.color =
-      health.status === "healthy" ? "var(--lime)" : "var(--orange)";
-    document.querySelector("#dataPrice").textContent = ticker.price
-      ? "$" +
-        Number(ticker.price).toLocaleString(undefined, {
-          maximumFractionDigits: 2,
-        })
-      : "—";
-    document.querySelector("#dataSpread").textContent = Number.isFinite(
-      book.spreadBps,
-    )
-      ? book.spreadBps.toFixed(2) + " bps"
-      : "—";
-    document.querySelector("#dataImbalance").textContent = Number.isFinite(
-      book.imbalance,
-    )
-      ? book.imbalance.toFixed(3)
-      : "—";
-    document.querySelector("#dataEvents").textContent = Number(
-      health.metrics?.events || 0,
-    ).toLocaleString();
-    document.querySelector("#dataDetail").textContent =
-      `${health.products?.join(", ") || "sin productos"} · ciclo ${health.metrics?.lastCycleMs || 0}ms · divergencia ${Number(health.maxDivergenceBps || 0).toFixed(2)} bps`;
-    document.querySelector("#feedHealth").textContent = (
-      health.status || "down"
-    ).toUpperCase();
+      snapshot = await snapshotResponse.json();
+    renderMarketData(health, snapshot);
   } catch (error) {
-    document.querySelector("#dataStatus").textContent = "OFFLINE";
-    document.querySelector("#dataStatus").style.color = "var(--red)";
-    document.querySelector("#dataDetail").textContent =
-      `Data Plane no disponible · ${error.message}`;
+    try {
+      const fallback = await publicMarketFallback();
+      renderMarketData(fallback.health, fallback.snapshot);
+    } catch (fallbackError) {
+      document.querySelector("#dataStatus").textContent = "OFFLINE";
+      document.querySelector("#dataStatus").style.color = "var(--red)";
+      document.querySelector("#dataDetail").textContent =
+        `Data Plane no disponible · ${error.message} · fallback ${fallbackError.message}`;
+    }
   } finally {
     button.disabled = false;
   }
+}
+function renderMarketData(health, snapshot) {
+  const book = snapshot.book || {},
+    ticker = snapshot.ticker || {};
+  document.querySelector("#dataSource").textContent =
+    `${(health.source?.source || "—").toUpperCase()} + ${(health.secondary?.source || "—").toUpperCase()}`;
+  document.querySelector("#dataStatus").textContent = (
+    health.status || "unknown"
+  ).toUpperCase();
+  document.querySelector("#dataStatus").style.color =
+    health.status === "healthy" ? "var(--lime)" : "var(--orange)";
+  document.querySelector("#dataPrice").textContent = ticker.price
+    ? "$" +
+      Number(ticker.price).toLocaleString(undefined, {
+        maximumFractionDigits: 2,
+      })
+    : "—";
+  document.querySelector("#dataSpread").textContent = Number.isFinite(
+    book.spreadBps,
+  )
+    ? book.spreadBps.toFixed(2) + " bps"
+    : "—";
+  document.querySelector("#dataImbalance").textContent = Number.isFinite(
+    book.imbalance,
+  )
+    ? book.imbalance.toFixed(3)
+    : "—";
+  document.querySelector("#dataEvents").textContent = Number(
+    health.metrics?.events || 0,
+  ).toLocaleString();
+  document.querySelector("#dataDetail").textContent =
+    `${health.products?.join(", ") || "sin productos"} · ciclo ${health.metrics?.lastCycleMs || 0}ms · divergencia ${Number(health.maxDivergenceBps || 0).toFixed(2)} bps`;
+  document.querySelector("#feedHealth").textContent = (
+    health.status || "down"
+  ).toUpperCase();
+}
+async function publicMarketFallback() {
+  const started = Date.now(),
+    [coinbaseResponse, krakenResponse] = await Promise.all([
+      fetch("https://api.exchange.coinbase.com/products/BTC-USD/ticker"),
+      fetch("https://api.kraken.com/0/public/Ticker?pair=XBTUSD"),
+    ]);
+  if (!coinbaseResponse.ok || !krakenResponse.ok)
+    throw new Error(`HTTP ${coinbaseResponse.status}/${krakenResponse.status}`);
+  const coinbase = await coinbaseResponse.json(),
+    kraken = await krakenResponse.json(),
+    krakenTicker = Object.values(kraken.result || {})[0],
+    prices = [Number(coinbase.price), Number(krakenTicker?.c?.[0])];
+  if (!prices.every(Number.isFinite)) throw new Error("invalid-public-market");
+  const bid = Number(coinbase.bid),
+    ask = Number(coinbase.ask),
+    midpoint = (bid + ask) / 2,
+    spreadBps =
+      Number.isFinite(midpoint) && midpoint > 0
+        ? ((ask - bid) / midpoint) * 10000
+        : null,
+    divergenceBps =
+      (Math.abs(prices[0] - prices[1]) / ((prices[0] + prices[1]) / 2)) * 10000;
+  return {
+    health: {
+      status: "healthy",
+      products: ["BTC-USD"],
+      source: { source: "coinbase" },
+      secondary: { source: "kraken" },
+      metrics: { events: 2, lastCycleMs: Date.now() - started },
+      maxDivergenceBps: divergenceBps,
+    },
+    snapshot: {
+      ticker: {
+        symbol: "BTC-USD",
+        price: (prices[0] + prices[1]) / 2,
+        receivedAt: new Date().toISOString(),
+      },
+      book: { spreadBps, imbalance: null },
+    },
+  };
 }
 document.querySelector("#refreshData").onclick = refreshMarketData;
 const desksModal = document.querySelector("#desksModal"),
