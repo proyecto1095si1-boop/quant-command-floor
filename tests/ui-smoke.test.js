@@ -117,12 +117,6 @@ for (const file of [
     true,
     "the external data API console requests intelligence DAG status",
   );
-  assert.equal(
-    requests.some(({ url }) => url.endsWith("/v1/governance/intelligence")),
-    true,
-    "the external data API console requests intelligence governance status",
-  );
-
   await new Promise((resolve) => setImmediate(resolve));
 
   window.fetch = async (url) => {

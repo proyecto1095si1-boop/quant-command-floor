@@ -8,7 +8,10 @@ const assert = require("node:assert/strict"),
     normalizeInvoice,
   } = require("../server/ai/cost-reconciliation.js"),
   { digest } = require("../server/config/checkpoint.js"),
-  { FxOracle } = require("../server/finance/provenance.js");
+  {
+    FxOracle,
+    parseTrustedIssuers,
+  } = require("../server/finance/provenance.js");
 
 (async () => {
   const now = Date.parse("2026-10-22T12:00:00Z"),
@@ -77,6 +80,20 @@ const assert = require("node:assert/strict"),
           .toString("base64"),
       },
     });
+
+  assert.equal(parseTrustedIssuers().size, 0);
+  assert.equal(
+    parseTrustedIssuers(
+      JSON.stringify({
+        "provider-finance": publicKey.export({ type: "spki", format: "pem" }),
+      }),
+    ).get("provider-finance").asymmetricKeyType,
+    "ed25519",
+  );
+  assert.throws(
+    () => parseTrustedIssuers("{"),
+    /invalid-trusted-issuers-config/,
+  );
 
   await assert.rejects(
     service.importInvoice(sign(base), {

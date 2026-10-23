@@ -16,7 +16,7 @@ const {
   AiCostReconciliation,
   AiPriceCatalog,
 } = require("./ai/cost-reconciliation.js");
-const { FxOracle } = require("./finance/provenance.js");
+const { FxOracle, parseTrustedIssuers } = require("./finance/provenance.js");
 const {
   FinnhubConnector,
   FredConnector,
@@ -25,14 +25,6 @@ const {
 const { IntelligenceDag } = require("./intelligence/dag.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
-const { ExperimentService } = require("./governance/experiments.js");
-const { OutcomeOracle } = require("./governance/outcome-oracle.js");
-const { AiEvaluationService } = require("./governance/ai-evaluation.js");
-const { CalibrationGovernanceService } = require("./governance/calibration.js");
-const {
-  IntelligenceGovernanceService,
-} = require("./governance/intelligence.js");
-const { parseTrustedReviewers } = require("./governance/provenance.js");
 const sreWindowDays = Number(process.env.SRE_WINDOW_DAYS || 30),
   dataRetentionDays = Number(process.env.DATA_RETENTION_DAYS || 30),
   sreBucketMs = Number(process.env.SRE_BUCKET_MS || 60000),
@@ -111,7 +103,7 @@ const aiHealthPolicy = {
     catalog: aiPriceCatalog,
     record: (stream, event) => data.record(stream, event),
     requireRecovery: true,
-    trustedIssuers: parseTrustedReviewers(process.env.INVOICE_TRUSTED_ISSUERS),
+    trustedIssuers: parseTrustedIssuers(process.env.INVOICE_TRUSTED_ISSUERS),
     fxOracle: new FxOracle({
       sources: String(process.env.FX_TRUSTED_SOURCES || "")
         .split(",")
@@ -222,44 +214,6 @@ const regime = new RegimeService({
   governance = new ModelGovernanceService({
     record: (stream, event) => data.record(stream, event),
   }),
-  outcomeOracle = new OutcomeOracle({
-    provider: data,
-    policy: {
-      maxStalenessMs: Number(process.env.OUTCOME_MAX_STALENESS_MS || 30000),
-      maxOutcomeLagMs: Number(process.env.OUTCOME_MAX_LAG_MS || 30000),
-      finalityDelayMs: Number(process.env.OUTCOME_FINALITY_DELAY_MS || 30000),
-      maxClockSkewMs: Number(process.env.OUTCOME_MAX_CLOCK_SKEW_MS || 2000),
-      maxDivergenceBps: Number(process.env.OUTCOME_MAX_DIVERGENCE_BPS || 25),
-    },
-  }),
-  experiments = new ExperimentService({
-    governance,
-    outcomeOracle,
-    record: (stream, event) => data.record(stream, event),
-  }),
-  aiEvaluation = new AiEvaluationService({
-    governance,
-    record: (stream, event) => data.record(stream, event),
-    trustedReviewers: parseTrustedReviewers(
-      process.env.AI_EVALUATION_TRUSTED_REVIEWERS,
-    ),
-  }),
-  calibrationGovernance = new CalibrationGovernanceService({
-    governance,
-    experiments,
-    record: (stream, event) => data.record(stream, event),
-    trustedReviewers: parseTrustedReviewers(
-      process.env.CALIBRATION_TRUSTED_REVIEWERS,
-    ),
-  }),
-  intelligenceGovernance = new IntelligenceGovernanceService({
-    governance,
-    experiments,
-    record: (stream, event) => data.record(stream, event),
-    trustedReviewers: parseTrustedReviewers(
-      process.env.INTELLIGENCE_GOVERNANCE_TRUSTED_REVIEWERS,
-    ),
-  }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,
     pipeline,
@@ -300,9 +254,6 @@ const regime = new RegimeService({
     execution,
     sre,
     governance,
-    experiments,
-    aiEvaluation,
-    calibrationGovernance,
     aiProviderHealth: aiProviderPool,
     record: (stream, event) => data.record(stream, event),
     requireRecovery: true,
@@ -322,10 +273,6 @@ gateway.setExecution(execution);
 gateway.setSre(sre);
 gateway.setRegime(regime);
 gateway.setGovernance(governance);
-gateway.setExperiments(experiments);
-gateway.setAiEvaluation(aiEvaluation);
-gateway.setCalibrationGovernance(calibrationGovernance);
-gateway.setIntelligenceGovernance(intelligenceGovernance);
 gateway.setReadiness(readiness);
 gateway.listen().then(async (address) => {
   console.log(
@@ -372,55 +319,6 @@ gateway.listen().then(async (address) => {
     });
     if (recovered.models)
       console.log(`Model governance recovered: ${recovered.models} models`);
-    const experimentEvents = await data.store.tail(
-      "governance.experiments",
-      10000,
-    );
-    const experimentRecovery = experiments.recover(experimentEvents);
-    if (experimentRecovery.experiments)
-      console.log(
-        `Model experiments recovered: ${experimentRecovery.experiments}`,
-      );
-    const [aiDatasets, aiRuns] = await Promise.all([
-      data.store.tail("governance.ai-datasets", 1000),
-      data.store.tail("governance.ai-evaluations", 10000),
-    ]);
-    const aiRecovery = aiEvaluation.recover({
-      datasets: aiDatasets,
-      runs: aiRuns,
-    });
-    if (aiRecovery.datasets)
-      console.log(`AI evaluation recovered: ${aiRecovery.datasets} datasets`);
-    const [calibrationDatasets, calibrationRuns, calibrationApprovals] =
-      await Promise.all([
-        data.store.tail("governance.calibration-datasets", 1000),
-        data.store.tail("governance.calibration-runs", 1000),
-        data.store.tail("governance.calibration-approvals", 1000),
-      ]);
-    const calibrationRecovery = calibrationGovernance.recover({
-      datasets: calibrationDatasets,
-      runs: calibrationRuns,
-      approvals: calibrationApprovals,
-    });
-    if (calibrationRecovery.datasets)
-      console.log(
-        `Calibration governance recovered: ${calibrationRecovery.datasets} datasets`,
-      );
-    const [intelligenceDatasets, intelligenceRuns, intelligenceApprovals] =
-      await Promise.all([
-        data.store.tail("governance.intelligence-datasets", 1000),
-        data.store.tail("governance.intelligence-runs", 1000),
-        data.store.tail("governance.intelligence-approvals", 1000),
-      ]);
-    const intelligenceRecovery = intelligenceGovernance.recover({
-      datasets: intelligenceDatasets,
-      runs: intelligenceRuns,
-      approvals: intelligenceApprovals,
-    });
-    if (intelligenceRecovery.datasets)
-      console.log(
-        `Intelligence governance recovered: ${intelligenceRecovery.datasets} datasets`,
-      );
   } catch (e) {
     console.error(`Model governance recovery blocked: ${e.message}`);
   }

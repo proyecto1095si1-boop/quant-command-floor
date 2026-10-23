@@ -1,9 +1,6 @@
 require("./intelligence-connectors.test.js");
 require("./intelligence-api.test.js");
 require("./intelligence-dag.test.js");
-require("./intelligence-calibration.test.js");
-require("./intelligence-governance.test.js");
-require("./intelligence-governance-api.test.js");
 
 const assert = require("node:assert/strict"),
   { createGateway } = require("../server/gateway.js"),
