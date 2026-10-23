@@ -146,6 +146,7 @@ function createGateway(options = {}) {
     experiments = options.experiments || null,
     aiEvaluation = options.aiEvaluation || null,
     calibrationGovernance = options.calibrationGovernance || null,
+    intelligenceGovernance = options.intelligenceGovernance || null,
     readiness = options.readiness || null;
   const publish = (event) => {
     const frame = wsFrame(JSON.stringify(event));
@@ -669,6 +670,93 @@ function createGateway(options = {}) {
           : { error: "calibration-governance-disabled" },
         headers,
       );
+    if (req.method === "GET" && req.url === "/v1/governance/intelligence")
+      return json(
+        res,
+        intelligenceGovernance ? 200 : 503,
+        intelligenceGovernance
+          ? intelligenceGovernance.status()
+          : { error: "intelligence-governance-disabled" },
+        headers,
+      );
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/intelligence/datasets"
+    ) {
+      if (!intelligenceGovernance)
+        return json(
+          res,
+          503,
+          { error: "intelligence-governance-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await intelligenceGovernance.registerDataset(
+            await body(req),
+            req.auth.sub,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/intelligence/evaluate"
+    ) {
+      if (!intelligenceGovernance)
+        return json(
+          res,
+          503,
+          { error: "intelligence-governance-disabled" },
+          headers,
+        );
+      try {
+        return json(
+          res,
+          200,
+          await intelligenceGovernance.evaluate(await body(req), req.auth.sub),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
+    if (
+      req.method === "POST" &&
+      req.url === "/v1/governance/intelligence/approve-experiment"
+    ) {
+      if (!intelligenceGovernance)
+        return json(
+          res,
+          503,
+          { error: "intelligence-governance-disabled" },
+          headers,
+        );
+      try {
+        const approvals = fourEyes(req) || {
+            primary: req.auth.sub,
+            secondary: String(req.headers["x-second-approver"] || ""),
+          },
+          input = await body(req);
+        return json(
+          res,
+          200,
+          await intelligenceGovernance.approveExperiment(
+            input,
+            approvals,
+            req.auth.sub,
+          ),
+          headers,
+        );
+      } catch (e) {
+        return json(res, e.status || 422, { error: e.message }, headers);
+      }
+    }
     if (
       req.method === "POST" &&
       req.url === "/v1/governance/calibration/datasets"
@@ -1362,6 +1450,9 @@ function createGateway(options = {}) {
     },
     setCalibrationGovernance(value) {
       calibrationGovernance = value;
+    },
+    setIntelligenceGovernance(value) {
+      intelligenceGovernance = value;
     },
     setReadiness(value) {
       readiness = value;

@@ -31,6 +31,9 @@ const { ExperimentService } = require("./governance/experiments.js");
 const { OutcomeOracle } = require("./governance/outcome-oracle.js");
 const { AiEvaluationService } = require("./governance/ai-evaluation.js");
 const { CalibrationGovernanceService } = require("./governance/calibration.js");
+const {
+  IntelligenceGovernanceService,
+} = require("./governance/intelligence.js");
 const { parseTrustedReviewers } = require("./governance/provenance.js");
 const sreWindowDays = Number(process.env.SRE_WINDOW_DAYS || 30),
   dataRetentionDays = Number(process.env.DATA_RETENTION_DAYS || 30),
@@ -259,6 +262,14 @@ const regime = new RegimeService({
       process.env.CALIBRATION_TRUSTED_REVIEWERS,
     ),
   }),
+  intelligenceGovernance = new IntelligenceGovernanceService({
+    governance,
+    experiments,
+    record: (stream, event) => data.record(stream, event),
+    trustedReviewers: parseTrustedReviewers(
+      process.env.INTELLIGENCE_GOVERNANCE_TRUSTED_REVIEWERS,
+    ),
+  }),
   sre = new SreService({
     gatewayMetrics: gateway.metrics,
     pipeline,
@@ -324,6 +335,7 @@ gateway.setGovernance(governance);
 gateway.setExperiments(experiments);
 gateway.setAiEvaluation(aiEvaluation);
 gateway.setCalibrationGovernance(calibrationGovernance);
+gateway.setIntelligenceGovernance(intelligenceGovernance);
 gateway.setReadiness(readiness);
 gateway.listen().then(async (address) => {
   console.log(
@@ -403,6 +415,21 @@ gateway.listen().then(async (address) => {
     if (calibrationRecovery.datasets)
       console.log(
         `Calibration governance recovered: ${calibrationRecovery.datasets} datasets`,
+      );
+    const [intelligenceDatasets, intelligenceRuns, intelligenceApprovals] =
+      await Promise.all([
+        data.store.tail("governance.intelligence-datasets", 1000),
+        data.store.tail("governance.intelligence-runs", 1000),
+        data.store.tail("governance.intelligence-approvals", 1000),
+      ]);
+    const intelligenceRecovery = intelligenceGovernance.recover({
+      datasets: intelligenceDatasets,
+      runs: intelligenceRuns,
+      approvals: intelligenceApprovals,
+    });
+    if (intelligenceRecovery.datasets)
+      console.log(
+        `Intelligence governance recovered: ${intelligenceRecovery.datasets} datasets`,
       );
   } catch (e) {
     console.error(`Model governance recovery blocked: ${e.message}`);
