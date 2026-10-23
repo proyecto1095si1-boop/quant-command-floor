@@ -169,6 +169,34 @@ class MarketDataProvenance {
       clock: this.clock.status(),
     };
   }
+
+  async restoreStream(stream, rows) {
+    const heads = new Map();
+    let events = 0;
+    for await (const row of rows) {
+      const day = row.provenance?.partition || partitionAt(row.receivedAt),
+        head = heads.get(day) || null;
+      if (!row.provenance) {
+        if (head) throw new Error("unsigned-market-event-after-trust-boundary");
+        continue;
+      }
+      const provenance = row.provenance,
+        { hash, ...content } = provenance,
+        expected = provenanceContent(stream, row, head, provenance.ingestedAt);
+      if (
+        provenance.partition !== day ||
+        fingerprint(content) !== fingerprint(expected) ||
+        hash !== fingerprint(content)
+      )
+        throw new Error("invalid-market-provenance-chain");
+      heads.set(day, provenance);
+      events++;
+    }
+    // Commit recovered heads only after the complete stream passes validation.
+    for (const [day, head] of heads)
+      this.heads.set(this.key(stream, day), head);
+    return { events, partitions: heads.size };
+  }
 }
 
 module.exports = { MarketDataProvenance, fingerprint };

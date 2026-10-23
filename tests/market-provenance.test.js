@@ -2,9 +2,10 @@
 
 const assert = require("node:assert/strict"),
   { TrustedClock } = require("../server/data/trusted-clock.js"),
-  { MarketDataProvenance } = require("../server/data/provenance.js");
+  { MarketDataProvenance } = require("../server/data/provenance.js"),
+  { MarketDataService } = require("../server/data/service.js");
 
-(() => {
+(async () => {
   let wall = 1_000,
     monotonic = 0n;
   const clock = new TrustedClock({
@@ -76,5 +77,67 @@ const assert = require("node:assert/strict"),
   assert.equal(nextDay.provenance.sequence, 1);
   assert.equal(nextDay.provenance.previousHash, null);
   assert.equal(restored.status().scope, "daily-local-chain");
+  const streamed = new MarketDataProvenance({ clock: stableClock });
+  const streamRows = async function* (rows) {
+    for (const row of rows) yield row;
+  };
+  const stats = await streamed.restoreStream(
+    "trades.BTC-USD",
+    streamRows([
+      { ...trade(0, 99), receivedAt: first.receivedAt },
+      first,
+      nextDay,
+      second,
+      third,
+    ]),
+  );
+  assert.deepEqual(stats, { events: 4, partitions: 2 });
+  assert.deepEqual(streamed.status().heads, restored.status().heads);
+  const headsBefore = streamed.status().heads;
+  await assert.rejects(
+    streamed.restoreStream("trades.BTC-USD", streamRows(poisoned)),
+    /invalid-market-provenance-chain/,
+  );
+  assert.deepEqual(
+    streamed.status().heads,
+    headsBefore,
+    "a failed recovery must not partially commit heads",
+  );
+  await assert.rejects(
+    streamed.restoreStream(
+      "trades.BTC-USD",
+      streamRows([first, { ...trade(7, 104), receivedAt: first.receivedAt }]),
+    ),
+    /unsigned-market-event-after-trust-boundary/,
+  );
+  assert.equal(
+    streamed.seal("trades.BTC-USD", trade(6, 104)).provenance.previousHash,
+    nextDay.provenance.hash,
+  );
+  const writer = new MarketDataProvenance({ clock: stableClock }),
+    recovery = new MarketDataService({
+      trustedClock: stableClock,
+      products: [],
+      store: {
+        tail: async () => [],
+        inventory: async () => ({ streams: [{ stream: "trades.BTC-USD" }] }),
+        replay: async () => {
+          throw new Error("recovery-must-not-materialize-history");
+        },
+        events: async function* () {
+          for (let i = 1; i <= 10001; i++)
+            yield writer.seal("trades.BTC-USD", trade(i, 100));
+        },
+      },
+    });
+  await recovery.recover();
+  assert.equal(
+    recovery.provenance.status().heads[0].sequence,
+    10001,
+    "restore continues beyond the API replay limit",
+  );
   console.log("market provenance tests: ok");
-})();
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
