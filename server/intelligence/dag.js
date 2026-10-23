@@ -98,7 +98,9 @@ function validateSnapshot(snapshot, expectedAsset, now) {
       Array.isArray(body.provenance) &&
       body.provenance.every(
         (row) =>
-          ["finnhub", "fred", "fmp", "polygon"].includes(row?.provider) &&
+          ["finnhub", "fred", "fmp", "polygon", "yahoo"].includes(
+            row?.provider,
+          ) &&
           Number.isInteger(row.records) &&
           row.records >= 0 &&
           /^[a-f0-9]{64}$/.test(String(row.dataHash || "")),
@@ -211,6 +213,33 @@ function marketNode(rows, asOf) {
   };
 }
 
+function reconcileMarketRows(rows) {
+  const groups = new Map();
+  for (const row of rows) {
+    const timestamp = observedAt(row),
+      close = Number(row.close);
+    if (!Number.isFinite(timestamp) || !Number.isFinite(close)) continue;
+    const bucket = groups.get(timestamp) || [];
+    bucket.push(row);
+    groups.set(timestamp, bucket);
+  }
+  return [...groups.entries()].map(([timestamp, bucket]) => {
+    const closes = bucket.map((row) => Number(row.close)).sort((a, b) => a - b),
+      middle = Math.floor(closes.length / 2),
+      close =
+        closes.length % 2
+          ? closes[middle]
+          : (closes[middle - 1] + closes[middle]) / 2;
+    return {
+      source: "market-consensus",
+      sources: [...new Set(bucket.map((row) => row.source))].sort(),
+      timestamp,
+      close,
+      receivedAt: Math.max(...bucket.map((row) => Number(row.receivedAt))),
+    };
+  });
+}
+
 function consensus(nodes, minimumSources) {
   const active = nodes.filter(
       (node) => node.observations > 0 && node.confidence > 0,
@@ -294,6 +323,11 @@ class IntelligenceDag {
           "aggregates",
           { ticker: `X:${symbol}USD`, from: start, to: end },
         ],
+        [
+          "yahoo",
+          "chart",
+          { symbol: `${symbol}-USD`, from: start, to: end, interval: "1d" },
+        ],
       ],
       settled = await Promise.all(
         requests.map(async ([provider, operation, params]) => {
@@ -313,7 +347,11 @@ class IntelligenceDag {
         .filter((row) => row.operation === "news")
         .flatMap((row) => row.data),
       macro = settled.find((row) => row.provider === "fred")?.data || [],
-      market = settled.find((row) => row.provider === "polygon")?.data || [],
+      market = reconcileMarketRows(
+        settled
+          .filter((row) => ["polygon", "yahoo"].includes(row.provider))
+          .flatMap((row) => row.data),
+      ),
       nodes = [
         macroNode(macro, decisionAt),
         newsNode(news, decisionAt),
@@ -414,5 +452,6 @@ module.exports = {
   marketNode,
   newsNode,
   pointInTime,
+  reconcileMarketRows,
   validateSnapshot,
 };

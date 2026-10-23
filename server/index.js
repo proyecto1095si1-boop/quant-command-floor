@@ -23,6 +23,7 @@ const {
   FredConnector,
   IntelligenceService,
   PolygonConnector,
+  YahooFinanceConnector,
 } = require("./intelligence/connectors.js");
 const { IntelligenceDag } = require("./intelligence/dag.js");
 const { RegimeService } = require("./regime/service.js");
@@ -183,6 +184,9 @@ const aiHealthPolicy = {
       polygon: new PolygonConnector({
         apiKey: process.env.POLYGON_API_KEY,
         maxRequestsPerMinute: Number(process.env.POLYGON_RPM || 60),
+      }),
+      yahoo: new YahooFinanceConnector({
+        maxRequestsPerMinute: Number(process.env.YAHOO_RPM || 30),
       }),
     },
   }),

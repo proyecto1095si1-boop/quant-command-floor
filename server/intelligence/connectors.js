@@ -3,9 +3,25 @@
 const { environmentFetch } = require("../data/http-client.js");
 
 const SYMBOL = /^[A-Z0-9][A-Z0-9._:-]{0,19}$/,
+  YAHOO_SYMBOL = /^[A-Z0-9^][A-Z0-9.^=_:-]{0,29}$/,
   SERIES = /^[A-Z0-9][A-Z0-9._-]{0,79}$/,
   DAY = /^\d{4}-\d{2}-\d{2}$/,
-  TIMESPANS = new Set(["minute", "hour", "day", "week", "month"]);
+  TIMESPANS = new Set(["minute", "hour", "day", "week", "month"]),
+  YAHOO_INTERVALS = new Set([
+    "1m",
+    "2m",
+    "5m",
+    "15m",
+    "30m",
+    "60m",
+    "90m",
+    "1h",
+    "1d",
+    "5d",
+    "1wk",
+    "1mo",
+    "3mo",
+  ]);
 
 function bounded(value, fallback, minimum, maximum) {
   const number = Number(value ?? fallback);
@@ -39,6 +55,7 @@ class ReadOnlyConnector {
     retries = 1,
     maxRequestsPerMinute = 60,
     keyMode,
+    requiresKey = true,
   }) {
     this.id = id;
     this.baseUrl = baseUrl.replace(/\/$/, "");
@@ -48,6 +65,7 @@ class ReadOnlyConnector {
     this.retries = bounded(retries, 1, 0, 5);
     this.maxRequestsPerMinute = bounded(maxRequestsPerMinute, 60, 1, 10000);
     this.keyMode = keyMode;
+    this.requiresKey = requiresKey;
     this.requests = [];
     this.stats = {
       attempts: 0,
@@ -64,7 +82,7 @@ class ReadOnlyConnector {
   }
 
   async get(path, query = {}) {
-    if (!this.apiKey)
+    if (this.requiresKey && !this.apiKey)
       throw Object.assign(new Error(`${this.id}-not-configured`), {
         status: 503,
       });
@@ -76,7 +94,10 @@ class ReadOnlyConnector {
     for (const [key, value] of Object.entries(query))
       if (value !== undefined && value !== null && value !== "")
         url.searchParams.set(key, String(value));
-    if (this.keyMode === "finnhub") headers["x-finnhub-token"] = this.apiKey;
+    if (!this.requiresKey) {
+      // Public read-only provider; no credential is sent.
+    } else if (this.keyMode === "finnhub")
+      headers["x-finnhub-token"] = this.apiKey;
     else if (this.keyMode === "bearer")
       headers.authorization = `Bearer ${this.apiKey}`;
     else url.searchParams.set(this.keyMode, this.apiKey);
@@ -116,7 +137,7 @@ class ReadOnlyConnector {
 
   health() {
     this.prune();
-    const configured = Boolean(this.apiKey),
+    const configured = !this.requiresKey || Boolean(this.apiKey),
       observed = this.stats.attempts > 0,
       errorRate = observed ? this.stats.failures / this.stats.attempts : 0;
     return {
@@ -129,6 +150,84 @@ class ReadOnlyConnector {
       errorRate,
       ...this.stats,
     };
+  }
+}
+
+class YahooFinanceConnector extends ReadOnlyConnector {
+  constructor(options = {}) {
+    super({
+      id: "yahoo",
+      baseUrl: "https://query1.finance.yahoo.com",
+      keyMode: null,
+      requiresKey: false,
+      ...options,
+    });
+  }
+
+  async chart({ symbol, from, to, interval = "1d", limit = 500 } = {}) {
+    const ticker = identifier(symbol, YAHOO_SYMBOL, "yahoo-symbol"),
+      start = Date.parse(`${from}T00:00:00Z`),
+      end = Date.parse(`${to}T00:00:00Z`);
+    if (
+      !DAY.test(String(from || "")) ||
+      !DAY.test(String(to || "")) ||
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      end < start
+    )
+      throw Object.assign(new Error("invalid-yahoo-chart-range"), {
+        status: 422,
+      });
+    if (!YAHOO_INTERVALS.has(interval))
+      throw Object.assign(new Error("invalid-yahoo-interval"), { status: 422 });
+    const raw = await this.get(
+        `/v8/finance/chart/${encodeURIComponent(ticker)}`,
+        {
+          period1: Math.floor(start / 1000),
+          period2: Math.floor((end + 86400000) / 1000),
+          interval,
+          events: "div,splits",
+          includeAdjustedClose: "true",
+        },
+      ),
+      result = raw?.chart?.result?.[0],
+      timestamps = result?.timestamp,
+      quote = result?.indicators?.quote?.[0],
+      adjusted = result?.indicators?.adjclose?.[0]?.adjclose || [];
+    if (!Array.isArray(timestamps) || !quote)
+      throw new Error("yahoo-invalid-response");
+    return timestamps
+      .map((timestamp, index) => ({
+        source: "yahoo",
+        ticker,
+        timestamp: finite(timestamp, "yahoo") * 1000,
+        open: Number.isFinite(Number(quote.open?.[index]))
+          ? Number(quote.open[index])
+          : null,
+        high: Number.isFinite(Number(quote.high?.[index]))
+          ? Number(quote.high[index])
+          : null,
+        low: Number.isFinite(Number(quote.low?.[index]))
+          ? Number(quote.low[index])
+          : null,
+        close: Number.isFinite(Number(quote.close?.[index]))
+          ? Number(quote.close[index])
+          : null,
+        adjustedClose: Number.isFinite(Number(adjusted[index]))
+          ? Number(adjusted[index])
+          : null,
+        volume: Number.isFinite(Number(quote.volume?.[index]))
+          ? Number(quote.volume[index])
+          : null,
+        receivedAt: Date.now(),
+      }))
+      .filter(
+        (row) =>
+          row.close !== null &&
+          row.timestamp >= start &&
+          row.timestamp < end + 86400000,
+      )
+      .slice(-bounded(limit, 500, 1, 5000));
   }
 }
 
@@ -322,12 +421,14 @@ class IntelligenceService {
       fred: connectors.fred || new FredConnector(),
       fmp: connectors.fmp || new FmpConnector(),
       polygon: connectors.polygon || new PolygonConnector(),
+      yahoo: connectors.yahoo || new YahooFinanceConnector(),
     };
     this.operations = {
       finnhub: new Set(["news"]),
       fred: new Set(["series"]),
       fmp: new Set(["profile", "news"]),
       polygon: new Set(["aggregates"]),
+      yahoo: new Set(["chart"]),
     };
   }
 
@@ -367,4 +468,5 @@ module.exports = {
   FredConnector,
   IntelligenceService,
   PolygonConnector,
+  YahooFinanceConnector,
 };
