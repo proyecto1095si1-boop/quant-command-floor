@@ -26,6 +26,7 @@ module.exports = [
         module: "readonly",
         QCF: "readonly",
         QCFAudit: "readonly",
+        QCFAgentProfiles: "readonly",
         QCFData: "readonly",
         QCFOps: "readonly",
         QCFPlatform: "readonly",

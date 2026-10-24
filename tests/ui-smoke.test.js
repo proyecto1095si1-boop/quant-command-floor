@@ -37,6 +37,7 @@ for (const file of [
   "operations.js",
   "advanced.js",
   "audit-security.js",
+  "agent-profiles.js",
   "app.js",
 ])
   window.eval(fs.readFileSync(path.join(dist, file), "utf8"));
@@ -50,7 +51,7 @@ for (const file of [
   document.querySelector('.room[data-id="2"]').click();
   assert.equal(
     document.querySelector("#detailName").textContent,
-    "Mesas de Activos",
+    "Responsable de Bitcoin",
   );
   assert.equal(
     document.querySelector("#detail").classList.contains("open"),
@@ -64,6 +65,18 @@ for (const file of [
     document.querySelector('.agent[data-node-id="desk.btc"]'),
     "employees expose stable backend node IDs",
   );
+  assert.equal(
+    document.querySelector("#employeeTechnical").open,
+    false,
+    "technical details start closed",
+  );
+  assert.match(
+    document.querySelector("#modelMission").textContent,
+    /exclusivamente Bitcoin/,
+  );
+  document.querySelector('.agent[data-node-id="desk.eth"]').click();
+  assert.match(document.querySelector("#modelMission").textContent, /Ethereum/);
+  document.querySelector('.agent[data-node-id="desk.btc"]').click();
   MockWebSocket.instances[0].onmessage({
     data: JSON.stringify({
       type: "desk.analysis",
@@ -92,6 +105,19 @@ for (const file of [
     "a real event activates its data-flow link",
   );
   assert.equal(document.querySelector("#nodeEventCount").textContent, "1");
+  assert.match(
+    document.querySelector("#nodeLiveActivity").textContent,
+    /orientación compradora/,
+  );
+  assert.match(
+    document.querySelector("#employeeMeaning").textContent,
+    /no una ejecución/,
+  );
+  assert.equal(document.querySelector("#employeeTechnical").open, false);
+  assert.doesNotMatch(
+    document.querySelector("#nodeLiveActivity").textContent,
+    /\{|signal|confidence/,
+  );
   assert.match(document.querySelector("#nodeEventList").textContent, /candles/);
   assert.match(
     document.querySelector("#nodeEventList").textContent,
@@ -207,11 +233,11 @@ for (const file of [
   document.querySelector('.agent[data-node-id="intake.news"]').click();
   assert.match(
     document.querySelector("#nodeLiveActivity").textContent,
-    /FINNHUB_API_KEY/,
+    /configure su proveedor de noticias/,
   );
   assert.equal(
     document.querySelector("#nodeLiveStatus").textContent,
-    "BLOCKED",
+    "EN ESPERA",
   );
   snapshot.intelligenceProviders.finnhub = {
     configured: true,
@@ -237,7 +263,7 @@ for (const file of [
   await window.syncFloor();
   assert.match(
     document.querySelector("#nodeLiveActivity").textContent,
-    /3 observaciones/,
+    /3 noticias/,
   );
   assert.equal(document.querySelector("#confidenceValue").textContent, "60.0%");
   assert.equal(
@@ -247,7 +273,7 @@ for (const file of [
   document.querySelector('.agent[data-node-id="desk.sol"]').click();
   assert.match(
     document.querySelector("#nodeLiveActivity").textContent,
-    /123.45.*esperando análisis/,
+    /123,45 dólares/,
   );
   assert.match(document.querySelector("#modelOutput").textContent, /123.45/);
   assert.equal(
@@ -265,11 +291,11 @@ for (const file of [
   document.querySelector('.agent[data-node-id="risk.manager"]').click();
   assert.match(
     document.querySelector("#nodeLiveActivity").textContent,
-    /HALT: manual/,
+    /detenido por un control de riesgo/,
   );
   assert.equal(
     document.querySelector("#nodeLiveStatus").textContent,
-    "BLOCKED",
+    "EN ESPERA",
   );
   document.querySelector('.agent[data-node-id="desk.sol"]').click();
   const originalNow = window.Date.now;
@@ -283,7 +309,7 @@ for (const file of [
   document.querySelector('.agent[data-node-id="intake.news"]').click();
   assert.equal(
     document.querySelector("#nodeLiveStatus").textContent,
-    "OK",
+    "AL DÍA",
     "news must stay fresh across the five-minute refresh interval",
   );
   window.Date.now = () => snapshotAt + 600002;

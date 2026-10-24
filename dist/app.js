@@ -202,7 +202,18 @@ function fallbackNodeId(area, label) {
     "Order Block": "consensus.orderblock",
     "Signal Hub": "consensus.signal",
     "Risk Manager": "risk.manager",
+    "Drawdown Controller": "risk.drawdown",
+    "Exposure Monitor": "risk.exposure",
+    "Position Size": "risk.size",
     "Execution Queue": "execution.queue",
+    "Paper Router": "execution.router",
+    "Broker Simulator": "execution.broker",
+    "Capital Allocation": "portfolio.allocation",
+    Rebalancing: "portfolio.rebalance",
+    "Strategy Miner": "research.miner",
+    "Backtest Engine": "research.backtest",
+    "Walk-Forward Optimizer": "research.walkforward",
+    "API Monitor": "sre.api",
     "Audit Writer": "audit.writer",
     "Anomaly Detector": "sre.anomaly",
   };
@@ -254,6 +265,7 @@ function recordNodeEvent(id, event) {
     type: event.type || "event",
     source: event.source || "stream",
     status: event.status || "ok",
+    explanation: QCFAgentProfiles.describe(id, event),
     input: eventText(event.input),
     evidence: eventText(event.evidence),
     formula: eventText(event.formula),
@@ -693,8 +705,10 @@ function modelFor(name) {
   return models.technical;
 }
 function showModel(name, nodeId = null) {
+  const changed = nodeId && nodeId !== selectedNodeId;
   selectedAgent = name;
   if (nodeId) selectedNodeId = nodeId;
+  if (changed) document.querySelector("#employeeTechnical").open = false;
   const m = modelFor(name),
     info = agentCatalog[name] || [
       m[0],
@@ -714,9 +728,23 @@ function showModel(name, nodeId = null) {
       connected: false,
     };
   document.querySelector("#modelName").textContent = name;
-  document.querySelector("#modelMission").textContent = info[1];
+  const personal = QCFAgentProfiles.profile(selectedNodeId);
+  document.querySelector("#detailName").textContent = personal.role;
+  document.querySelector("#detailDesc").textContent =
+    `Ficha individual · ${areaForNode(selectedNodeId)?.name || "Equipo de operaciones"}`;
+  document.querySelector("#modelMission").textContent = personal.mission;
+  document.querySelector("#employeeRole").textContent = personal.role;
+  document.querySelector("#employeeMethod").textContent = personal.method;
+  document.querySelector("#employeeUses").textContent = personal.uses;
+  document.querySelector("#employeeDelivers").textContent = personal.delivers;
   document.querySelector("#modelType").textContent =
-    nodeById(selectedNodeId)?.engine?.toUpperCase() || info[0];
+    {
+      math: "Análisis cuantitativo",
+      ai: "Interpretación y análisis",
+      stream: "Datos de mercado",
+      ensemble: "Síntesis de análisis",
+      journal: "Registro verificable",
+    }[nodeById(selectedNodeId)?.engine] || "Empleado especializado";
   renderLiveEmployee();
   document.querySelector("#brainType").value = cfg.type;
   document.querySelector("#agentWeight").value = cfg.weight;
@@ -766,9 +794,20 @@ function renderLiveEmployee() {
       : age > nodeFreshnessMs(selectedNodeId) && live
         ? "DATOS ANTIGUOS"
         : live?.state?.toUpperCase() || "SIN DATOS";
-  document.querySelector("#nodeLiveStatus").textContent = state;
+  document.querySelector("#nodeLiveStatus").textContent =
+    {
+      OK: "AL DÍA",
+      BLOCKED: "EN ESPERA",
+      RUNNING: "PROCESANDO",
+      IDLE: "ESPERANDO",
+      ERROR: "REQUIERE REVISIÓN",
+      SKIPPED: "SIN ACCIÓN",
+    }[state] || state;
+  const explanation =
+    history?.explanation || QCFAgentProfiles.describe(selectedNodeId, null);
   document.querySelector("#nodeLiveActivity").textContent =
-    live?.detail || "Sin actividad observada para este empleado.";
+    explanation.activity;
+  document.querySelector("#employeeMeaning").textContent = explanation.meaning;
   document.querySelector("#nodeLiveTime").textContent = live
     ? `Última observación: ${new Date(live.at).toLocaleString()} · ${Math.max(0, Math.floor(age / 1000))} s`
     : "Sin actualización";
