@@ -9,6 +9,11 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- E2: redacción y significado propios para los 33 empleados, compartidos entre
+  fichas backend y vista anterior; valores, activos y unidades observados, sin
+  inventar umbrales. Capturas offline de motores reales y prueba de recaptura.
+  Backtest, validación temporal y minero aclaran sus capacidades reales.
+
 - Servicio backend de fichas para los 33 empleados, con contrato validado,
   parámetros de configuración reales, entradas con vigencia, historial acotado,
   endpoints de lectura y notificación WebSocket. Desempeño aún no medido y

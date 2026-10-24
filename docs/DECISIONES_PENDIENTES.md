@@ -152,3 +152,26 @@ propietario del repositorio. No se adoptan valores por omisión.
   evaluación adversarial fueron retirados en R4 por estar fuera del camino real.
 - **Recuperación:** código, pruebas y documentos están disponibles en el tag
   `pre-recorte`; reintroducirlos requiere una nueva decisión explícita de alcance.
+
+## Defecto contable detectado durante E2: precio promedio sin marca
+
+- **Estado:** defecto preexistente reproducido; no corregido en E2 para no mezclar
+  redacción de fichas con lógica de dinero. No usar estos resultados con capital real.
+- **Evidencia:** `PaperLedger.execute` compra 1 BTC a 200,02 USD, pero
+  `snapshot()` sin marks usa `avgPrice = 0.000002` como valoración.
+  Con una marca explícita de 200 USD, el patrimonio es 99999.77998;
+  sin marca resulta 99799.779982. `accounting.balanced` sigue siendo true:
+  consistencia interna no implica valoración correcta.
+- **Reproducción sin red**, desde la raíz:
+
+```sh
+node -e 'const {PaperLedger}=require("./server/pipeline/paper-ledger.js"); const l=new PaperLedger(); l.execute({id:"diagnostic",symbol:"BTC-USD",side:"buy",qty:1},{mid:200,bids:[{price:199.98,size:10}],asks:[{price:200.02,size:12}]}); const s=l.snapshot(); console.log(JSON.stringify({avgPrice:s.positions["BTC-USD"].avgPrice,marketValue:s.marketValue,equity:s.equity,balanced:s.accounting.balanced}));'
+```
+
+```text
+{"avgPrice":0.000002,"marketValue":0.000002,"equity":99799.779982,"balanced":true}
+```
+
+- **Siguiente acción:** corrección separada, una rama/PR, pruebas de unidades
+  fijas y de valoración sin marcas antes de continuar con métricas económicas.
+  No se agrega un módulo de gobernanza ni se habilita trading real.
