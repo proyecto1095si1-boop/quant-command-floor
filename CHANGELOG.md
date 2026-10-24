@@ -9,6 +9,10 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Inventario canónico de 33 empleados con fuentes y formas reales de sus
+  salidas, diferencias entre nodos y ejecutores, y prueba de correspondencia
+  exacta entre registro, perfiles, mesas y DOM del mapa, sin red externa.
+
 - Sincronización inicial y periódica del mapa 2D con precios, inteligencia y
   estado operativo; carteles con actividad observada, antigüedad y conexión.
 - El pipeline publica su análisis de mesas para actualizar los empleados durante
@@ -33,7 +37,7 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
-- Los carteles de los 32 empleados muestran fichas individuales con función,
+- Los carteles de los 33 empleados muestran fichas individuales con función,
   método explicado en lenguaje cotidiano, información utilizada y lectura del
   resultado observado. Fórmulas, registros y configuración quedan plegados por
   defecto; las fichas no presentan tareas sin datos como si estuvieran activas.
