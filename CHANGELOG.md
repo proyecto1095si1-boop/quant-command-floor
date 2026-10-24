@@ -33,6 +33,13 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Los feeds incluyen SOL y BNB en el arranque por defecto, con par BNBUSD
+  explícito en Kraken. El DAG de inteligencia se refresca periódicamente cuando
+  hay proveedores configurados; el mapa muestra el motivo de noticias sin datos.
+- Las consultas actuales de inteligencia fijan `asOf` al recibir los datos,
+  evitando descartar noticias que llegaron durante la petición. Los cortes
+  históricos explícitos mantienen sus reglas temporales.
+
 - La compactación de históricos comprime por bloques a un archivo temporal,
   verifica los bytes descomprimidos con SHA-256 y publica el gzip completo sin
   sobrescribir destinos. Un fallo de publicación, validación o retiro del

@@ -714,7 +714,8 @@ function showModel(name, nodeId = null) {
     };
   document.querySelector("#modelName").textContent = name;
   document.querySelector("#modelMission").textContent = info[1];
-  document.querySelector("#modelType").textContent = info[0];
+  document.querySelector("#modelType").textContent =
+    nodeById(selectedNodeId)?.engine?.toUpperCase() || info[0];
   renderLiveEmployee();
   document.querySelector("#brainType").value = cfg.type;
   document.querySelector("#agentWeight").value = cfg.weight;
@@ -1365,6 +1366,33 @@ async function syncFloor() {
           source: "intelligence DAG",
         });
       }
+    }
+    const newsProvider = snapshot.intelligenceProviders?.finnhub,
+      hasNews = (snapshot.intelligence || []).some((intel) =>
+        intel.nodes?.some(
+          (node) => node.id === "news" && node.observations > 0,
+        ),
+      );
+    if (
+      newsProvider &&
+      (!newsProvider.configured || newsProvider.lastError || !hasNews)
+    ) {
+      floorObservations.delete("intake.news");
+      observeFloorNode("intake.news", {
+        at: snapshot.at,
+        state: "blocked",
+        source: "finnhub",
+        detail: !newsProvider.configured
+          ? "Noticias sin configurar · agregar FINNHUB_API_KEY al backend y reiniciar"
+          : newsProvider.lastError
+            ? `Noticias no disponibles · ${newsProvider.lastError}`
+            : "Finnhub configurado · esperando noticias válidas para estos activos",
+        output: {
+          configured: newsProvider.configured,
+          lastSuccessAt: newsProvider.lastSuccessAt,
+          lastError: newsProvider.lastError,
+        },
+      });
     }
     if (snapshot.pipeline) {
       const p = snapshot.pipeline;
