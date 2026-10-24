@@ -1,0 +1,3599 @@
+[
+  {
+    "id": "intake.data",
+    "asset": "BTC",
+    "source": "EmployeeCards.ingest(market.snapshot): ticker/book projection",
+    "observed": true,
+    "raw": {
+      "price": 200,
+      "bid": 199.98,
+      "ask": 200.02,
+      "bookLevels": {
+        "bids": 1,
+        "asks": 1
+      }
+    },
+    "parameters": [],
+    "expectedPaths": ["price", "bid", "ask"]
+  },
+  {
+    "id": "intake.news",
+    "asset": "BTC",
+    "source": "newsNode: real lexical news calculation",
+    "observed": true,
+    "raw": {
+      "id": "news",
+      "employee": "Noticias / Sentimiento",
+      "method": "asset-relevance × lexicon-sentiment × exponential-decay(halfLife=24h)",
+      "signal": 1,
+      "confidence": 0.18126793326671253,
+      "observations": 1,
+      "metrics": {
+        "dispersion": 0,
+        "rejected": {
+          "futureOrUnknown": 0,
+          "stale": 0,
+          "irrelevant": 0,
+          "duplicate": 0
+        },
+        "evidenceHash": "4e3392f040339fc4227ed237cd7b377f1978847510375ad689f093850e81288a"
+      }
+    },
+    "parameters": [
+      {
+        "name": "maxSnapshotAgeMs",
+        "value": 60000,
+        "source": "IntelligenceDag.maxSnapshotAgeMs",
+        "unit": "ms"
+      },
+      {
+        "name": "minimumSources",
+        "value": 1,
+        "source": "IntelligenceDag.minimumSources",
+        "unit": "fuentes"
+      },
+      {
+        "name": "newsMaxAgeMs",
+        "value": 259200000,
+        "source": "server/intelligence/dag.js:NEWS_MAX_AGE_MS",
+        "unit": "ms"
+      },
+      {
+        "name": "newsHalfLifeMs",
+        "value": 86400000,
+        "source": "server/intelligence/dag.js:DAY_MS",
+        "unit": "ms"
+      }
+    ],
+    "expectedPaths": ["observations", "signal", "confidence"]
+  },
+  {
+    "id": "intake.sentiment",
+    "asset": "BTC",
+    "source": "agent-engine.execute(Social Sentiment Scanner): controlled manual input",
+    "observed": true,
+    "raw": {
+      "agent_id": "Social Sentiment Scanner",
+      "version": "local-math-1.0.0",
+      "status": "ok",
+      "signal": 0.7615941559557649,
+      "confidence": 0.95,
+      "evidence": ["lexicon:positive=3", "lexicon:negative=1", "tokens=6"],
+      "latency_ms": 0,
+      "at": "2026-10-24T12:43:03.815Z"
+    },
+    "parameters": [],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "intake.onchain",
+    "asset": "BTC",
+    "source": "agent-engine.execute(On-Chain Analyst): controlled manual input",
+    "observed": true,
+    "raw": {
+      "agent_id": "On-Chain Analyst",
+      "version": "local-math-1.0.0",
+      "status": "ok",
+      "signal": -0.8883855615856605,
+      "confidence": 0.98,
+      "evidence": ["net-flow=9", "z-score=4.243", "destination=exchange"],
+      "latency_ms": 0,
+      "at": "2026-10-24T12:43:03.816Z"
+    },
+    "parameters": [],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "intake.intel",
+    "asset": "BTC",
+    "source": "IntelligenceDag.consensus([newsNode], 1)",
+    "observed": true,
+    "raw": {
+      "status": "ready",
+      "signal": 1,
+      "confidence": 0.35,
+      "dispersion": 0,
+      "coverage": 0.35,
+      "activeSources": ["news"],
+      "requiredSources": 1
+    },
+    "parameters": [
+      {
+        "name": "consensusWeight",
+        "value": 0.9,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      },
+      {
+        "name": "maxSnapshotAgeMs",
+        "value": 60000,
+        "source": "IntelligenceDag.maxSnapshotAgeMs",
+        "unit": "ms"
+      },
+      {
+        "name": "minimumSources",
+        "value": 1,
+        "source": "IntelligenceDag.minimumSources",
+        "unit": "fuentes"
+      },
+      {
+        "name": "macro",
+        "value": 0.25,
+        "source": "server/intelligence/dag.js:NODE_WEIGHTS.macro",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "news",
+        "value": 0.35,
+        "source": "server/intelligence/dag.js:NODE_WEIGHTS.news",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "market",
+        "value": 0.4,
+        "source": "server/intelligence/dag.js:NODE_WEIGHTS.market",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["signal", "coverage"]
+  },
+  {
+    "id": "desk.btc",
+    "asset": "BTC",
+    "source": "DeskRegistry.analyze(BTC): actual EmployeeCards report projection",
+    "observed": true,
+    "raw": {
+      "action": "NO_TRADE",
+      "signal": 0.6210606684016855,
+      "confidence": 0.8105303342008428,
+      "agreement": 0.5527588094595248,
+      "blockers": [],
+      "consensus": {
+        "paperOnly": true,
+        "method": "correlation-adjusted-log-odds-v1",
+        "action": "NO_TRADE",
+        "abstained": true,
+        "abstainReasons": ["credibleDirection"],
+        "signal": 0.6210606684016855,
+        "confidence": 0.8105303342008428,
+        "posterior": 0.8105303342008428,
+        "probabilityInterval95": {
+          "lower": 0.4940459961173132,
+          "upper": 0.949345118837202
+        },
+        "effectiveAgents": 3.868186446003755,
+        "maximumWeightShare": 0.26947630652221133,
+        "regime": {
+          "name": "unclassified",
+          "probability": 1
+        },
+        "checks": {
+          "blockers": true,
+          "agents": true,
+          "effectiveAgents": true,
+          "magnitude": true,
+          "concentration": true,
+          "directionalProbability": true,
+          "credibleDirection": false,
+          "regime": true
+        },
+        "contributions": [
+          {
+            "agent": "Technical",
+            "signal": 0.8871866983925688,
+            "confidence": 0.8548746793570275,
+            "probability": 0.8792167221590836,
+            "baseWeight": 1.25,
+            "regimeWeight": 1,
+            "redundancy": 2.35,
+            "weight": 0.45472057412607847,
+            "logOddsContribution": 0.9026356069760072
+          },
+          {
+            "agent": "Volume",
+            "signal": 0.7080737529840857,
+            "confidence": 0.7276163670000815,
+            "probability": 0.7576030258571967,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1.75,
+            "weight": 0.37420270302861336,
+            "logOddsContribution": 0.4264349508604291
+          },
+          {
+            "agent": "Whale",
+            "signal": -0.010309278350515523,
+            "confidence": 0.5,
+            "probability": 0.49742268041237114,
+            "baseWeight": 1,
+            "regimeWeight": 1,
+            "redundancy": 1.35,
+            "weight": 0.37037037037037035,
+            "logOddsContribution": -0.003818285058837486
+          },
+          {
+            "agent": "Liquidity",
+            "signal": -0.08181818181818182,
+            "confidence": 0.89,
+            "probability": 0.4635909090909091,
+            "baseWeight": 1.1,
+            "regimeWeight": 1,
+            "redundancy": 1.4,
+            "weight": 0.6992857142857144,
+            "logOddsContribution": -0.10202200773596468
+          },
+          {
+            "agent": "Market Structure",
+            "signal": 0,
+            "confidence": 0.55,
+            "probability": 0.5,
+            "baseWeight": 1.2,
+            "regimeWeight": 1,
+            "redundancy": 2.3,
+            "weight": 0.28695652173913044,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Order Block",
+            "signal": 0,
+            "confidence": 0.25,
+            "probability": 0.5,
+            "baseWeight": 0.85,
+            "regimeWeight": 1,
+            "redundancy": 2.25,
+            "weight": 0.09444444444444444,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Intel Hub",
+            "signal": 1,
+            "confidence": 0.35,
+            "probability": 0.675,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1,
+            "weight": 0.315,
+            "logOddsContribution": 0.23022956519097967
+          }
+        ],
+        "debate": {
+          "bull": 1.559300123027416,
+          "bear": 0.10584029279480216,
+          "moderator": "ABSTAIN",
+          "investmentCommittee": {
+            "blockers": true,
+            "agents": true,
+            "effectiveAgents": true,
+            "magnitude": true,
+            "concentration": true,
+            "directionalProbability": true,
+            "credibleDirection": false,
+            "regime": true
+          },
+          "cio": {
+            "decision": "NO_TRADE",
+            "probability": 0.8105303342008428,
+            "interval95": {
+              "lower": 0.4940459961173132,
+              "upper": 0.949345118837202
+            }
+          }
+        }
+      }
+    },
+    "parameters": [
+      {
+        "name": "product",
+        "value": "BTC-USD",
+        "source": "DeskRegistry.assets.BTC.product",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskClass",
+        "value": "major",
+        "source": "DeskRegistry.assets.BTC.riskClass",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "factor",
+        "value": "crypto-core",
+        "source": "DeskRegistry.assets.BTC.factor",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxWeight",
+        "value": 0.35,
+        "source": "DeskRegistry.assets.BTC.maxWeight",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence", "agreement"]
+  },
+  {
+    "id": "desk.eth",
+    "asset": "ETH",
+    "source": "DeskRegistry.analyze(ETH): actual EmployeeCards report projection",
+    "observed": true,
+    "raw": {
+      "action": "NO_TRADE",
+      "signal": 0.6210606684016855,
+      "confidence": 0.8105303342008428,
+      "agreement": 0.5527588094595248,
+      "blockers": [],
+      "consensus": {
+        "paperOnly": true,
+        "method": "correlation-adjusted-log-odds-v1",
+        "action": "NO_TRADE",
+        "abstained": true,
+        "abstainReasons": ["credibleDirection"],
+        "signal": 0.6210606684016855,
+        "confidence": 0.8105303342008428,
+        "posterior": 0.8105303342008428,
+        "probabilityInterval95": {
+          "lower": 0.4940459961173132,
+          "upper": 0.949345118837202
+        },
+        "effectiveAgents": 3.868186446003755,
+        "maximumWeightShare": 0.26947630652221133,
+        "regime": {
+          "name": "unclassified",
+          "probability": 1
+        },
+        "checks": {
+          "blockers": true,
+          "agents": true,
+          "effectiveAgents": true,
+          "magnitude": true,
+          "concentration": true,
+          "directionalProbability": true,
+          "credibleDirection": false,
+          "regime": true
+        },
+        "contributions": [
+          {
+            "agent": "Technical",
+            "signal": 0.8871866983925688,
+            "confidence": 0.8548746793570275,
+            "probability": 0.8792167221590836,
+            "baseWeight": 1.25,
+            "regimeWeight": 1,
+            "redundancy": 2.35,
+            "weight": 0.45472057412607847,
+            "logOddsContribution": 0.9026356069760072
+          },
+          {
+            "agent": "Volume",
+            "signal": 0.7080737529840857,
+            "confidence": 0.7276163670000815,
+            "probability": 0.7576030258571967,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1.75,
+            "weight": 0.37420270302861336,
+            "logOddsContribution": 0.4264349508604291
+          },
+          {
+            "agent": "Whale",
+            "signal": -0.010309278350515523,
+            "confidence": 0.5,
+            "probability": 0.49742268041237114,
+            "baseWeight": 1,
+            "regimeWeight": 1,
+            "redundancy": 1.35,
+            "weight": 0.37037037037037035,
+            "logOddsContribution": -0.003818285058837486
+          },
+          {
+            "agent": "Liquidity",
+            "signal": -0.08181818181818182,
+            "confidence": 0.89,
+            "probability": 0.4635909090909091,
+            "baseWeight": 1.1,
+            "regimeWeight": 1,
+            "redundancy": 1.4,
+            "weight": 0.6992857142857144,
+            "logOddsContribution": -0.10202200773596468
+          },
+          {
+            "agent": "Market Structure",
+            "signal": 0,
+            "confidence": 0.55,
+            "probability": 0.5,
+            "baseWeight": 1.2,
+            "regimeWeight": 1,
+            "redundancy": 2.3,
+            "weight": 0.28695652173913044,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Order Block",
+            "signal": 0,
+            "confidence": 0.25,
+            "probability": 0.5,
+            "baseWeight": 0.85,
+            "regimeWeight": 1,
+            "redundancy": 2.25,
+            "weight": 0.09444444444444444,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Intel Hub",
+            "signal": 1,
+            "confidence": 0.35,
+            "probability": 0.675,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1,
+            "weight": 0.315,
+            "logOddsContribution": 0.23022956519097967
+          }
+        ],
+        "debate": {
+          "bull": 1.559300123027416,
+          "bear": 0.10584029279480216,
+          "moderator": "ABSTAIN",
+          "investmentCommittee": {
+            "blockers": true,
+            "agents": true,
+            "effectiveAgents": true,
+            "magnitude": true,
+            "concentration": true,
+            "directionalProbability": true,
+            "credibleDirection": false,
+            "regime": true
+          },
+          "cio": {
+            "decision": "NO_TRADE",
+            "probability": 0.8105303342008428,
+            "interval95": {
+              "lower": 0.4940459961173132,
+              "upper": 0.949345118837202
+            }
+          }
+        }
+      }
+    },
+    "parameters": [
+      {
+        "name": "product",
+        "value": "ETH-USD",
+        "source": "DeskRegistry.assets.ETH.product",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskClass",
+        "value": "major",
+        "source": "DeskRegistry.assets.ETH.riskClass",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "factor",
+        "value": "crypto-core",
+        "source": "DeskRegistry.assets.ETH.factor",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxWeight",
+        "value": 0.3,
+        "source": "DeskRegistry.assets.ETH.maxWeight",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence", "agreement"]
+  },
+  {
+    "id": "desk.sol",
+    "asset": "SOL",
+    "source": "DeskRegistry.analyze(SOL): actual EmployeeCards report projection",
+    "observed": true,
+    "raw": {
+      "action": "NO_TRADE",
+      "signal": 0.6210606684016855,
+      "confidence": 0.8105303342008428,
+      "agreement": 0.5527588094595248,
+      "blockers": [],
+      "consensus": {
+        "paperOnly": true,
+        "method": "correlation-adjusted-log-odds-v1",
+        "action": "NO_TRADE",
+        "abstained": true,
+        "abstainReasons": ["credibleDirection"],
+        "signal": 0.6210606684016855,
+        "confidence": 0.8105303342008428,
+        "posterior": 0.8105303342008428,
+        "probabilityInterval95": {
+          "lower": 0.4940459961173132,
+          "upper": 0.949345118837202
+        },
+        "effectiveAgents": 3.868186446003755,
+        "maximumWeightShare": 0.26947630652221133,
+        "regime": {
+          "name": "unclassified",
+          "probability": 1
+        },
+        "checks": {
+          "blockers": true,
+          "agents": true,
+          "effectiveAgents": true,
+          "magnitude": true,
+          "concentration": true,
+          "directionalProbability": true,
+          "credibleDirection": false,
+          "regime": true
+        },
+        "contributions": [
+          {
+            "agent": "Technical",
+            "signal": 0.8871866983925688,
+            "confidence": 0.8548746793570275,
+            "probability": 0.8792167221590836,
+            "baseWeight": 1.25,
+            "regimeWeight": 1,
+            "redundancy": 2.35,
+            "weight": 0.45472057412607847,
+            "logOddsContribution": 0.9026356069760072
+          },
+          {
+            "agent": "Volume",
+            "signal": 0.7080737529840857,
+            "confidence": 0.7276163670000815,
+            "probability": 0.7576030258571967,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1.75,
+            "weight": 0.37420270302861336,
+            "logOddsContribution": 0.4264349508604291
+          },
+          {
+            "agent": "Whale",
+            "signal": -0.010309278350515523,
+            "confidence": 0.5,
+            "probability": 0.49742268041237114,
+            "baseWeight": 1,
+            "regimeWeight": 1,
+            "redundancy": 1.35,
+            "weight": 0.37037037037037035,
+            "logOddsContribution": -0.003818285058837486
+          },
+          {
+            "agent": "Liquidity",
+            "signal": -0.08181818181818182,
+            "confidence": 0.89,
+            "probability": 0.4635909090909091,
+            "baseWeight": 1.1,
+            "regimeWeight": 1,
+            "redundancy": 1.4,
+            "weight": 0.6992857142857144,
+            "logOddsContribution": -0.10202200773596468
+          },
+          {
+            "agent": "Market Structure",
+            "signal": 0,
+            "confidence": 0.55,
+            "probability": 0.5,
+            "baseWeight": 1.2,
+            "regimeWeight": 1,
+            "redundancy": 2.3,
+            "weight": 0.28695652173913044,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Order Block",
+            "signal": 0,
+            "confidence": 0.25,
+            "probability": 0.5,
+            "baseWeight": 0.85,
+            "regimeWeight": 1,
+            "redundancy": 2.25,
+            "weight": 0.09444444444444444,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Intel Hub",
+            "signal": 1,
+            "confidence": 0.35,
+            "probability": 0.675,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1,
+            "weight": 0.315,
+            "logOddsContribution": 0.23022956519097967
+          }
+        ],
+        "debate": {
+          "bull": 1.559300123027416,
+          "bear": 0.10584029279480216,
+          "moderator": "ABSTAIN",
+          "investmentCommittee": {
+            "blockers": true,
+            "agents": true,
+            "effectiveAgents": true,
+            "magnitude": true,
+            "concentration": true,
+            "directionalProbability": true,
+            "credibleDirection": false,
+            "regime": true
+          },
+          "cio": {
+            "decision": "NO_TRADE",
+            "probability": 0.8105303342008428,
+            "interval95": {
+              "lower": 0.4940459961173132,
+              "upper": 0.949345118837202
+            }
+          }
+        }
+      }
+    },
+    "parameters": [
+      {
+        "name": "product",
+        "value": "SOL-USD",
+        "source": "DeskRegistry.assets.SOL.product",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskClass",
+        "value": "major-high-beta",
+        "source": "DeskRegistry.assets.SOL.riskClass",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "factor",
+        "value": "high-beta-l1",
+        "source": "DeskRegistry.assets.SOL.factor",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxWeight",
+        "value": 0.15,
+        "source": "DeskRegistry.assets.SOL.maxWeight",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence", "agreement"]
+  },
+  {
+    "id": "desk.bnb",
+    "asset": "BNB",
+    "source": "DeskRegistry.analyze(BNB): actual EmployeeCards report projection",
+    "observed": true,
+    "raw": {
+      "action": "NO_TRADE",
+      "signal": 0.6210606684016855,
+      "confidence": 0.8105303342008428,
+      "agreement": 0.5527588094595248,
+      "blockers": [],
+      "consensus": {
+        "paperOnly": true,
+        "method": "correlation-adjusted-log-odds-v1",
+        "action": "NO_TRADE",
+        "abstained": true,
+        "abstainReasons": ["credibleDirection"],
+        "signal": 0.6210606684016855,
+        "confidence": 0.8105303342008428,
+        "posterior": 0.8105303342008428,
+        "probabilityInterval95": {
+          "lower": 0.4940459961173132,
+          "upper": 0.949345118837202
+        },
+        "effectiveAgents": 3.868186446003755,
+        "maximumWeightShare": 0.26947630652221133,
+        "regime": {
+          "name": "unclassified",
+          "probability": 1
+        },
+        "checks": {
+          "blockers": true,
+          "agents": true,
+          "effectiveAgents": true,
+          "magnitude": true,
+          "concentration": true,
+          "directionalProbability": true,
+          "credibleDirection": false,
+          "regime": true
+        },
+        "contributions": [
+          {
+            "agent": "Technical",
+            "signal": 0.8871866983925688,
+            "confidence": 0.8548746793570275,
+            "probability": 0.8792167221590836,
+            "baseWeight": 1.25,
+            "regimeWeight": 1,
+            "redundancy": 2.35,
+            "weight": 0.45472057412607847,
+            "logOddsContribution": 0.9026356069760072
+          },
+          {
+            "agent": "Volume",
+            "signal": 0.7080737529840857,
+            "confidence": 0.7276163670000815,
+            "probability": 0.7576030258571967,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1.75,
+            "weight": 0.37420270302861336,
+            "logOddsContribution": 0.4264349508604291
+          },
+          {
+            "agent": "Whale",
+            "signal": -0.010309278350515523,
+            "confidence": 0.5,
+            "probability": 0.49742268041237114,
+            "baseWeight": 1,
+            "regimeWeight": 1,
+            "redundancy": 1.35,
+            "weight": 0.37037037037037035,
+            "logOddsContribution": -0.003818285058837486
+          },
+          {
+            "agent": "Liquidity",
+            "signal": -0.08181818181818182,
+            "confidence": 0.89,
+            "probability": 0.4635909090909091,
+            "baseWeight": 1.1,
+            "regimeWeight": 1,
+            "redundancy": 1.4,
+            "weight": 0.6992857142857144,
+            "logOddsContribution": -0.10202200773596468
+          },
+          {
+            "agent": "Market Structure",
+            "signal": 0,
+            "confidence": 0.55,
+            "probability": 0.5,
+            "baseWeight": 1.2,
+            "regimeWeight": 1,
+            "redundancy": 2.3,
+            "weight": 0.28695652173913044,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Order Block",
+            "signal": 0,
+            "confidence": 0.25,
+            "probability": 0.5,
+            "baseWeight": 0.85,
+            "regimeWeight": 1,
+            "redundancy": 2.25,
+            "weight": 0.09444444444444444,
+            "logOddsContribution": 0
+          },
+          {
+            "agent": "Intel Hub",
+            "signal": 1,
+            "confidence": 0.35,
+            "probability": 0.675,
+            "baseWeight": 0.9,
+            "regimeWeight": 1,
+            "redundancy": 1,
+            "weight": 0.315,
+            "logOddsContribution": 0.23022956519097967
+          }
+        ],
+        "debate": {
+          "bull": 1.559300123027416,
+          "bear": 0.10584029279480216,
+          "moderator": "ABSTAIN",
+          "investmentCommittee": {
+            "blockers": true,
+            "agents": true,
+            "effectiveAgents": true,
+            "magnitude": true,
+            "concentration": true,
+            "directionalProbability": true,
+            "credibleDirection": false,
+            "regime": true
+          },
+          "cio": {
+            "decision": "NO_TRADE",
+            "probability": 0.8105303342008428,
+            "interval95": {
+              "lower": 0.4940459961173132,
+              "upper": 0.949345118837202
+            }
+          }
+        }
+      }
+    },
+    "parameters": [
+      {
+        "name": "product",
+        "value": "BNB-USD",
+        "source": "DeskRegistry.assets.BNB.product",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskClass",
+        "value": "major-venue",
+        "source": "DeskRegistry.assets.BNB.riskClass",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "factor",
+        "value": "venue-linked",
+        "source": "DeskRegistry.assets.BNB.factor",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxWeight",
+        "value": 0.1,
+        "source": "DeskRegistry.assets.BNB.maxWeight",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence", "agreement"]
+  },
+  {
+    "id": "consensus.technical",
+    "asset": "BTC",
+    "source": "server/desks/agents.js:Technical",
+    "observed": true,
+    "raw": {
+      "agent": "Technical",
+      "version": "math-1.0.0",
+      "status": "ok",
+      "signal": 0.8871866983925688,
+      "confidence": 0.8548746793570275,
+      "evidence": [
+        "EMA12=194.3908",
+        "EMA26=187.4603",
+        "RSI14=100.00",
+        "ATR14=6.0000"
+      ],
+      "metrics": {
+        "fast": 194.3907817658052,
+        "slow": 187.4603179419092,
+        "rsi": 100,
+        "atr": 6
+      }
+    },
+    "parameters": [
+      {
+        "name": "fastPeriod",
+        "value": 12,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Technical.fastPeriod",
+        "unit": "velas"
+      },
+      {
+        "name": "slowPeriod",
+        "value": 26,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Technical.slowPeriod",
+        "unit": "velas"
+      },
+      {
+        "name": "fastWindow",
+        "value": 60,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Technical.fastWindow",
+        "unit": "velas"
+      },
+      {
+        "name": "slowWindow",
+        "value": 100,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Technical.slowWindow",
+        "unit": "velas"
+      },
+      {
+        "name": "rsiPeriod",
+        "value": 14,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Technical.rsiPeriod",
+        "unit": "velas"
+      },
+      {
+        "name": "atrPeriod",
+        "value": 14,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Technical.atrPeriod",
+        "unit": "velas"
+      },
+      {
+        "name": "consensusWeight",
+        "value": 1.25,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "consensus.volume",
+    "asset": "BTC",
+    "source": "server/desks/agents.js:Volume",
+    "observed": true,
+    "raw": {
+      "agent": "Volume",
+      "version": "math-1.0.0",
+      "status": "ok",
+      "signal": 0.7080737529840857,
+      "confidence": 0.7276163670000815,
+      "evidence": ["volume-z=1.821", "OBV-flow=0.957"],
+      "metrics": {
+        "z": 1.8209309360006518,
+        "flow": 0.9571909571909571
+      }
+    },
+    "parameters": [
+      {
+        "name": "zWindow",
+        "value": 20,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Volume.zWindow",
+        "unit": "velas"
+      },
+      {
+        "name": "flowWindow",
+        "value": 21,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Volume.flowWindow",
+        "unit": "velas"
+      },
+      {
+        "name": "consensusWeight",
+        "value": 0.9,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "consensus.whale",
+    "asset": "BTC",
+    "source": "server/desks/agents.js:Whale",
+    "observed": true,
+    "raw": {
+      "agent": "Whale",
+      "version": "math-1.0.0",
+      "status": "ok",
+      "signal": -0.010309278350515523,
+      "confidence": 0.5,
+      "evidence": ["p95-notional=941.00", "large-trades=2", "pressure=-0.010"],
+      "metrics": {
+        "threshold": 941,
+        "largeTrades": 2,
+        "buy": 960,
+        "sell": 980.0000000000001
+      }
+    },
+    "parameters": [
+      {
+        "name": "notionalQuantile",
+        "value": 0.95,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Whale.notionalQuantile",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "consensusWeight",
+        "value": 1,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "consensus.liquidity",
+    "asset": "BTC",
+    "source": "server/desks/agents.js:Liquidity",
+    "observed": true,
+    "raw": {
+      "agent": "Liquidity",
+      "version": "math-1.0.0",
+      "status": "ok",
+      "signal": -0.08181818181818182,
+      "confidence": 0.89,
+      "evidence": ["imbalance=-0.091", "spread=2.00bps", "depth=22.0000"],
+      "metrics": {
+        "imbalance": -0.09090909090909091,
+        "spreadBps": 2,
+        "bidDepth": 10,
+        "askDepth": 12
+      }
+    },
+    "parameters": [
+      {
+        "name": "spreadPenaltyBps",
+        "value": 20,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Liquidity.spreadPenaltyBps",
+        "unit": "puntos básicos"
+      },
+      {
+        "name": "depthScale",
+        "value": 10,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Liquidity.depthScale",
+        "unit": "unidades del activo"
+      },
+      {
+        "name": "consensusWeight",
+        "value": 1.1,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "consensus.structure",
+    "asset": "BTC",
+    "source": "server/desks/agents.js:Market Structure",
+    "observed": true,
+    "raw": {
+      "agent": "Market Structure",
+      "version": "math-1.0.0",
+      "status": "ok",
+      "signal": 0,
+      "confidence": 0.55,
+      "evidence": ["swing-high=Infinity", "swing-low=-Infinity", "BOS=none"],
+      "metrics": {
+        "trend": 0,
+        "bullBos": false,
+        "bearBos": false,
+        "lastHigh": null,
+        "lastLow": null
+      }
+    },
+    "parameters": [
+      {
+        "name": "window",
+        "value": 60,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Market Structure.window",
+        "unit": "velas"
+      },
+      {
+        "name": "consensusWeight",
+        "value": 1.2,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "consensus.orderblock",
+    "asset": "BTC",
+    "source": "server/desks/agents.js:Order Block",
+    "observed": true,
+    "raw": {
+      "agent": "Order Block",
+      "version": "math-1.0.0",
+      "status": "ok",
+      "signal": 0,
+      "confidence": 0.25,
+      "evidence": ["no-valid-displacement"],
+      "metrics": {
+        "atr": 6
+      }
+    },
+    "parameters": [
+      {
+        "name": "window",
+        "value": 80,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Order Block.window",
+        "unit": "velas"
+      },
+      {
+        "name": "atrPeriod",
+        "value": 14,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Order Block.atrPeriod",
+        "unit": "velas"
+      },
+      {
+        "name": "displacementAtr",
+        "value": 1.5,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Order Block.displacementAtr",
+        "unit": "múltiplos de ATR"
+      },
+      {
+        "name": "distanceScaleAtr",
+        "value": 5,
+        "source": "server/desks/parameters.js:DESK_PARAMETERS.Order Block.distanceScaleAtr",
+        "unit": "múltiplos de ATR"
+      },
+      {
+        "name": "consensusWeight",
+        "value": 0.85,
+        "source": "DeskRegistry.weights",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minCandles",
+        "value": 50,
+        "source": "DeskRegistry.minCandles",
+        "unit": "velas"
+      },
+      {
+        "name": "minTrades",
+        "value": 20,
+        "source": "DeskRegistry.minTrades",
+        "unit": "transacciones"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence"]
+  },
+  {
+    "id": "consensus.signal",
+    "asset": "BTC",
+    "source": "ConsensusEngine.combine via DeskRegistry.analyze",
+    "observed": true,
+    "raw": {
+      "paperOnly": true,
+      "method": "correlation-adjusted-log-odds-v1",
+      "action": "NO_TRADE",
+      "abstained": true,
+      "abstainReasons": ["credibleDirection"],
+      "signal": 0.6210606684016855,
+      "confidence": 0.8105303342008428,
+      "posterior": 0.8105303342008428,
+      "probabilityInterval95": {
+        "lower": 0.4940459961173132,
+        "upper": 0.949345118837202
+      },
+      "effectiveAgents": 3.868186446003755,
+      "maximumWeightShare": 0.26947630652221133,
+      "regime": {
+        "name": "unclassified",
+        "probability": 1
+      },
+      "checks": {
+        "blockers": true,
+        "agents": true,
+        "effectiveAgents": true,
+        "magnitude": true,
+        "concentration": true,
+        "directionalProbability": true,
+        "credibleDirection": false,
+        "regime": true
+      },
+      "contributions": [
+        {
+          "agent": "Technical",
+          "signal": 0.8871866983925688,
+          "confidence": 0.8548746793570275,
+          "probability": 0.8792167221590836,
+          "baseWeight": 1.25,
+          "regimeWeight": 1,
+          "redundancy": 2.35,
+          "weight": 0.45472057412607847,
+          "logOddsContribution": 0.9026356069760072
+        },
+        {
+          "agent": "Volume",
+          "signal": 0.7080737529840857,
+          "confidence": 0.7276163670000815,
+          "probability": 0.7576030258571967,
+          "baseWeight": 0.9,
+          "regimeWeight": 1,
+          "redundancy": 1.75,
+          "weight": 0.37420270302861336,
+          "logOddsContribution": 0.4264349508604291
+        },
+        {
+          "agent": "Whale",
+          "signal": -0.010309278350515523,
+          "confidence": 0.5,
+          "probability": 0.49742268041237114,
+          "baseWeight": 1,
+          "regimeWeight": 1,
+          "redundancy": 1.35,
+          "weight": 0.37037037037037035,
+          "logOddsContribution": -0.003818285058837486
+        },
+        {
+          "agent": "Liquidity",
+          "signal": -0.08181818181818182,
+          "confidence": 0.89,
+          "probability": 0.4635909090909091,
+          "baseWeight": 1.1,
+          "regimeWeight": 1,
+          "redundancy": 1.4,
+          "weight": 0.6992857142857144,
+          "logOddsContribution": -0.10202200773596468
+        },
+        {
+          "agent": "Market Structure",
+          "signal": 0,
+          "confidence": 0.55,
+          "probability": 0.5,
+          "baseWeight": 1.2,
+          "regimeWeight": 1,
+          "redundancy": 2.3,
+          "weight": 0.28695652173913044,
+          "logOddsContribution": 0
+        },
+        {
+          "agent": "Order Block",
+          "signal": 0,
+          "confidence": 0.25,
+          "probability": 0.5,
+          "baseWeight": 0.85,
+          "regimeWeight": 1,
+          "redundancy": 2.25,
+          "weight": 0.09444444444444444,
+          "logOddsContribution": 0
+        },
+        {
+          "agent": "Intel Hub",
+          "signal": 1,
+          "confidence": 0.35,
+          "probability": 0.675,
+          "baseWeight": 0.9,
+          "regimeWeight": 1,
+          "redundancy": 1,
+          "weight": 0.315,
+          "logOddsContribution": 0.23022956519097967
+        }
+      ],
+      "debate": {
+        "bull": 1.559300123027416,
+        "bear": 0.10584029279480216,
+        "moderator": "ABSTAIN",
+        "investmentCommittee": {
+          "blockers": true,
+          "agents": true,
+          "effectiveAgents": true,
+          "magnitude": true,
+          "concentration": true,
+          "directionalProbability": true,
+          "credibleDirection": false,
+          "regime": true
+        },
+        "cio": {
+          "decision": "NO_TRADE",
+          "probability": 0.8105303342008428,
+          "interval95": {
+            "lower": 0.4940459961173132,
+            "upper": 0.949345118837202
+          }
+        }
+      }
+    },
+    "parameters": [
+      {
+        "name": "priorProbability",
+        "value": 0.5,
+        "source": "ConsensusEngine.policy.priorProbability",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minimumAgents",
+        "value": 3,
+        "source": "ConsensusEngine.policy.minimumAgents",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minimumEffectiveAgents",
+        "value": 2,
+        "source": "ConsensusEngine.policy.minimumEffectiveAgents",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minimumAbsoluteSignal",
+        "value": 0.2,
+        "source": "ConsensusEngine.policy.minimumAbsoluteSignal",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maximumWeightShare",
+        "value": 0.7,
+        "source": "ConsensusEngine.policy.maximumWeightShare",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minimumDirectionalProbability",
+        "value": 0.55,
+        "source": "ConsensusEngine.policy.minimumDirectionalProbability",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "credibleZ",
+        "value": 1.959963984540054,
+        "source": "ConsensusEngine.policy.credibleZ",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["signal", "confidence", "effectiveAgents"]
+  },
+  {
+    "id": "risk.manager",
+    "asset": "BTC",
+    "source": "RiskGate.evaluate",
+    "observed": true,
+    "raw": {
+      "at": "2026-10-24T12:43:03.832Z",
+      "proposalId": "fixture",
+      "decision": "APPROVE",
+      "approved": true,
+      "failed": [],
+      "checks": [
+        {
+          "name": "system",
+          "pass": true
+        },
+        {
+          "name": "data",
+          "pass": true
+        },
+        {
+          "name": "reduce-only",
+          "pass": true
+        },
+        {
+          "name": "history",
+          "pass": true
+        },
+        {
+          "name": "confidence",
+          "pass": true
+        },
+        {
+          "name": "drawdown",
+          "pass": true
+        },
+        {
+          "name": "VaR",
+          "pass": true
+        },
+        {
+          "name": "CVaR",
+          "pass": true
+        },
+        {
+          "name": "stress-loss",
+          "pass": true
+        },
+        {
+          "name": "asset-weight",
+          "pass": true
+        },
+        {
+          "name": "gross-exposure",
+          "pass": true
+        },
+        {
+          "name": "factor-exposure",
+          "pass": true
+        },
+        {
+          "name": "correlation",
+          "pass": true
+        },
+        {
+          "name": "liquidity",
+          "pass": true
+        },
+        {
+          "name": "quantity",
+          "pass": true
+        }
+      ],
+      "metrics": {
+        "postAssetWeight": 0.002,
+        "postGrossExposure": 0.002,
+        "postFactorExposure": 0.002,
+        "preFactorExposure": 0,
+        "factor": "crypto-core",
+        "spreadBps": 2,
+        "drawdown": 0.03,
+        "var": 0,
+        "cvar": 0,
+        "annualVol": 0,
+        "stressLossRatio": 0.0004,
+        "exposure": {
+          "current": 0,
+          "delta": 200,
+          "post": 200,
+          "currentAbsolute": 0,
+          "postAbsolute": 200,
+          "grossBefore": 0,
+          "grossAfter": 200,
+          "directionReduces": false,
+          "riskReducing": false,
+          "closes": false,
+          "flips": false,
+          "reduceOnlyRequested": false,
+          "reduceOnlyValid": false
+        }
+      },
+      "stress": {
+        "worst": 40,
+        "scenarios": [
+          {
+            "name": "marketCrash",
+            "shock": -0.2,
+            "loss": 40
+          },
+          {
+            "name": "liquidityShock",
+            "shock": -0.08,
+            "loss": 16
+          },
+          {
+            "name": "venueFailure",
+            "shock": -0.12,
+            "loss": 24
+          }
+        ]
+      },
+      "reduceOnlyOverrides": [],
+      "haltReason": null
+    },
+    "parameters": [
+      {
+        "name": "maxDrawdown",
+        "value": 0.1,
+        "source": "RiskGate.limits.maxDrawdown",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxVaR",
+        "value": 0.04,
+        "source": "RiskGate.limits.maxVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCVaR",
+        "value": 0.06,
+        "source": "RiskGate.limits.maxCVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxGrossExposure",
+        "value": 0.7,
+        "source": "RiskGate.limits.maxGrossExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorExposure",
+        "value": 0.45,
+        "source": "RiskGate.limits.maxFactorExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCorrelation",
+        "value": 0.9,
+        "source": "RiskGate.limits.maxCorrelation",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxSpreadBps",
+        "value": 20,
+        "source": "RiskGate.limits.maxSpreadBps",
+        "unit": "puntos básicos"
+      },
+      {
+        "name": "minConfidence",
+        "value": 0.15,
+        "source": "RiskGate.limits.minConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskPerTrade",
+        "value": 0.005,
+        "source": "RiskGate.limits.riskPerTrade",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "targetVolatility",
+        "value": 0.15,
+        "source": "RiskGate.limits.targetVolatility",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxStressLoss",
+        "value": 0.2,
+        "source": "RiskGate.limits.maxStressLoss",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minObservations",
+        "value": 50,
+        "source": "RiskGate.limits.minObservations",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "kellyFraction",
+        "value": 0.25,
+        "source": "RiskGate.limits.kellyFraction",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "periodsPerYear",
+        "value": 365,
+        "source": "RiskGate.periodsPerYear",
+        "unit": "períodos/año"
+      }
+    ],
+    "expectedPaths": ["checks.length", "failed.length", "metrics.drawdown"]
+  },
+  {
+    "id": "risk.drawdown",
+    "asset": "BTC",
+    "source": "RiskGate.evaluate.metrics",
+    "observed": true,
+    "raw": {
+      "at": "2026-10-24T12:43:03.832Z",
+      "proposalId": "fixture",
+      "decision": "APPROVE",
+      "approved": true,
+      "failed": [],
+      "checks": [
+        {
+          "name": "system",
+          "pass": true
+        },
+        {
+          "name": "data",
+          "pass": true
+        },
+        {
+          "name": "reduce-only",
+          "pass": true
+        },
+        {
+          "name": "history",
+          "pass": true
+        },
+        {
+          "name": "confidence",
+          "pass": true
+        },
+        {
+          "name": "drawdown",
+          "pass": true
+        },
+        {
+          "name": "VaR",
+          "pass": true
+        },
+        {
+          "name": "CVaR",
+          "pass": true
+        },
+        {
+          "name": "stress-loss",
+          "pass": true
+        },
+        {
+          "name": "asset-weight",
+          "pass": true
+        },
+        {
+          "name": "gross-exposure",
+          "pass": true
+        },
+        {
+          "name": "factor-exposure",
+          "pass": true
+        },
+        {
+          "name": "correlation",
+          "pass": true
+        },
+        {
+          "name": "liquidity",
+          "pass": true
+        },
+        {
+          "name": "quantity",
+          "pass": true
+        }
+      ],
+      "metrics": {
+        "postAssetWeight": 0.002,
+        "postGrossExposure": 0.002,
+        "postFactorExposure": 0.002,
+        "preFactorExposure": 0,
+        "factor": "crypto-core",
+        "spreadBps": 2,
+        "drawdown": 0.03,
+        "var": 0,
+        "cvar": 0,
+        "annualVol": 0,
+        "stressLossRatio": 0.0004,
+        "exposure": {
+          "current": 0,
+          "delta": 200,
+          "post": 200,
+          "currentAbsolute": 0,
+          "postAbsolute": 200,
+          "grossBefore": 0,
+          "grossAfter": 200,
+          "directionReduces": false,
+          "riskReducing": false,
+          "closes": false,
+          "flips": false,
+          "reduceOnlyRequested": false,
+          "reduceOnlyValid": false
+        }
+      },
+      "stress": {
+        "worst": 40,
+        "scenarios": [
+          {
+            "name": "marketCrash",
+            "shock": -0.2,
+            "loss": 40
+          },
+          {
+            "name": "liquidityShock",
+            "shock": -0.08,
+            "loss": 16
+          },
+          {
+            "name": "venueFailure",
+            "shock": -0.12,
+            "loss": 24
+          }
+        ]
+      },
+      "reduceOnlyOverrides": [],
+      "haltReason": null
+    },
+    "parameters": [
+      {
+        "name": "maxDrawdown",
+        "value": 0.1,
+        "source": "RiskGate.limits.maxDrawdown",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxVaR",
+        "value": 0.04,
+        "source": "RiskGate.limits.maxVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCVaR",
+        "value": 0.06,
+        "source": "RiskGate.limits.maxCVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxGrossExposure",
+        "value": 0.7,
+        "source": "RiskGate.limits.maxGrossExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorExposure",
+        "value": 0.45,
+        "source": "RiskGate.limits.maxFactorExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCorrelation",
+        "value": 0.9,
+        "source": "RiskGate.limits.maxCorrelation",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxSpreadBps",
+        "value": 20,
+        "source": "RiskGate.limits.maxSpreadBps",
+        "unit": "puntos básicos"
+      },
+      {
+        "name": "minConfidence",
+        "value": 0.15,
+        "source": "RiskGate.limits.minConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskPerTrade",
+        "value": 0.005,
+        "source": "RiskGate.limits.riskPerTrade",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "targetVolatility",
+        "value": 0.15,
+        "source": "RiskGate.limits.targetVolatility",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxStressLoss",
+        "value": 0.2,
+        "source": "RiskGate.limits.maxStressLoss",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minObservations",
+        "value": 50,
+        "source": "RiskGate.limits.minObservations",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "kellyFraction",
+        "value": 0.25,
+        "source": "RiskGate.limits.kellyFraction",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "periodsPerYear",
+        "value": 365,
+        "source": "RiskGate.periodsPerYear",
+        "unit": "períodos/año"
+      }
+    ],
+    "expectedPaths": ["metrics.drawdown"]
+  },
+  {
+    "id": "risk.exposure",
+    "asset": "BTC",
+    "source": "RiskGate.evaluate.metrics",
+    "observed": true,
+    "raw": {
+      "at": "2026-10-24T12:43:03.832Z",
+      "proposalId": "fixture",
+      "decision": "APPROVE",
+      "approved": true,
+      "failed": [],
+      "checks": [
+        {
+          "name": "system",
+          "pass": true
+        },
+        {
+          "name": "data",
+          "pass": true
+        },
+        {
+          "name": "reduce-only",
+          "pass": true
+        },
+        {
+          "name": "history",
+          "pass": true
+        },
+        {
+          "name": "confidence",
+          "pass": true
+        },
+        {
+          "name": "drawdown",
+          "pass": true
+        },
+        {
+          "name": "VaR",
+          "pass": true
+        },
+        {
+          "name": "CVaR",
+          "pass": true
+        },
+        {
+          "name": "stress-loss",
+          "pass": true
+        },
+        {
+          "name": "asset-weight",
+          "pass": true
+        },
+        {
+          "name": "gross-exposure",
+          "pass": true
+        },
+        {
+          "name": "factor-exposure",
+          "pass": true
+        },
+        {
+          "name": "correlation",
+          "pass": true
+        },
+        {
+          "name": "liquidity",
+          "pass": true
+        },
+        {
+          "name": "quantity",
+          "pass": true
+        }
+      ],
+      "metrics": {
+        "postAssetWeight": 0.002,
+        "postGrossExposure": 0.002,
+        "postFactorExposure": 0.002,
+        "preFactorExposure": 0,
+        "factor": "crypto-core",
+        "spreadBps": 2,
+        "drawdown": 0.03,
+        "var": 0,
+        "cvar": 0,
+        "annualVol": 0,
+        "stressLossRatio": 0.0004,
+        "exposure": {
+          "current": 0,
+          "delta": 200,
+          "post": 200,
+          "currentAbsolute": 0,
+          "postAbsolute": 200,
+          "grossBefore": 0,
+          "grossAfter": 200,
+          "directionReduces": false,
+          "riskReducing": false,
+          "closes": false,
+          "flips": false,
+          "reduceOnlyRequested": false,
+          "reduceOnlyValid": false
+        }
+      },
+      "stress": {
+        "worst": 40,
+        "scenarios": [
+          {
+            "name": "marketCrash",
+            "shock": -0.2,
+            "loss": 40
+          },
+          {
+            "name": "liquidityShock",
+            "shock": -0.08,
+            "loss": 16
+          },
+          {
+            "name": "venueFailure",
+            "shock": -0.12,
+            "loss": 24
+          }
+        ]
+      },
+      "reduceOnlyOverrides": [],
+      "haltReason": null
+    },
+    "parameters": [
+      {
+        "name": "maxDrawdown",
+        "value": 0.1,
+        "source": "RiskGate.limits.maxDrawdown",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxVaR",
+        "value": 0.04,
+        "source": "RiskGate.limits.maxVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCVaR",
+        "value": 0.06,
+        "source": "RiskGate.limits.maxCVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxGrossExposure",
+        "value": 0.7,
+        "source": "RiskGate.limits.maxGrossExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorExposure",
+        "value": 0.45,
+        "source": "RiskGate.limits.maxFactorExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCorrelation",
+        "value": 0.9,
+        "source": "RiskGate.limits.maxCorrelation",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxSpreadBps",
+        "value": 20,
+        "source": "RiskGate.limits.maxSpreadBps",
+        "unit": "puntos básicos"
+      },
+      {
+        "name": "minConfidence",
+        "value": 0.15,
+        "source": "RiskGate.limits.minConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskPerTrade",
+        "value": 0.005,
+        "source": "RiskGate.limits.riskPerTrade",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "targetVolatility",
+        "value": 0.15,
+        "source": "RiskGate.limits.targetVolatility",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxStressLoss",
+        "value": 0.2,
+        "source": "RiskGate.limits.maxStressLoss",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minObservations",
+        "value": 50,
+        "source": "RiskGate.limits.minObservations",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "kellyFraction",
+        "value": 0.25,
+        "source": "RiskGate.limits.kellyFraction",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "periodsPerYear",
+        "value": 365,
+        "source": "RiskGate.periodsPerYear",
+        "unit": "períodos/año"
+      }
+    ],
+    "expectedPaths": ["metrics.postGrossExposure", "metrics.postAssetWeight"]
+  },
+  {
+    "id": "risk.size",
+    "asset": "BTC",
+    "source": "RiskGate.size",
+    "observed": true,
+    "raw": {
+      "qty": 83.33333333333333,
+      "stopDistance": 6,
+      "riskBudget": 500,
+      "annualVol": 0.18117400363006209,
+      "annualizationPeriods": 365,
+      "kelly": 0,
+      "limits": {
+        "byStop": 83.33333333333333,
+        "byMandate": 175,
+        "byVol": 413.9666756669018,
+        "byKelly": 175
+      },
+      "binding": "stop"
+    },
+    "parameters": [
+      {
+        "name": "maxDrawdown",
+        "value": 0.1,
+        "source": "RiskGate.limits.maxDrawdown",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxVaR",
+        "value": 0.04,
+        "source": "RiskGate.limits.maxVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCVaR",
+        "value": 0.06,
+        "source": "RiskGate.limits.maxCVaR",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxGrossExposure",
+        "value": 0.7,
+        "source": "RiskGate.limits.maxGrossExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorExposure",
+        "value": 0.45,
+        "source": "RiskGate.limits.maxFactorExposure",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxCorrelation",
+        "value": 0.9,
+        "source": "RiskGate.limits.maxCorrelation",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxSpreadBps",
+        "value": 20,
+        "source": "RiskGate.limits.maxSpreadBps",
+        "unit": "puntos básicos"
+      },
+      {
+        "name": "minConfidence",
+        "value": 0.15,
+        "source": "RiskGate.limits.minConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskPerTrade",
+        "value": 0.005,
+        "source": "RiskGate.limits.riskPerTrade",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "targetVolatility",
+        "value": 0.15,
+        "source": "RiskGate.limits.targetVolatility",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxStressLoss",
+        "value": 0.2,
+        "source": "RiskGate.limits.maxStressLoss",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minObservations",
+        "value": 50,
+        "source": "RiskGate.limits.minObservations",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "kellyFraction",
+        "value": 0.25,
+        "source": "RiskGate.limits.kellyFraction",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "periodsPerYear",
+        "value": 365,
+        "source": "RiskGate.periodsPerYear",
+        "unit": "períodos/año"
+      }
+    ],
+    "expectedPaths": ["qty", "riskBudget", "stopDistance"]
+  },
+  {
+    "id": "execution.queue",
+    "asset": null,
+    "source": "ExecutionService.status",
+    "observed": true,
+    "raw": {
+      "paperOnly": true,
+      "policy": {
+        "algorithm": "TWAP",
+        "slices": 6,
+        "participationRate": 0.1,
+        "intervalMs": 60000
+      },
+      "metrics": {
+        "parents": 4,
+        "children": 24,
+        "fills": 0,
+        "rejected": 0,
+        "notional": 0,
+        "fees": 0
+      },
+      "parents": [
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "BNB",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 4716.970778250713,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        },
+        {
+          "id": "1b64a590-40aa-4876-b772-ad045f6911aa",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "SOL",
+          "symbol": "SOL-USD",
+          "side": "buy",
+          "notional": 7075.456167376069,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        },
+        {
+          "id": "bc59827b-0fd9-43dc-a2eb-86c6d02ed04f",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "ETH",
+          "symbol": "ETH-USD",
+          "side": "buy",
+          "notional": 13670.690656338644,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        },
+        {
+          "id": "2049252f-b6fa-46c5-921a-21ccadcba41f",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "BTC",
+          "symbol": "BTC-USD",
+          "side": "buy",
+          "notional": 14536.794390034576,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        }
+      ],
+      "queue": 24,
+      "lastChildren": [
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982:6",
+          "parentId": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 786.1617963751191,
+          "qty": 3.930808981875596,
+          "scheduledAt": "2026-10-24T12:48:03.851Z",
+          "state": "queued",
+          "algorithm": "TWAP",
+          "participationRate": 0.1,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null
+        },
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982:5",
+          "parentId": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 786.1617963751188,
+          "qty": 3.930808981875594,
+          "scheduledAt": "2026-10-24T12:47:03.851Z",
+          "state": "queued",
+          "algorithm": "TWAP",
+          "participationRate": 0.1,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null
+        },
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982:4",
+          "parentId": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 786.1617963751188,
+          "qty": 3.930808981875594,
+          "scheduledAt": "2026-10-24T12:46:03.851Z",
+          "state": "queued",
+          "algorithm": "TWAP",
+          "participationRate": 0.1,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null
+        },
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982:3",
+          "parentId": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 786.1617963751188,
+          "qty": 3.930808981875594,
+          "scheduledAt": "2026-10-24T12:45:03.851Z",
+          "state": "queued",
+          "algorithm": "TWAP",
+          "participationRate": 0.1,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null
+        },
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982:2",
+          "parentId": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 786.1617963751188,
+          "qty": 3.930808981875594,
+          "scheduledAt": "2026-10-24T12:44:03.851Z",
+          "state": "queued",
+          "algorithm": "TWAP",
+          "participationRate": 0.1,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null
+        },
+        {
+          "id": "[acotado]",
+          "parentId": "[acotado]",
+          "symbol": "[acotado]",
+          "side": "[acotado]",
+          "notional": "[acotado]",
+          "qty": "[acotado]",
+          "scheduledAt": "[acotado]",
+          "state": "[acotado]",
+          "algorithm": "[acotado]",
+          "participationRate": "[acotado]",
+          "orderType": "[acotado]",
+          "limitPrice": "[acotado]",
+          "stopPrice": "[acotado]"
+        },
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]",
+        "[acotado]"
+      ],
+      "portfolio": "[acotado]",
+      "tca": "[acotado]"
+    },
+    "parameters": [
+      {
+        "name": "algorithm",
+        "value": "TWAP",
+        "source": "ExecutionService.policy.algorithm",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "slices",
+        "value": 6,
+        "source": "ExecutionService.policy.slices",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "participationRate",
+        "value": 0.1,
+        "source": "ExecutionService.policy.participationRate",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "intervalMs",
+        "value": 60000,
+        "source": "ExecutionService.policy.intervalMs",
+        "unit": "ms"
+      }
+    ],
+    "expectedPaths": ["queue", "metrics.fills"]
+  },
+  {
+    "id": "execution.router",
+    "asset": null,
+    "source": "ExecutionService.submit: actual queued event, no routing totals fabricated",
+    "observed": true,
+    "raw": {
+      "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+      "approvedBy": "Offline fixture human",
+      "parents": [
+        {
+          "id": "2049252f-b6fa-46c5-921a-21ccadcba41f",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "BTC",
+          "symbol": "BTC-USD",
+          "side": "buy",
+          "notional": 14536.794390034576,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        },
+        {
+          "id": "bc59827b-0fd9-43dc-a2eb-86c6d02ed04f",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "ETH",
+          "symbol": "ETH-USD",
+          "side": "buy",
+          "notional": 13670.690656338644,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        },
+        {
+          "id": "1b64a590-40aa-4876-b772-ad045f6911aa",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "SOL",
+          "symbol": "SOL-USD",
+          "side": "buy",
+          "notional": 7075.456167376069,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        },
+        {
+          "id": "711c93d5-7411-44fc-8dfe-0e481ec9a982",
+          "planId": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+          "asset": "BNB",
+          "symbol": "BNB-USD",
+          "side": "buy",
+          "notional": 4716.970778250713,
+          "price": 200,
+          "state": "scheduled",
+          "approvedBy": "Offline fixture human",
+          "createdAt": "2026-10-24T12:43:03.851Z",
+          "paper": true,
+          "orderType": "market",
+          "limitPrice": null,
+          "stopPrice": null,
+          "algorithm": "TWAP",
+          "slices": 6,
+          "residualNotional": 0
+        }
+      ],
+      "queued": 24,
+      "paperOnly": true
+    },
+    "parameters": [
+      {
+        "name": "algorithm",
+        "value": "TWAP",
+        "source": "ExecutionService.policy.algorithm",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "slices",
+        "value": 6,
+        "source": "ExecutionService.policy.slices",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "participationRate",
+        "value": 0.1,
+        "source": "ExecutionService.policy.participationRate",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "intervalMs",
+        "value": 60000,
+        "source": "ExecutionService.policy.intervalMs",
+        "unit": "ms"
+      }
+    ],
+    "expectedPaths": ["parents.length", "queued"]
+  },
+  {
+    "id": "execution.broker",
+    "asset": "BTC",
+    "source": "PaperLedger.execute against synthetic L2",
+    "observed": true,
+    "raw": {
+      "status": "filled",
+      "fill": {
+        "id": "fixture-fill",
+        "symbol": "BTC-USD",
+        "side": "buy",
+        "orderType": "market",
+        "requestedQty": 1,
+        "qty": 1,
+        "price": 200.02,
+        "mid": 200,
+        "notional": 200.02,
+        "fee": 0.20002,
+        "feeRate": 0.001,
+        "liquidityRole": "taker",
+        "fillModel": "l2",
+        "latencyMs": 0,
+        "submittedAt": "2026-10-24T12:43:03.833Z",
+        "filledAt": "2026-10-24T12:43:03.833Z",
+        "slippageBps": 0,
+        "liquidity": [
+          {
+            "price": 200.02,
+            "qty": 1
+          }
+        ],
+        "realizedPnl": 0,
+        "monetary": {
+          "scale": 8,
+          "qtyExact": "1.00000000",
+          "priceExact": "200.02000000",
+          "notionalExact": "200.02000000",
+          "feeExact": "0.20002000",
+          "realizedPnlExact": "0.00000000"
+        },
+        "paper": true,
+        "at": "2026-10-24T12:43:03.833Z",
+        "journal": {
+          "seq": 1,
+          "hash": "56cff33484293d932325df8ee0a8ed225ab832d6dde0c0f08a0b608df800c108"
+        }
+      },
+      "remainingQty": 0
+    },
+    "parameters": [
+      {
+        "name": "algorithm",
+        "value": "TWAP",
+        "source": "ExecutionService.policy.algorithm",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "slices",
+        "value": 6,
+        "source": "ExecutionService.policy.slices",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "participationRate",
+        "value": 0.1,
+        "source": "ExecutionService.policy.participationRate",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "intervalMs",
+        "value": 60000,
+        "source": "ExecutionService.policy.intervalMs",
+        "unit": "ms"
+      },
+      {
+        "name": "makerFeeRate",
+        "value": 0.001,
+        "source": "PaperLedger.makerFeeRate",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "takerFeeRate",
+        "value": 0.001,
+        "source": "PaperLedger.takerFeeRate",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "latencyMs",
+        "value": 0,
+        "source": "PaperLedger.latencyMs",
+        "unit": "ms"
+      },
+      {
+        "name": "minNotional",
+        "value": 0,
+        "source": "PaperLedger.minNotional",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "lotSize",
+        "value": 0,
+        "source": "PaperLedger.lotSize",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "baseSlippageBps",
+        "value": 2,
+        "source": "PaperLedger.baseSlippageBps",
+        "unit": "puntos básicos"
+      },
+      {
+        "name": "impactBps",
+        "value": 8,
+        "source": "PaperLedger.impactBps",
+        "unit": "puntos básicos"
+      }
+    ],
+    "expectedPaths": ["fill.qty", "fill.price", "fill.fee"]
+  },
+  {
+    "id": "portfolio.manager",
+    "asset": null,
+    "source": "PaperLedger.snapshot",
+    "observed": true,
+    "raw": {
+      "initialCash": 100000,
+      "cash": 99799.77998,
+      "equity": 99999.77998,
+      "marketValue": 200,
+      "grossExposure": 200,
+      "realizedPnl": 0,
+      "unrealizedPnl": -0.02,
+      "fees": 0.20002,
+      "fills": 1,
+      "positions": {
+        "BTC-USD": {
+          "qty": 1,
+          "avgPrice": 0.000002,
+          "realizedPnl": 0,
+          "mark": 200,
+          "marketValue": 200,
+          "unrealizedPnl": -0.02
+        }
+      },
+      "journal": {
+        "valid": true,
+        "count": 1,
+        "legacyCount": 0,
+        "totalFills": 1,
+        "head": "56cff33484293d932325df8ee0a8ed225ab832d6dde0c0f08a0b608df800c108",
+        "balancesVerified": true
+      },
+      "accounting": {
+        "scale": 8,
+        "balanced": true,
+        "residual": 0,
+        "residualExact": "0.00000000",
+        "cashExact": "99799.77998000",
+        "equityExact": "99999.77998000",
+        "marketValueExact": "200.00000000",
+        "realizedPnlExact": "0.00000000",
+        "unrealizedPnlExact": "-0.02000000",
+        "feesExact": "0.20002000"
+      }
+    },
+    "parameters": [
+      {
+        "name": "method",
+        "value": "blended",
+        "source": "PortfolioService.policy.method",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "investmentBudget",
+        "value": 0.85,
+        "source": "PortfolioService.policy.investmentBudget",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskParityBlend",
+        "value": 0.65,
+        "source": "PortfolioService.policy.riskParityBlend",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskAversion",
+        "value": 6,
+        "source": "PortfolioService.policy.riskAversion",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "rebalanceBand",
+        "value": 0.02,
+        "source": "PortfolioService.policy.rebalanceBand",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxTurnover",
+        "value": 0.2,
+        "source": "PortfolioService.policy.maxTurnover",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "varConfidence",
+        "value": 0.95,
+        "source": "PortfolioService.policy.varConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailConfidence",
+        "value": 0.99,
+        "source": "PortfolioService.policy.tailConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailLambda",
+        "value": 0.94,
+        "source": "PortfolioService.policy.tailLambda",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailThresholdQuantile",
+        "value": 0.9,
+        "source": "PortfolioService.policy.tailThresholdQuantile",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailBacktestWindow",
+        "value": 100,
+        "source": "PortfolioService.policy.tailBacktestWindow",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorShare",
+        "value": 0.8,
+        "source": "PortfolioService.policy.maxFactorShare",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["equity", "cash", "fees"]
+  },
+  {
+    "id": "portfolio.allocation",
+    "asset": null,
+    "source": "PortfolioService.plan: synthetic returns, not exchange history",
+    "observed": true,
+    "raw": {
+      "id": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+      "createdAt": "2026-10-24T12:43:03.843Z",
+      "method": "blended",
+      "observations": 160,
+      "equity": 99999.77998,
+      "cashTarget": 0.15000000000000002,
+      "rebalancing": {
+        "turnover": 0.2,
+        "rawTurnover": 0.42399999779979514,
+        "scaled": true,
+        "band": 0.02,
+        "maxTurnover": 0.2
+      },
+      "allocations": [
+        {
+          "asset": "BTC",
+          "currentWeight": 0.0020000044004096816,
+          "targetWeight": 0.31018072192916113,
+          "tradeWeight": 0.14536826373959963,
+          "tradeNotional": 14536.794390034576
+        },
+        {
+          "asset": "ETH",
+          "currentWeight": 0,
+          "targetWeight": 0.28981927807083885,
+          "tradeWeight": 0.13670720734658404,
+          "tradeNotional": 13670.690656338644
+        },
+        {
+          "asset": "SOL",
+          "currentWeight": 0,
+          "targetWeight": 0.15,
+          "tradeWeight": 0.0707547173482898,
+          "tradeNotional": 7075.456167376069
+        },
+        {
+          "asset": "BNB",
+          "currentWeight": 0,
+          "targetWeight": 0.1,
+          "tradeWeight": 0.047169811565526534,
+          "tradeNotional": 4716.970778250713
+        }
+      ],
+      "approval": {
+        "required": true,
+        "state": "proposed"
+      }
+    },
+    "parameters": [
+      {
+        "name": "method",
+        "value": "blended",
+        "source": "PortfolioService.policy.method",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "investmentBudget",
+        "value": 0.85,
+        "source": "PortfolioService.policy.investmentBudget",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskParityBlend",
+        "value": 0.65,
+        "source": "PortfolioService.policy.riskParityBlend",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskAversion",
+        "value": 6,
+        "source": "PortfolioService.policy.riskAversion",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "rebalanceBand",
+        "value": 0.02,
+        "source": "PortfolioService.policy.rebalanceBand",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxTurnover",
+        "value": 0.2,
+        "source": "PortfolioService.policy.maxTurnover",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "varConfidence",
+        "value": 0.95,
+        "source": "PortfolioService.policy.varConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailConfidence",
+        "value": 0.99,
+        "source": "PortfolioService.policy.tailConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailLambda",
+        "value": 0.94,
+        "source": "PortfolioService.policy.tailLambda",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailThresholdQuantile",
+        "value": 0.9,
+        "source": "PortfolioService.policy.tailThresholdQuantile",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailBacktestWindow",
+        "value": 100,
+        "source": "PortfolioService.policy.tailBacktestWindow",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorShare",
+        "value": 0.8,
+        "source": "PortfolioService.policy.maxFactorShare",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["observations", "equity", "cashTarget"]
+  },
+  {
+    "id": "portfolio.rebalance",
+    "asset": null,
+    "source": "PortfolioService.plan.rebalancing: synthetic returns",
+    "observed": true,
+    "raw": {
+      "id": "8227aebc-ab48-4e6b-82c4-d55be0a099e6",
+      "createdAt": "2026-10-24T12:43:03.843Z",
+      "method": "blended",
+      "observations": 160,
+      "equity": 99999.77998,
+      "cashTarget": 0.15000000000000002,
+      "rebalancing": {
+        "turnover": 0.2,
+        "rawTurnover": 0.42399999779979514,
+        "scaled": true,
+        "band": 0.02,
+        "maxTurnover": 0.2
+      },
+      "allocations": [
+        {
+          "asset": "BTC",
+          "currentWeight": 0.0020000044004096816,
+          "targetWeight": 0.31018072192916113,
+          "tradeWeight": 0.14536826373959963,
+          "tradeNotional": 14536.794390034576
+        },
+        {
+          "asset": "ETH",
+          "currentWeight": 0,
+          "targetWeight": 0.28981927807083885,
+          "tradeWeight": 0.13670720734658404,
+          "tradeNotional": 13670.690656338644
+        },
+        {
+          "asset": "SOL",
+          "currentWeight": 0,
+          "targetWeight": 0.15,
+          "tradeWeight": 0.0707547173482898,
+          "tradeNotional": 7075.456167376069
+        },
+        {
+          "asset": "BNB",
+          "currentWeight": 0,
+          "targetWeight": 0.1,
+          "tradeWeight": 0.047169811565526534,
+          "tradeNotional": 4716.970778250713
+        }
+      ],
+      "approval": {
+        "required": true,
+        "state": "proposed"
+      }
+    },
+    "parameters": [
+      {
+        "name": "method",
+        "value": "blended",
+        "source": "PortfolioService.policy.method",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "investmentBudget",
+        "value": 0.85,
+        "source": "PortfolioService.policy.investmentBudget",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskParityBlend",
+        "value": 0.65,
+        "source": "PortfolioService.policy.riskParityBlend",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "riskAversion",
+        "value": 6,
+        "source": "PortfolioService.policy.riskAversion",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "rebalanceBand",
+        "value": 0.02,
+        "source": "PortfolioService.policy.rebalanceBand",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxTurnover",
+        "value": 0.2,
+        "source": "PortfolioService.policy.maxTurnover",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "varConfidence",
+        "value": 0.95,
+        "source": "PortfolioService.policy.varConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailConfidence",
+        "value": 0.99,
+        "source": "PortfolioService.policy.tailConfidence",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailLambda",
+        "value": 0.94,
+        "source": "PortfolioService.policy.tailLambda",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailThresholdQuantile",
+        "value": 0.9,
+        "source": "PortfolioService.policy.tailThresholdQuantile",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "tailBacktestWindow",
+        "value": 100,
+        "source": "PortfolioService.policy.tailBacktestWindow",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxFactorShare",
+        "value": 0.8,
+        "source": "PortfolioService.policy.maxFactorShare",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["rebalancing.turnover", "rebalancing.band"]
+  },
+  {
+    "id": "audit.writer",
+    "asset": null,
+    "source": "Sha256AuditChain.verify",
+    "observed": true,
+    "raw": {
+      "valid": true,
+      "count": 1,
+      "head": "9f47ad876e87f48055c6fa73cb0bd99b0afc10b9335b3c40810eae00aeb901f0"
+    },
+    "parameters": [],
+    "expectedPaths": ["count"]
+  },
+  {
+    "id": "research.miner",
+    "asset": null,
+    "source": "No backend executor: intentionally no fabricated event",
+    "observed": false,
+    "raw": {},
+    "parameters": [],
+    "expectedPaths": []
+  },
+  {
+    "id": "research.backtest",
+    "asset": null,
+    "source": "ResearchLab.evaluate: seeded synthetic returns",
+    "observed": true,
+    "raw": {
+      "id": "strategy-1792845783846",
+      "version": "1.0.0",
+      "createdAt": "2026-10-24T12:43:03.850Z",
+      "status": "rejected",
+      "observations": 160,
+      "metrics": {
+        "annualizationPeriods": 365,
+        "sharpe": 1.3807148082035485,
+        "deflatedSharpeProbability": 0,
+        "deflatedBenchmark": 3.7086373429434016,
+        "pbo": 0.7428571428571429,
+        "maxDrawdown": 0.08629292983906914,
+        "oosSharpe": 1.5531288827985636,
+        "stability": 0.5156426033230674
+      },
+      "checks": {
+        "observations": true,
+        "deflatedSharpe": false,
+        "pbo": false,
+        "maxDrawdown": true,
+        "sensitivity": false,
+        "oosSharpe": true
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "start": 0,
+          "end": 31,
+          "train": [
+            37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52
+          ],
+          "test": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "purge": 3,
+          "embargo": 2
+        },
+        {
+          "fold": 1,
+          "start": 32,
+          "end": 63,
+          "train": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "test": [
+            32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47
+          ],
+          "purge": 3,
+          "embargo": 2
+        },
+        {
+          "fold": 2,
+          "start": 64,
+          "end": 95,
+          "train": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "test": [
+            64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79
+          ],
+          "purge": 3,
+          "embargo": 2
+        },
+        {
+          "fold": 3,
+          "start": 96,
+          "end": 127,
+          "train": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            "[acotado]",
+            "[acotado]",
+            "[acotado]",
+            "[acotado]"
+          ],
+          "test": "[acotado]",
+          "purge": "[acotado]",
+          "embargo": "[acotado]"
+        },
+        "[acotado]"
+      ],
+      "foldMetrics": "[acotado]",
+      "sensitivity": "[acotado]",
+      "pbo": "[acotado]",
+      "promotion": "[acotado]"
+    },
+    "parameters": [
+      {
+        "name": "minObservations",
+        "value": 120,
+        "source": "ResearchLab.policy.minObservations",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minDsr",
+        "value": 0.95,
+        "source": "ResearchLab.policy.minDsr",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxPbo",
+        "value": 0.35,
+        "source": "ResearchLab.policy.maxPbo",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxDrawdown",
+        "value": 0.25,
+        "source": "ResearchLab.policy.maxDrawdown",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minStability",
+        "value": 0.55,
+        "source": "ResearchLab.policy.minStability",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minOosSharpe",
+        "value": 0,
+        "source": "ResearchLab.policy.minOosSharpe",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["observations", "metrics.sharpe", "metrics.pbo"]
+  },
+  {
+    "id": "research.walkforward",
+    "asset": null,
+    "source": "ResearchLab.evaluate: actual purged-k-fold, not walk-forward optimization",
+    "observed": true,
+    "raw": {
+      "id": "strategy-1792845783846",
+      "version": "1.0.0",
+      "createdAt": "2026-10-24T12:43:03.850Z",
+      "status": "rejected",
+      "observations": 160,
+      "metrics": {
+        "annualizationPeriods": 365,
+        "sharpe": 1.3807148082035485,
+        "deflatedSharpeProbability": 0,
+        "deflatedBenchmark": 3.7086373429434016,
+        "pbo": 0.7428571428571429,
+        "maxDrawdown": 0.08629292983906914,
+        "oosSharpe": 1.5531288827985636,
+        "stability": 0.5156426033230674
+      },
+      "checks": {
+        "observations": true,
+        "deflatedSharpe": false,
+        "pbo": false,
+        "maxDrawdown": true,
+        "sensitivity": false,
+        "oosSharpe": true
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "start": 0,
+          "end": 31,
+          "train": [
+            37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52
+          ],
+          "test": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "purge": 3,
+          "embargo": 2
+        },
+        {
+          "fold": 1,
+          "start": 32,
+          "end": 63,
+          "train": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "test": [
+            32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47
+          ],
+          "purge": 3,
+          "embargo": 2
+        },
+        {
+          "fold": 2,
+          "start": 64,
+          "end": 95,
+          "train": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "test": [
+            64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79
+          ],
+          "purge": 3,
+          "embargo": 2
+        },
+        {
+          "fold": 3,
+          "start": 96,
+          "end": 127,
+          "train": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            "[acotado]",
+            "[acotado]",
+            "[acotado]",
+            "[acotado]"
+          ],
+          "test": "[acotado]",
+          "purge": "[acotado]",
+          "embargo": "[acotado]"
+        },
+        "[acotado]"
+      ],
+      "foldMetrics": "[acotado]",
+      "sensitivity": "[acotado]",
+      "pbo": "[acotado]",
+      "promotion": "[acotado]"
+    },
+    "parameters": [
+      {
+        "name": "minObservations",
+        "value": 120,
+        "source": "ResearchLab.policy.minObservations",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minDsr",
+        "value": 0.95,
+        "source": "ResearchLab.policy.minDsr",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxPbo",
+        "value": 0.35,
+        "source": "ResearchLab.policy.maxPbo",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "maxDrawdown",
+        "value": 0.25,
+        "source": "ResearchLab.policy.maxDrawdown",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minStability",
+        "value": 0.55,
+        "source": "ResearchLab.policy.minStability",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "minOosSharpe",
+        "value": 0,
+        "source": "ResearchLab.policy.minOosSharpe",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": ["observations", "folds.length", "metrics.oosSharpe"]
+  },
+  {
+    "id": "sre.feeds",
+    "asset": "BTC",
+    "source": "EmployeeCards.ingest(market.snapshot): ticker/book projection",
+    "observed": true,
+    "raw": {
+      "price": 200,
+      "bid": 199.98,
+      "ask": 200.02,
+      "bookLevels": {
+        "bids": 1,
+        "asks": 1
+      }
+    },
+    "parameters": [],
+    "expectedPaths": ["price"]
+  },
+  {
+    "id": "sre.api",
+    "asset": null,
+    "source": "SreService.snapshot: controlled gateway telemetry",
+    "observed": true,
+    "raw": {
+      "at": "2026-10-24T12:43:03.853Z",
+      "status": "healthy",
+      "slos": {
+        "availability": 0.999,
+        "latencyTarget": 0.95,
+        "p95LatencyMs": 500,
+        "freshnessTarget": 0.99,
+        "dataFreshnessMs": 15000,
+        "auditIntegrity": 1
+      },
+      "slis": {
+        "availability": 0.999,
+        "p95LatencyMs": 30,
+        "dataFreshnessMs": 100,
+        "burnRate": 0.9999999999999991,
+        "errorBudgetRemaining": 8.881784197001252e-16,
+        "audit": {
+          "valid": true,
+          "count": 1,
+          "head": "9f47ad876e87f48055c6fa73cb0bd99b0afc10b9335b3c40810eae00aeb901f0"
+        }
+      },
+      "objectives": {
+        "availability": {
+          "name": "availability",
+          "target": 0.999,
+          "windowMs": 2592000000,
+          "period": {
+            "windowMs": 2592000000,
+            "target": 0.999,
+            "total": 1000,
+            "good": 999,
+            "bad": 1,
+            "compliance": 0.999,
+            "burnRate": 0.9999999999999991,
+            "allowedBad": 1.0000000000000009,
+            "budgetRemaining": 8.881784197001252e-16,
+            "firstAt": 1792845783853,
+            "lastAt": 1792845783853,
+            "observedSpanMs": 0,
+            "completeWindow": false
+          },
+          "alerts": [
+            {
+              "name": "fast",
+              "longMs": 3600000,
+              "shortMs": 300000,
+              "burn": 14.4,
+              "long": {
+                "windowMs": "[acotado]",
+                "target": "[acotado]",
+                "total": "[acotado]",
+                "good": "[acotado]",
+                "bad": "[acotado]",
+                "compliance": "[acotado]",
+                "burnRate": "[acotado]",
+                "allowedBad": "[acotado]",
+                "budgetRemaining": "[acotado]",
+                "firstAt": "[acotado]",
+                "lastAt": "[acotado]",
+                "observedSpanMs": "[acotado]",
+                "completeWindow": "[acotado]"
+              },
+              "short": {
+                "windowMs": "[acotado]",
+                "target": "[acotado]",
+                "total": "[acotado]",
+                "good": "[acotado]",
+                "bad": "[acotado]",
+                "compliance": "[acotado]",
+                "burnRate": "[acotado]",
+                "allowedBad": "[acotado]",
+                "budgetRemaining": "[acotado]",
+                "firstAt": "[acotado]",
+                "lastAt": "[acotado]",
+                "observedSpanMs": "[acotado]",
+                "completeWindow": "[acotado]"
+              },
+              "firing": false
+            },
+            {
+              "name": "slow",
+              "longMs": 21600000,
+              "shortMs": 1800000,
+              "burn": 6,
+              "long": {
+                "windowMs": "[acotado]",
+                "target": "[acotado]",
+                "total": "[acotado]",
+                "good": "[acotado]",
+                "bad": "[acotado]",
+                "compliance": "[acotado]",
+                "burnRate": "[acotado]",
+                "allowedBad": "[acotado]",
+                "budgetRemaining": "[acotado]",
+                "firstAt": "[acotado]",
+                "lastAt": "[acotado]",
+                "observedSpanMs": "[acotado]",
+                "completeWindow": "[acotado]"
+              },
+              "short": {
+                "windowMs": "[acotado]",
+                "target": "[acotado]",
+                "total": "[acotado]",
+                "good": "[acotado]",
+                "bad": "[acotado]",
+                "compliance": "[acotado]",
+                "burnRate": "[acotado]",
+                "allowedBad": "[acotado]",
+                "budgetRemaining": "[acotado]",
+                "firstAt": "[acotado]",
+                "lastAt": "[acotado]",
+                "observedSpanMs": "[acotado]",
+                "completeWindow": "[acotado]"
+              },
+              "firing": false
+            }
+          ]
+        },
+        "latency": {
+          "name": "latency",
+          "target": 0.95,
+          "thresholdMs": 500,
+          "windowMs": 2592000000,
+          "period": {
+            "windowMs": 2592000000,
+            "target": 0.95,
+            "total": 4,
+            "good": 4,
+            "bad": 0,
+            "compliance": 1,
+            "burnRate": 0,
+            "allowedBad": 0.20000000000000018,
+            "budgetRemaining": 1,
+            "firstAt": 1792845783853,
+            "lastAt": 1792845783853,
+            "observedSpanMs": 0,
+            "completeWindow": false
+          },
+          "alerts": [
+            {
+              "name": "fast",
+              "longMs": 3600000,
+              "shortMs": 300000,
+              "burn": 14.4,
+              "long": {
+                "windowMs": "[acotado]",
+                "target": "[acotado]",
+                "total": "[acotado]",
+                "good": "[acotado]",
+                "bad": "[acotado]",
+                "compliance": "[acotado]",
+                "burnRate": "[acotado]",
+                "allowedBad": "[acotado]",
+                "budgetRemaining": "[acotado]",
+                "firstAt": "[acotado]",
+                "lastAt": "[acotado]",
+                "observedSpanMs": "[acotado]",
+                "completeWindow": "[acotado]"
+              },
+              "short": {
+                "windowMs": "[acotado]",
+                "target": "[acotado]",
+                "total": "[acotado]",
+                "good": "[acotado]",
+                "bad": "[acotado]",
+                "compliance": "[acotado]",
+                "burnRate": "[acotado]",
+                "allowedBad": "[acotado]",
+                "budgetRemaining": "[acotado]",
+                "firstAt": "[acotado]",
+                "lastAt": "[acotado]",
+                "observedSpanMs": "[acotado]",
+                "completeWindow": "[acotado]"
+              },
+              "firing": "[acotado]"
+            },
+            "[acotado]"
+          ]
+        },
+        "freshness": "[acotado]",
+        "audit": "[acotado]"
+      },
+      "burnAlerts": "[acotado]",
+      "telemetry": "[acotado]",
+      "checks": "[acotado]",
+      "services": "[acotado]",
+      "incidents": "[acotado]",
+      "journal": "[acotado]",
+      "backups": "[acotado]"
+    },
+    "parameters": [
+      {
+        "name": "availability",
+        "value": 0.999,
+        "source": "SreService.slos.availability",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "latencyTarget",
+        "value": 0.95,
+        "source": "SreService.slos.latencyTarget",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "p95LatencyMs",
+        "value": 500,
+        "source": "SreService.slos.p95LatencyMs",
+        "unit": "ms"
+      },
+      {
+        "name": "freshnessTarget",
+        "value": 0.99,
+        "source": "SreService.slos.freshnessTarget",
+        "unit": "sin unidad"
+      },
+      {
+        "name": "dataFreshnessMs",
+        "value": 15000,
+        "source": "SreService.slos.dataFreshnessMs",
+        "unit": "ms"
+      },
+      {
+        "name": "auditIntegrity",
+        "value": 1,
+        "source": "SreService.slos.auditIntegrity",
+        "unit": "sin unidad"
+      }
+    ],
+    "expectedPaths": [
+      "slis.availability",
+      "slis.p95LatencyMs",
+      "slis.dataFreshnessMs"
+    ]
+  },
+  {
+    "id": "sre.anomaly",
+    "asset": null,
+    "source": "agent-engine.execute(Anomaly Detector): controlled manual input",
+    "observed": true,
+    "raw": {
+      "agent_id": "Anomaly Detector",
+      "version": "local-math-1.0.0",
+      "status": "ok",
+      "signal": -1,
+      "confidence": 0.99,
+      "evidence": ["median=12", "mad=1", "robust-z=45.866", "anomaly=true"],
+      "latency_ms": 0,
+      "at": "2026-10-24T12:43:03.816Z"
+    },
+    "parameters": [],
+    "expectedPaths": ["signal", "confidence"]
+  }
+]

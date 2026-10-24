@@ -3,7 +3,8 @@
 const crypto = require("node:crypto"),
   { EMPLOYEE_REGISTRY } = require("./registry.js"),
   { CARD_LIMITS, assertEmployeeCard } = require("./contract.js"),
-  { specificationFor } = require("./specifications.js");
+  { specificationFor } = require("./specifications.js"),
+  { narrate } = require("../../dist/agent-profiles.js");
 const SENSITIVE = /key|secret|token|password|authorization|cookie/i,
   ASSETS = ["BTC", "ETH", "SOL", "BNB"],
   own = (value) => value && typeof value === "object" && !Array.isArray(value),
@@ -110,6 +111,28 @@ class EmployeeCards {
       (asset !== null && !ASSETS.includes(asset))
     )
       return false;
+    // Keep the fields needed to explain a plan before the generic privacy/size
+    // budget. Large diagnostics must not crowd out real rebalance numbers.
+    if (id === "portfolio.allocation" || id === "portfolio.rebalance")
+      raw = {
+        id: raw.id,
+        createdAt: raw.createdAt,
+        method: raw.method,
+        observations: raw.observations,
+        equity: raw.equity,
+        cashTarget: raw.cashTarget,
+        rebalancing: raw.rebalancing,
+        allocations: Array.isArray(raw.allocations)
+          ? raw.allocations.slice(0, 4).map((row) => ({
+              asset: row.asset,
+              currentWeight: row.currentWeight,
+              targetWeight: row.targetWeight,
+              tradeWeight: row.tradeWeight,
+              tradeNotional: row.tradeNotional,
+            }))
+          : [],
+        approval: raw.approval,
+      };
     const time = atMs(at),
       validTime = Number.isFinite(time) && time <= this.clock(),
       receivedAt = this.clock(),
@@ -574,9 +597,13 @@ class EmployeeCards {
             ? `Incluir ${employee.asset}-USD en MARKET_PRODUCTS y reiniciar el feed.`
             : "Revisar el proveedor o ejecutar el proceso padre correspondiente; consultar esta ficha no lo inicia.",
       },
-      summary = last
-        ? `${currentAsset || "Cartera/servicio"}: observación recibida de ${last.source}; ${Object.keys(last.raw).length} campos registrados.`
-        : "Sin última actualización verificable.",
+      narration = narrate(id, {
+        raw: last?.raw || {},
+        asset: currentAsset,
+        parameters: specification.work.parameters,
+        observed: !!last,
+        error: last?.error,
+      }),
       mainKey = ["signal", "price", "queue", "equity", "qty"].find((key) =>
         Number.isFinite(last?.raw[key]),
       ),
@@ -602,14 +629,12 @@ class EmployeeCards {
       latest: {
         at: last ? new Date(last.at).toISOString() : null,
         asset: currentAsset,
-        summary: this.clean(summary),
+        summary: this.clean(narration.activity),
         raw: last?.raw || {},
       },
       meaning: {
-        scale: Number.isFinite(last?.raw.signal)
-          ? "Señal normalizada entre -1 y +1; no equivale a una orden."
-          : "La unidad e interpretación específica se completará con la redacción del empleado en E2.",
-        consequence: specification.contribution,
+        scale: this.clean(narration.scale),
+        consequence: this.clean(narration.consequence),
         userAction: active
           ? empty.solution
           : "Revisar los datos, límites y evidencia antes de interpretar el resultado.",
@@ -633,7 +658,14 @@ class EmployeeCards {
         items: history.map((row) => ({
           at: new Date(row.at).toISOString(),
           asset: row.asset,
-          title: this.clean(`${row.asset || "Servicio"}: ${row.source}`),
+          title: this.clean(
+            narrate(id, {
+              raw: row.raw,
+              asset: row.asset,
+              parameters: specification.work.parameters,
+              error: row.error,
+            }).activity,
+          ),
           value: signalValue(row.raw),
         })),
         trend: {

@@ -7,11 +7,57 @@ registro canónico. No crea ejecutores para los nodos que hoy carecen de ellos.
 Consultar una ficha no ejecuta órdenes, no consulta proveedores y no invoca IA.
 Todas las operaciones siguen siendo paper trading.
 
-La interfaz anterior sigue vigente hasta E6. La redacción individual con números
-es E2; el cableado exhaustivo de entradas es E3; el desempeño medido es E4;
+La interfaz anterior sigue vigente hasta E6. E2 incorpora redacción individual
+con números compartida por backend y vista anterior; el cableado exhaustivo de
+entradas es E3; el desempeño medido es E4;
 las relaciones verificadas son E5. Estos resultados no se presentan como hechos
 cuando todavía no están implementados. La descripción del trabajo reutiliza por
-ahora la fuente existente `dist/agent-profiles.js`.
+ahora la fuente existente `dist/agent-profiles.js`, que también exporta `narrate`.
+
+## Redacción por empleado (E2)
+
+Cada uno de los 33 IDs tiene su propia función de redacción y su propia escala;
+no se elige una explicación genérica por la forma del objeto recibido.
+`EmployeeCards` aplica esa redacción a la última observación y a los titulares
+del historial. El navegador anterior usa la misma fuente mediante `describe`.
+La ficha completa del backend todavía no se monta en el cartel: corresponde a E6.
+
+Las señales incluyen valor con signo, activo y confianza; EMA/ATR usan USD,
+RSI puntos, volumen z-score, liquidez bps y unidades del activo. Una señal positiva
+se describe como orientación compradora, no como compra autorizada. No existe
+una banda universal neutral de ±0,1 en estos motores y por eso no se inventa:
+los umbrales de abstención del consenso se leen de su política real.
+
+Por ejemplo, +0,32 y −0,05 tienen distinto valor, orientación y significado
+observado; no se deduce rentabilidad de ninguno. Las ventanas y el peso de
+Technical se leen de la instancia activa. La vista anterior que aún no recibe
+parámetros del backend dice «sin dato», no usa EMA9/21 por defecto.
+
+Las redacciones distinguen cotización de análisis de mesa, aprobación de riesgo
+de fill, orden parcial de completa y error operativo de detector estadístico.
+Cuando ejecución solo informa una conciliación, muestra sus conteos sin
+inventar precios individuales. Las asignaciones incluyen pesos por activo;
+el rebalanceo muestra ajustes, banda y rotación reales. Antes del saneamiento
+se proyectan los campos explicativos del plan para que diagnósticos grandes
+no desplacen esos importes del presupuesto de tamaño.
+
+El laboratorio evalúa retornos entregados (sintéticos por defecto), no ejecuta
+código de estrategia ni agrega costes por sí mismo. Su validación es purged
+k-fold, que puede entrenar con períodos posteriores al test: no equivale a un
+walk-forward causal. Strategy Miner sigue sin motor y sin evento ficticio.
+
+`tests/fixtures/employee-events.json` tiene 33 entradas: 32 capturas de motores
+reales con entradas controladas y una ausencia explícita del minero. Proceden
+de `tests/helpers/capture-employee-events.js`; no son datos reales de exchange.
+Cada entrada declara fuente, activo (o ausencia de activo), parámetros y rutas
+de valores esperados. El test recaptura motores sin red y compara números,
+exige significados únicos y prohíbe texto genérico. UUIDs, hashes temporales y
+latencias no se comparan como si fueran deterministas.
+
+Una cadena de auditoría válida no certifica importes correctos. Durante E2 se
+detectó un defecto previo de precio promedio sin marca de valoración, registrado
+en `docs/DECISIONES_PENDIENTES.md`. No se modificó contabilidad en esta fase;
+las capturas de cartera usan marcas sintéticas explícitas.
 
 ## API
 
@@ -109,3 +155,34 @@ Las pruebas nuevas no usan red externa: validación de las 33 fichas, límites,
 frescura, muestras insuficientes, errores/recuperación, secretos, parámetros,
 autorización HTTP, snapshot y WebSocket local. Las consultas no generan órdenes
 ni llamadas a IA.
+
+## Evidencia E2
+
+El mismo comando obligatorio terminó con código 0. Línea base: 66 tests
+aprobados, 0 fallidos, cobertura de líneas 90,39 %. Después: 67 aprobados,
+0 fallidos, cobertura de líneas 90,41 %; lint sin errores y formato correcto.
+
+```text
+ℹ tests 67
+ℹ pass 67
+ℹ fail 0
+All matched files use Prettier code style!
+All files | 90.41 | 81.4 | 91.81 | 90.41
+```
+
+La prueba específica se ejecuta con:
+
+```sh
+node --test tests/employee-narratives.test.js
+```
+
+```text
+employee narratives: 33 unique meanings, real engine recaptures, numbers/units, explicit absent miner and bounded text OK
+ℹ tests 1
+ℹ pass 1
+ℹ fail 0
+```
+
+En las ejecuciones intermedias fallaron aserciones de redacción antigua de los
+tests de perfiles/UI; se conservaron las garantías y se adaptó la expectativa de
+«dólares» a USD. La batería final queda verde. No se probaron feeds externos.

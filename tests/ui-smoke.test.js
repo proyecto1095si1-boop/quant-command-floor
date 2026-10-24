@@ -273,7 +273,7 @@ for (const file of [
   document.querySelector('.agent[data-node-id="desk.sol"]').click();
   assert.match(
     document.querySelector("#nodeLiveActivity").textContent,
-    /123,45 dólares/,
+    /123,45 USD/,
   );
   assert.match(document.querySelector("#modelOutput").textContent, /123.45/);
   assert.equal(
