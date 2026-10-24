@@ -248,6 +248,8 @@ function createGateway(options = {}) {
             .map((asset) => options.intelligenceDag?.snapshot(asset))
             .filter(Boolean),
           intelligenceProviders: options.intelligence?.status().providers || {},
+          intelligenceMaxAgeMs:
+            options.intelligenceDag?.maxSnapshotAgeMs ?? 6 * 60 * 60 * 1000,
           events: [...floorEvents.values()],
           pipeline: pipeline?.status() || null,
           execution: execution?.status() || null,

@@ -22,6 +22,7 @@ const assert = require("node:assert/strict"),
       },
     },
     intelligenceDag = {
+      maxSnapshotAgeMs: 120000,
       snapshot: () => null,
       status: () => ({ paperOnly: true, assets: {} }),
       refresh: async (asset) => ({
@@ -39,6 +40,7 @@ const assert = require("node:assert/strict"),
     assert.equal((await status.json()).paperOnly, true);
     const floor = await (await fetch(`${base}/v1/floor/snapshot`)).json();
     assert.deepEqual(floor.intelligenceProviders, {});
+    assert.equal(floor.intelligenceMaxAgeMs, 120000);
     assert.equal(floor.paperOnly, true);
     const query = await fetch(`${base}/v1/intelligence/query`, {
       method: "POST",
