@@ -1,11 +1,12 @@
 "use strict";
-const M = require("./math.js");
+const M = require("./math.js"),
+  { DESK_PARAMETERS: P } = require("./parameters.js");
 function technical(candles) {
   const closes = candles.map((x) => x.close),
-    fast = M.ema(closes.slice(-60), 12),
-    slow = M.ema(closes.slice(-100), 26),
-    rsi = M.rsi(closes),
-    atr = M.atr(candles),
+    fast = M.ema(closes.slice(-P.Technical.fastWindow), P.Technical.fastPeriod),
+    slow = M.ema(closes.slice(-P.Technical.slowWindow), P.Technical.slowPeriod),
+    rsi = M.rsi(closes, P.Technical.rsiPeriod),
+    atr = M.atr(candles, P.Technical.atrPeriod),
     trend = atr ? (fast - slow) / atr : 0,
     momentum = (rsi - 50) / 25,
     signal = Math.tanh(0.7 * trend + 0.3 * momentum),
@@ -15,10 +16,10 @@ function technical(candles) {
     signal,
     confidence,
     [
-      `EMA12=${fast.toFixed(4)}`,
-      `EMA26=${slow.toFixed(4)}`,
-      `RSI14=${rsi.toFixed(2)}`,
-      `ATR14=${atr.toFixed(4)}`,
+      `EMA${P.Technical.fastPeriod}=${fast.toFixed(4)}`,
+      `EMA${P.Technical.slowPeriod}=${slow.toFixed(4)}`,
+      `RSI${P.Technical.rsiPeriod}=${rsi.toFixed(2)}`,
+      `ATR${P.Technical.atrPeriod}=${atr.toFixed(4)}`,
     ],
     { fast, slow, rsi, atr },
   );
@@ -26,15 +27,16 @@ function technical(candles) {
 function volume(candles) {
   const volumes = candles.map((x) => x.volume),
     current = volumes.at(-1) || 0,
-    z = M.zscore(current, volumes.slice(-21, -1)),
+    z = M.zscore(current, volumes.slice(-P.Volume.zWindow - 1, -1)),
     obv = candles
-      .slice(-21)
+      .slice(-P.Volume.flowWindow)
       .reduce(
         (a, x, i, arr) =>
           i ? a + (x.close >= arr[i - 1].close ? x.volume : -x.volume) : 0,
         0,
       ),
-    normalizer = volumes.slice(-21).reduce((a, b) => a + b, 0) || 1,
+    normalizer =
+      volumes.slice(-P.Volume.flowWindow).reduce((a, b) => a + b, 0) || 1,
     flow = obv / normalizer,
     signal =
       Math.tanh(z / 3) * Math.sign(flow || 1) * 0.6 + M.clamp(flow) * 0.4;
@@ -50,7 +52,7 @@ function whale(trades) {
   const rows = trades.map((x) => ({ ...x, notional: x.price * x.size })),
     threshold = M.quantile(
       rows.map((x) => x.notional),
-      0.95,
+      P.Whale.notionalQuantile,
     ),
     large = rows.filter((x) => x.notional >= threshold),
     buy = large
@@ -79,13 +81,14 @@ function liquidity(book) {
     ask = asks.reduce((a, x) => a + x.size, 0),
     imbalance = bid + ask ? (bid - ask) / (bid + ask) : 0,
     spreadBps = Number(book?.spreadBps || 0),
-    penalty = Math.min(1, spreadBps / 20),
+    penalty = Math.min(1, spreadBps / P.Liquidity.spreadPenaltyBps),
     signal = imbalance * (1 - penalty),
     confidence = Math.max(
       0.2,
       Math.min(
         0.98,
-        (1 - penalty) * 0.6 + Math.min(1, (bid + ask) / 10) * 0.35,
+        (1 - penalty) * 0.6 +
+          Math.min(1, (bid + ask) / P.Liquidity.depthScale) * 0.35,
       ),
     );
   return M.result(
@@ -101,7 +104,7 @@ function liquidity(book) {
   );
 }
 function marketStructure(candles) {
-  const xs = candles.slice(-60),
+  const xs = candles.slice(-P["Market Structure"].window),
     highs = [],
     lows = [];
   for (let i = 2; i < xs.length - 2; i++) {
@@ -148,14 +151,14 @@ function marketStructure(candles) {
   );
 }
 function orderBlock(candles) {
-  const xs = candles.slice(-80),
-    atr = M.atr(xs),
+  const xs = candles.slice(-P["Order Block"].window),
+    atr = M.atr(xs, P["Order Block"].atrPeriod),
     current = xs.at(-1)?.close || 0;
   let found = null;
   for (let i = xs.length - 1; i >= 2; i--) {
     const body = Math.abs(xs[i].close - xs[i].open),
       direction = Math.sign(xs[i].close - xs[i].open);
-    if (body > atr * 1.5) {
+    if (body > atr * P["Order Block"].displacementAtr) {
       const prev = xs[i - 1],
         opposite = Math.sign(prev.close - prev.open) === -direction;
       if (opposite) {
@@ -169,7 +172,11 @@ function orderBlock(candles) {
   const center = (found.low + found.high) / 2,
     distance = atr ? Math.abs(current - center) / atr : 99,
     inZone = current >= found.low && current <= found.high,
-    signal = found.direction * (inZone ? 1 : Math.max(0, 1 - distance / 5)),
+    signal =
+      found.direction *
+      (inZone
+        ? 1
+        : Math.max(0, 1 - distance / P["Order Block"].distanceScaleAtr)),
     confidence = inZone ? 0.9 : Math.max(0.3, 0.75 - distance * 0.08);
   return M.result(
     "Order Block",
