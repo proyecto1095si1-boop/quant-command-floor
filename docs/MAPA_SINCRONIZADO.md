@@ -7,7 +7,10 @@ operación. El mapa no ejecuta órdenes por abrirse.
 
 El estado inicial viene de `GET /v1/floor/snapshot`; se actualiza cada cinco
 segundos y con eventos WebSocket. Las observaciones antiguas se indican a los
-30 segundos. Los eventos previos al reinicio del gateway no están en su caché.
+30 segundos para mercado y actividad operativa. El lector de noticias usa la
+vigencia del DAG informada por `intelligenceMaxAgeMs` (seis horas por defecto),
+para no marcar como antiguo un snapshot válido entre refrescos de cinco minutos.
+Los eventos previos al reinicio del gateway no están en su caché.
 Los nodos sin telemetría muestran “sin datos”. Noticias requiere snapshots del
 DAG y el resultado de IA requiere una ejecución del proveedor configurado.
 

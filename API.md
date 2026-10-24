@@ -32,7 +32,9 @@ El mapa carga ese estado al abrir y cada cinco segundos, además del WebSocket.
 Tras una desconexión intenta reconectar cada cinco segundos. Cada cartel muestra
 la actividad observada, la hora, entradas, salidas y confianza si existe. Un
 precio recibido no equivale a un análisis. Los nodos sin telemetría quedan sin
-datos; después de 30 segundos la última observación se marca antigua. Si falla
+datos; después de 30 segundos la última observación de mercado se marca antigua.
+El lector de noticias usa `intelligenceMaxAgeMs` del snapshot del backend (seis
+horas por defecto), coherente con la vigencia del DAG. Si falla
 el stream y la última consulta tiene más de 15 segundos, se indica desconexión.
 Las fórmulas del inspector solo se muestran si están presentes en el resultado.
 

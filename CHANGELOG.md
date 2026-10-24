@@ -33,6 +33,10 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- El cartel de noticias usa la vigencia del snapshot del DAG en lugar del límite
+  de 30 segundos de mercado. Así conserva el estado correcto entre refrescos
+  automáticos, sin modificar elegibilidad ni consenso.
+
 - Los feeds incluyen SOL y BNB en el arranque por defecto, con par BNBUSD
   explícito en Kraken. El DAG de inteligencia se refresca periódicamente cuando
   hay proveedores configurados; el mapa muestra el motivo de noticias sin datos.
