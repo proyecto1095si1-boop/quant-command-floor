@@ -11,6 +11,15 @@ const { PAPER_ONLY } = require("../config/trading-mode.js"),
     toAtoms,
   } = require("../math/fixed-decimal.js");
 
+// Both operands are fixed-point atoms; restore the price scale after division.
+function averagePriceAtoms(position) {
+  if (position.qty === 0n) return 0n;
+  const cost =
+      position.costBasis < 0n ? -position.costBasis : position.costBasis,
+    quantity = position.qty < 0n ? -position.qty : position.qty;
+  return divideRounded(cost * toAtoms(1), quantity);
+}
+
 class PaperLedger {
   constructor({
     cash = 100000,
@@ -236,15 +245,7 @@ class PaperLedger {
       else if (newQtyAtoms === 0n) atomicPos.costBasis = 0n;
     }
     atomicPos.qty = newQtyAtoms;
-    atomicPos.avgPrice =
-      atomicPos.qty === 0n
-        ? 0n
-        : divideRounded(
-            atomicPos.costBasis < 0n
-              ? -atomicPos.costBasis
-              : atomicPos.costBasis,
-            atomicPos.qty < 0n ? -atomicPos.qty : atomicPos.qty,
-          );
+    atomicPos.avgPrice = averagePriceAtoms(atomicPos);
     pos.qty = fromAtoms(atomicPos.qty);
     pos.avgPrice = fromAtoms(atomicPos.avgPrice);
     pos.realizedPnl = fromAtoms(atomicPos.realizedPnl);
@@ -449,15 +450,20 @@ class PaperLedger {
       }),
     );
     this.positions = new Map(
-      [...this.atomicPositions].map(([symbol, exact]) => [
-        symbol,
-        {
-          ...(x.positions?.[symbol] || {}),
-          qty: fromAtoms(exact.qty),
-          avgPrice: fromAtoms(exact.avgPrice),
-          realizedPnl: fromAtoms(exact.realizedPnl),
-        },
-      ]),
+      [...this.atomicPositions].map(([symbol, exact]) => {
+        // Cached averages in older exact checkpoints may contain the scale bug.
+        // Recompute from authoritative cost/quantity, without changing postings.
+        exact.avgPrice = averagePriceAtoms(exact);
+        return [
+          symbol,
+          {
+            ...(x.positions?.[symbol] || {}),
+            qty: fromAtoms(exact.qty),
+            avgPrice: fromAtoms(exact.avgPrice),
+            realizedPnl: fromAtoms(exact.realizedPnl),
+          },
+        ];
+      }),
     );
     this.fills = x.fills;
     if (x.journal) this.journal = restoredJournal;
