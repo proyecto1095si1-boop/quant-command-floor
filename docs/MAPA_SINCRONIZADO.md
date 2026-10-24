@@ -5,6 +5,20 @@ pulsar un empleado. Su cartel muestra la última observación, fecha, entrada,
 salida y evidencia. Los precios de mercado no implican un análisis ni una
 operación. El mapa no ejecuta órdenes por abrirse.
 
+Cada empleado tiene una ficha propia: su responsabilidad, cómo trabaja en
+palabras, qué información necesita y qué aporta al equipo. La última actividad
+se resume con frases a partir de los datos recibidos. Si todavía no hay una
+observación, se indica expresamente y la ficha permanece como explicación de
+su función. El registro crudo, las fórmulas y los controles avanzados están en
+“Ver registro y configuración técnica”, cerrado por defecto. Las herramientas
+generales del área se muestran en otro desplegable para no confundirlas con la
+tarea individual.
+
+Las fichas de `dist/agent-profiles.js` cubren los 32 identificadores canónicos;
+las pruebas comprueban esa correspondencia y la diferencia entre funciones.
+Los resúmenes usan campos reconocidos y se insertan como texto. No invocan IA
+ni generan operaciones al seleccionar un empleado.
+
 El estado inicial viene de `GET /v1/floor/snapshot`; se actualiza cada cinco
 segundos y con eventos WebSocket. Las observaciones antiguas se indican a los
 30 segundos para mercado y actividad operativa. El lector de noticias usa la

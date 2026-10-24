@@ -714,6 +714,56 @@ nav {
 .detail.open {
   transform: translateX(0);
 }
+.detail {
+  width: min(430px, 100vw);
+}
+.employee-role {
+  color: var(--accent);
+  font:
+    700 14px/1.5 Manrope,
+    sans-serif;
+  margin: 4px 0 12px;
+}
+.employee-team summary {
+  color: #a5bdc2;
+  cursor: pointer;
+  font:
+    12px/1.6 Manrope,
+    sans-serif;
+  margin: 14px 0;
+}
+.employee-explanation h4 {
+  color: #cfdfdc;
+  font:
+    700 13px/1.4 Manrope,
+    sans-serif;
+  margin: 18px 0 7px;
+}
+.employee-explanation p,
+#modelMission {
+  color: #adc2c5;
+  font:
+    13px/1.75 Manrope,
+    sans-serif;
+  margin: 0;
+}
+.employee-technical {
+  border-top: 1px solid #2b3f45;
+  margin-top: 20px;
+  padding-top: 12px;
+}
+.employee-technical summary {
+  cursor: pointer;
+  color: #91a8ad;
+  font:
+    11px/1.6 Manrope,
+    sans-serif;
+  padding: 5px 0;
+}
+.employee-technical[open] summary {
+  color: var(--accent);
+  margin-bottom: 12px;
+}
 .close {
   position: absolute;
   right: 18px;

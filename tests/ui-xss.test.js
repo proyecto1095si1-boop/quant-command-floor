@@ -29,6 +29,7 @@ for (const file of [
   "operations.js",
   "advanced.js",
   "audit-security.js",
+  "agent-profiles.js",
 ])
   window.eval(fs.readFileSync(path.join(dist, file), "utf8"));
 

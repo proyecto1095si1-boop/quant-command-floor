@@ -33,6 +33,11 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- Los carteles de los 32 empleados muestran fichas individuales con función,
+  método explicado en lenguaje cotidiano, información utilizada y lectura del
+  resultado observado. Fórmulas, registros y configuración quedan plegados por
+  defecto; las fichas no presentan tareas sin datos como si estuvieran activas.
+
 - El cartel de noticias usa la vigencia del snapshot del DAG en lugar del límite
   de 30 segundos de mercado. Así conserva el estado correcto entre refrescos
   automáticos, sin modificar elegibilidad ni consenso.

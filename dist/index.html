@@ -183,13 +183,16 @@
           <span>ESTADO</span><b id="nodeLiveStatus">SIN DATOS</b>
         </div>
         <div class="metric"><span>AGENTES</span><b id="agentCount">08</b></div>
-        <h3>EQUIPO</h3>
-        <div id="agentList" class="agent-list"></div>
+        <details class="employee-team">
+          <summary>Equipo del área</summary>
+          <div id="agentList" class="agent-list"></div>
+        </details>
         <div id="modelPanel" class="model-panel">
           <div class="model-head">
-            <span>CEREBRO DEL AGENTE</span><b id="modelType">HYBRID</b>
+            <span>FICHA DEL EMPLEADO</span><b id="modelType">Esperando</b>
           </div>
           <h3 id="modelName">Signal Hub</h3>
+          <p id="employeeRole" class="employee-role"></p>
           <p id="nodeLiveActivity" role="status">
             Esperando datos del servidor.
           </p>
@@ -197,95 +200,115 @@
           <p id="modelMission" class="model-mission">
             Consolida señales y produce una decisión probabilística.
           </p>
-          <code id="modelFormula">S = Σ(wᵢ · dᵢ · cᵢ)</code>
-          <div class="io-grid">
-            <div><span>ENTRADAS</span><b id="modelInputs">signals[n]</b></div>
-            <div><span>SALIDA</span><b id="modelOutput">score ∈ [-1,1]</b></div>
+          <div class="employee-explanation">
+            <h4>Cómo trabaja</h4>
+            <p id="employeeMethod"></p>
+            <h4>Qué información utiliza</h4>
+            <p id="employeeUses"></p>
+            <h4>Qué aporta al equipo</h4>
+            <p id="employeeDelivers"></p>
+            <h4>Qué significa su última actualización</h4>
+            <p id="employeeMeaning"></p>
           </div>
           <div class="confidence">
-            <span>CONFIANZA</span>
+            <span>CONFIANZA DEL ÚLTIMO ANÁLISIS</span>
             <div><i id="confidenceBar"></i></div>
-            <b id="confidenceValue">94%</b>
+            <b id="confidenceValue">—</b>
           </div>
-          <div class="brain-config">
-            <label
-              >TIPO DE NODO<select id="brainType">
-                <option value="math">Matemático</option>
-                <option value="ai">IA externa</option>
-                <option value="hybrid">Híbrido</option>
-              </select></label
-            >
-            <label
-              >PESO EN ENSEMBLE <span id="weightValue">1.0×</span
-              ><input
-                id="agentWeight"
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                value="1"
-            /></label>
-            <label
-              >ENDPOINT / MODELO<input
-                id="agentEndpoint"
-                placeholder="https://… o model://local"
-            /></label>
-            <button id="connectAgent" class="connect-agent">
-              <i></i><span>CONECTAR NODO</span>
-            </button>
-            <button id="executeAgent" class="execute-agent">
-              ▶ EJECUTAR AGENTE
-            </button>
-            <small id="connectionState"
-              >Configuración local · sin credenciales</small
-            >
-          </div>
-          <section class="node-events" aria-live="polite">
-            <div class="node-events-head">
-              <span>EVENTOS REALES DEL NODO</span>
-              <b id="nodeEventCount">0</b>
+          <details id="employeeTechnical" class="employee-technical">
+            <summary>Ver registro y configuración técnica</summary>
+            <code id="modelFormula">S = Σ(wᵢ · dᵢ · cᵢ)</code>
+            <div class="io-grid">
+              <div><span>ENTRADAS</span><b id="modelInputs">signals[n]</b></div>
+              <div>
+                <span>SALIDA</span><b id="modelOutput">score ∈ [-1,1]</b>
+              </div>
             </div>
-            <p id="nodeEventEmpty">Esperando el primer evento del stream.</p>
-            <ol id="nodeEventList"></ol>
-          </section>
+            <div class="brain-config">
+              <label
+                >TIPO DE NODO<select id="brainType">
+                  <option value="math">Matemático</option>
+                  <option value="ai">IA externa</option>
+                  <option value="hybrid">Híbrido</option>
+                </select></label
+              >
+              <label
+                >PESO EN ENSEMBLE <span id="weightValue">1.0×</span
+                ><input
+                  id="agentWeight"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value="1"
+              /></label>
+              <label
+                >ENDPOINT / MODELO<input
+                  id="agentEndpoint"
+                  placeholder="https://… o model://local"
+              /></label>
+              <button id="connectAgent" class="connect-agent">
+                <i></i><span>CONECTAR NODO</span>
+              </button>
+              <button id="executeAgent" class="execute-agent">
+                ▶ EJECUTAR AGENTE
+              </button>
+              <small id="connectionState"
+                >Configuración local · sin credenciales</small
+              >
+            </div>
+            <section class="node-events" aria-live="polite">
+              <div class="node-events-head">
+                <span>EVENTOS REALES DEL NODO</span>
+                <b id="nodeEventCount">0</b>
+              </div>
+              <p id="nodeEventEmpty">Esperando el primer evento del stream.</p>
+              <ol id="nodeEventList"></ol>
+            </section>
+          </details>
         </div>
-        <div class="signal-card">
-          <span>ÚLTIMA SEÑAL</span><b id="signal">Datos sincronizados</b
-          ><small>hace 14 segundos</small>
-        </div>
-        <div class="trace-card">
-          <div>
-            <span>TRAZA DE DECISIÓN</span><button id="runTrace">SIMULAR</button>
+        <details class="employee-technical">
+          <summary>Herramientas generales del área</summary>
+          <div class="signal-card">
+            <span>ÚLTIMA SEÑAL</span><b id="signal">Datos sincronizados</b
+            ><small>Última observación recibida</small>
           </div>
-          <ol id="traceList"></ol>
-        </div>
-        <div class="research-card">
-          <div>
-            <span>RESEARCH PIPELINE</span
-            ><button id="runResearch">EJECUTAR</button>
+          <div class="trace-card">
+            <div>
+              <span>TRAZA DE DECISIÓN</span
+              ><button id="runTrace">SIMULAR</button>
+            </div>
+            <ol id="traceList"></ol>
           </div>
-          <div class="research-grid">
-            <span>RETURN<b id="btReturn">—</b></span
-            ><span>SHARPE<b id="btSharpe">—</b></span
-            ><span>MAX DD<b id="btDrawdown">—</b></span
-            ><span>WALK-FWD<b id="btWalk">—</b></span>
+          <div class="research-card">
+            <div>
+              <span>RESEARCH PIPELINE</span
+              ><button id="runResearch">EJECUTAR</button>
+            </div>
+            <div class="research-grid">
+              <span>RETURN<b id="btReturn">—</b></span
+              ><span>SHARPE<b id="btSharpe">—</b></span
+              ><span>MAX DD<b id="btDrawdown">—</b></span
+              ><span>WALK-FWD<b id="btWalk">—</b></span>
+            </div>
+            <small id="researchStatus">Candidate · esperando validación</small>
           </div>
-          <small id="researchStatus">Candidate · esperando validación</small>
-        </div>
-        <div class="ops-card">
-          <div>
-            <span>RISK · PAPER · AUDIT</span
-            ><button id="runPaperCycle">CICLO PAPER</button>
+          <div class="ops-card">
+            <div>
+              <span>RISK · PAPER · AUDIT</span
+              ><button id="runPaperCycle">CICLO PAPER</button>
+            </div>
+            <div class="ops-grid">
+              <span>DECISIÓN<b id="opsDecision">—</b></span
+              ><span>FILLS<b id="opsFills">0</b></span
+              ><span>FEES<b id="opsFees">$0</b></span
+              ><span>AUDIT<b id="opsAudit">EMPTY</b></span>
+            </div>
+            <button id="verifyAudit" class="verify-audit">
+              VERIFICAR CADENA</button
+            ><small id="opsStatus">Paper only · sin órdenes reales</small>
           </div>
-          <div class="ops-grid">
-            <span>DECISIÓN<b id="opsDecision">—</b></span
-            ><span>FILLS<b id="opsFills">0</b></span
-            ><span>FEES<b id="opsFees">$0</b></span
-            ><span>AUDIT<b id="opsAudit">EMPTY</b></span>
-          </div>
-          <button id="verifyAudit" class="verify-audit">VERIFICAR CADENA</button
-          ><small id="opsStatus">Paper only · sin órdenes reales</small>
-        </div>
+        </details>
       </aside>
     </main>
     <div id="platformModal" class="platform-modal" aria-hidden="true">
@@ -794,6 +817,7 @@
     <script src="operations.js"></script>
     <script src="advanced.js"></script>
     <script src="audit-security.js"></script>
+    <script src="agent-profiles.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
