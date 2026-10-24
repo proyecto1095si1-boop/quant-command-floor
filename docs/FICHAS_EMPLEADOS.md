@@ -56,8 +56,9 @@ latencias no se comparan como si fueran deterministas.
 
 Una cadena de auditoría válida no certifica importes correctos. Durante E2 se
 detectó un defecto previo de precio promedio sin marca de valoración, registrado
-en `docs/DECISIONES_PENDIENTES.md`. No se modificó contabilidad en esta fase;
-las capturas de cartera usan marcas sintéticas explícitas.
+en `docs/DECISIONES_PENDIENTES.md`. No se modificó contabilidad en E2;
+el defecto se corrigió después en una tarea separada. Las capturas de cartera
+usan marcas sintéticas explícitas. El fallback a coste sigue sin ser precio vivo.
 
 ## API
 
