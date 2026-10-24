@@ -9,6 +9,12 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Añadido
 
+- Servicio backend de fichas para los 33 empleados, con contrato validado,
+  parámetros de configuración reales, entradas con vigencia, historial acotado,
+  endpoints de lectura y notificación WebSocket. Desempeño aún no medido y
+  relaciones aún sin mapear: no se inventan resultados. Sin ejecutar IA u órdenes
+  al consultar fichas y sin dependencias nuevas.
+
 - Inventario canónico de 33 empleados con fuentes y formas reales de sus
   salidas, diferencias entre nodos y ejecutores, y prueba de correspondencia
   exacta entre registro, perfiles, mesas y DOM del mapa, sin red externa.
