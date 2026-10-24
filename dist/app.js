@@ -168,6 +168,7 @@ let floorLinks = [
   floorNodeEvents = new Map();
 const floorObservations = new Map();
 let floorConnected = false,
+  floorNewsMaxAgeMs = 6 * 60 * 60 * 1000,
   floorSyncBusy = false,
   floorLastSync = 0,
   floorReconnect = null;
@@ -736,6 +737,9 @@ function showModel(name, nodeId = null) {
       : "Esperando evento real · configuración local";
   renderNodeEvents(selectedNodeId);
 }
+function nodeFreshnessMs(id) {
+  return id === "intake.news" ? floorNewsMaxAgeMs : 30000;
+}
 function renderLiveEmployee() {
   document.querySelector("#floorConnection").textContent = floorConnected
     ? "STREAM CONECTADO"
@@ -747,7 +751,8 @@ function renderLiveEmployee() {
     element.dataset.freshness =
       !floorConnected && Date.now() - floorLastSync > 15000
         ? "offline"
-        : !state || Date.now() - state.at > 30000
+        : !state ||
+            Date.now() - state.at > nodeFreshnessMs(element.dataset.nodeId)
           ? "stale"
           : "fresh";
   }
@@ -758,7 +763,7 @@ function renderLiveEmployee() {
     disconnected = !floorConnected && Date.now() - floorLastSync > 15000,
     state = disconnected
       ? "DESCONECTADO"
-      : age > 30000 && live
+      : age > nodeFreshnessMs(selectedNodeId) && live
         ? "DATOS ANTIGUOS"
         : live?.state?.toUpperCase() || "SIN DATOS";
   document.querySelector("#nodeLiveStatus").textContent = state;
@@ -1348,6 +1353,11 @@ async function syncFloor() {
       throw new Error("invalid-floor-snapshot");
     if (base !== platformConfig.backendBaseUrl) return;
     floorLastSync = Date.now();
+    if (
+      Number.isFinite(snapshot.intelligenceMaxAgeMs) &&
+      snapshot.intelligenceMaxAgeMs > 0
+    )
+      floorNewsMaxAgeMs = snapshot.intelligenceMaxAgeMs;
     for (const market of snapshot.markets) applyMarketObservation(market);
     for (const event of snapshot.events || []) applyFloorEvent(event);
     for (const intel of snapshot.intelligence || []) {

@@ -191,6 +191,7 @@ for (const file of [
       ],
       events: [],
       intelligence: [],
+      intelligenceMaxAgeMs: 600000,
       intelligenceProviders: { finnhub: { configured: false } },
       pipeline: {
         halted: true,
@@ -279,6 +280,21 @@ for (const file of [
     document.querySelector("#nodeLiveStatus").textContent,
     "DATOS ANTIGUOS",
   );
+  document.querySelector('.agent[data-node-id="intake.news"]').click();
+  assert.equal(
+    document.querySelector("#nodeLiveStatus").textContent,
+    "OK",
+    "news must stay fresh across the five-minute refresh interval",
+  );
+  window.Date.now = () => snapshotAt + 600002;
+  window.renderLiveEmployee();
+  assert.equal(
+    document.querySelector("#nodeLiveStatus").textContent,
+    "DATOS ANTIGUOS",
+    "news expiry follows the DAG snapshot lifetime",
+  );
+  window.Date.now = () => snapshotAt + 60000;
+  document.querySelector('.agent[data-node-id="desk.sol"]').click();
   MockWebSocket.instances[0].onclose();
   window.renderLiveEmployee();
   assert.equal(
