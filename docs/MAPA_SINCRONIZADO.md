@@ -14,7 +14,7 @@ su función. El registro crudo, las fórmulas y los controles avanzados están e
 generales del área se muestran en otro desplegable para no confundirlas con la
 tarea individual.
 
-Las fichas de `dist/agent-profiles.js` cubren los 32 identificadores canónicos;
+Las fichas de `dist/agent-profiles.js` cubren los 33 identificadores canónicos;
 las pruebas comprueban esa correspondencia y la diferencia entre funciones.
 Los resúmenes usan campos reconocidos y se insertan como texto. No invocan IA
 ni generan operaciones al seleccionar un empleado.
