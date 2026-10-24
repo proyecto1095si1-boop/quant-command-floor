@@ -7,6 +7,7 @@ function reply({ ok = true, status = 200, body = {} } = {}) {
 
 (async () => {
   assert.equal(PAIRS["BTC-USD"], "XBTUSD");
+  assert.equal(PAIRS["BNB-USD"], "BNBUSD");
   let requestedUrl, requestedOptions;
   const connector = new KrakenConnector({
     retries: 0,

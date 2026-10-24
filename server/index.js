@@ -23,6 +23,7 @@ const {
   IntelligenceService,
 } = require("./intelligence/connectors.js");
 const { IntelligenceDag } = require("./intelligence/dag.js");
+const { createIntelligenceRefresh } = require("./intelligence/refresh.js");
 const { RegimeService } = require("./regime/service.js");
 const { ModelGovernanceService } = require("./governance/service.js");
 const sreWindowDays = Number(process.env.SRE_WINDOW_DAYS || 30),
@@ -176,7 +177,7 @@ const aiHealthPolicy = {
     intelligence,
     intelligenceDag,
   }),
-  products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD")
+  products = (process.env.MARKET_PRODUCTS || "BTC-USD,ETH-USD,SOL-USD,BNB-USD")
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean),
@@ -186,6 +187,12 @@ const aiHealthPolicy = {
     publish: gateway.publish,
   });
 intelligenceDag.record = (stream, event) => data.record(stream, event);
+const intelligenceRefresh = createIntelligenceRefresh({
+  dag: intelligenceDag,
+  service: intelligence,
+  assets: products.map((product) => product.split("-")[0]),
+  intervalMs: Number(process.env.INTELLIGENCE_REFRESH_MS || 300000),
+});
 if (process.env.MARKET_WS_ENABLED === "true") data.enableStream();
 const regime = new RegimeService({
     record: (stream, event) => data.record(stream, event),
@@ -295,6 +302,8 @@ gateway.listen().then(async (address) => {
   } catch (e) {
     console.error(`Intelligence DAG recovery blocked: ${e.message}`);
   }
+  if (process.env.INTELLIGENCE_AUTO_REFRESH !== "false")
+    intelligenceRefresh.start();
   try {
     const telemetry = await data.store.tail("sre.slo-telemetry", 100000),
       recovered = sre.recoverTelemetry(telemetry);
@@ -428,8 +437,9 @@ for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () => {
     clearInterval(maintenance);
     clearInterval(sreSampler);
-    data
+    intelligenceRefresh
       .stop()
+      .then(() => data.stop())
       .then(() => gateway.close())
       .finally(() => process.exit(0));
   });

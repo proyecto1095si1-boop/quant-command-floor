@@ -1,6 +1,11 @@
 "use strict";
 const { environmentFetch } = require("./http-client.js");
-const PAIRS = { "BTC-USD": "XBTUSD", "ETH-USD": "ETHUSD", "SOL-USD": "SOLUSD" };
+const PAIRS = {
+  "BTC-USD": "XBTUSD",
+  "ETH-USD": "ETHUSD",
+  "SOL-USD": "SOLUSD",
+  "BNB-USD": "BNBUSD",
+};
 class KrakenConnector {
   constructor({
     baseUrl = "https://api.kraken.com",

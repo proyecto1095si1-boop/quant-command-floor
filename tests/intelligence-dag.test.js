@@ -162,6 +162,40 @@ const assert = require("node:assert/strict"),
   assert.equal(intelAgent.signal, snapshot.consensus.signal);
   assert.equal(desk.inputSummary.intelligence, "ready");
 
+  let current = now;
+  const liveDag = new IntelligenceDag({
+    clock: () => current,
+    service: {
+      query: async ({ provider }) => {
+        if (provider !== "finnhub") return { data: [] };
+        current += 250;
+        return {
+          data: [
+            {
+              source: "finnhub",
+              headline: "Bitcoin adoption surge",
+              publishedAt: now - 1000,
+              receivedAt: current,
+            },
+          ],
+        };
+      },
+    },
+  });
+  const live = await liveDag.refresh("BTC");
+  assert.equal(live.asOf, now + 250);
+  assert.equal(
+    live.nodes.find((node) => node.id === "news").observations,
+    1,
+    "live news received during the API request is eligible",
+  );
+  const historical = await liveDag.refresh("BTC", { asOf: now });
+  assert.equal(historical.asOf, now);
+  assert.equal(
+    historical.nodes.find((node) => node.id === "news").observations,
+    0,
+    "explicit historical decisions still exclude later receipts",
+  );
   console.log("intelligence DAG tests: ok");
 })().catch((error) => {
   console.error(error);
