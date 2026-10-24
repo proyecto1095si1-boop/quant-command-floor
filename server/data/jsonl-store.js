@@ -4,8 +4,8 @@ const fs = require("node:fs"),
   path = require("node:path"),
   crypto = require("node:crypto"),
   zlib = require("node:zlib"),
-  { promisify } = require("node:util");
-const gzip = promisify(zlib.gzip);
+  { Transform } = require("node:stream"),
+  { pipeline } = require("node:stream/promises");
 const safe = (x) => String(x).replace(/[^A-Za-z0-9_.-]/g, "_");
 async function* lines(file) {
   const source = fs.createReadStream(file),
@@ -31,6 +31,76 @@ async function* lines(file) {
   } finally {
     input.destroy();
     source.destroy();
+  }
+}
+async function compressFile(file) {
+  const target = file + ".gz",
+    temporary = `${target}.${crypto.randomUUID()}.tmp`,
+    before = await fsp.stat(file, { bigint: true }),
+    sourceHash = crypto.createHash("sha256"),
+    restoredHash = crypto.createHash("sha256");
+  let published = false;
+  try {
+    await pipeline(
+      fs.createReadStream(file),
+      new Transform({
+        transform(chunk, _encoding, callback) {
+          sourceHash.update(chunk);
+          callback(null, chunk);
+        },
+      }),
+      zlib.createGzip({ level: 9 }),
+      fs.createWriteStream(temporary, { mode: 0o600, flags: "wx" }),
+    );
+    await pipeline(
+      fs.createReadStream(temporary),
+      zlib.createGunzip(),
+      async (chunks) => {
+        for await (const chunk of chunks) restoredHash.update(chunk);
+      },
+    );
+    if (sourceHash.digest("hex") !== restoredHash.digest("hex"))
+      throw new Error("compaction-content-mismatch");
+    const handle = await fsp.open(temporary, "r");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    const packed = await fsp.stat(temporary);
+    // link publishes a complete file atomically and refuses an existing target.
+    await fsp.link(temporary, target);
+    published = true;
+    await fsp.unlink(temporary);
+    const after = await fsp.stat(file, { bigint: true });
+    if (
+      ["dev", "ino", "size", "mtimeNs", "ctimeNs"].some(
+        (key) => before[key] !== after[key],
+      )
+    )
+      throw new Error("compaction-source-changed");
+    await fsp.unlink(file);
+    return Number(before.size) - packed.size;
+  } catch (error) {
+    const cleanup = await Promise.allSettled(
+      (published ? [target, temporary] : [temporary]).map(async (name) => {
+        try {
+          await fsp.unlink(name);
+        } catch (failure) {
+          if (failure.code !== "ENOENT") throw failure;
+        }
+      }),
+    );
+    const failures = cleanup
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason);
+    if (failures.length)
+      throw new AggregateError(
+        [error, ...failures],
+        "compaction-cleanup-failed",
+        { cause: error },
+      );
+    throw error;
   }
 }
 class JsonlStore {
@@ -153,14 +223,10 @@ class JsonlStore {
         if (!name.endsWith(".jsonl")) continue;
         const date = new Date(name.slice(0, 10) + "T00:00:00Z");
         if (!(date < before)) continue;
-        const file = path.join(dir, name),
-          raw = await fsp.readFile(file),
-          packed = await gzip(raw, { level: 9 }),
-          target = file + ".gz";
-        await fsp.writeFile(target, packed, { mode: 0o600, flag: "wx" });
-        await fsp.unlink(file);
+        const file = path.join(dir, name);
+        await this.queues.get(file);
+        bytesSaved += await compressFile(file);
         compressed++;
-        bytesSaved += raw.length - packed.length;
       }
     }
     return { compressed, bytesSaved };

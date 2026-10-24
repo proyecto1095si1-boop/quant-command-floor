@@ -33,6 +33,11 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- La compactación de históricos comprime por bloques a un archivo temporal,
+  verifica los bytes descomprimidos con SHA-256 y publica el gzip completo sin
+  sobrescribir destinos. Un fallo de publicación, validación o retiro del
+  original conserva el JSONL fuente y limpia los artefactos creados.
+
 - La recuperación JSONL/gzip lee por bloques y valida checksums sin convertir
   archivos completos a strings. `tail` retiene solo su ventana y `verify` cuenta
   sin acumular eventos. La restauración de procedencia recorre la historia

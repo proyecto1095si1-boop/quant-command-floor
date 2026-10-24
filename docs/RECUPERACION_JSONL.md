@@ -16,8 +16,53 @@ Se conserva el formato persistido, el orden de archivos/registros, los filtros
 temporales y la API de lectura. No cambian riesgo, ejecución ni contabilidad.
 La memoria necesaria depende del mayor registro individual y de la ventana
 solicitada. `replay` devuelve un array y conserva los resultados pedidos; para
-recorridos completos se utiliza el iterador. Compactación y retención conservan
-su implementación anterior.
+recorridos completos se utiliza el iterador. La retención conserva su
+implementación anterior.
+
+## Compactación por bloques
+
+La compactación también procesa archivos por bloques. Escribe un temporal con
+permisos 0600, lo descomprime para comparar el SHA-256 con los bytes leídos del
+original, sincroniza el temporal y publica el nombre `.jsonl.gz` mediante un
+enlace que rechaza destinos existentes. Comprueba identidad, tamaño y tiempos
+del original antes de retirarlo. Si falla el retiro, revierte el gzip publicado
+para evitar duplicados en la lectura. Los errores de limpieza se propagan con
+su causa. Espera las escrituras que ya estuvieran en cola para ese archivo.
+
+La verificación agrega una segunda lectura y descompresión del temporal; la
+memoria se mantiene acotada por los buffers. Se conserva la selección de fechas,
+el nivel gzip 9, el formato y el resultado `{compressed, bytesSaved}`. La
+retención no cambia. La compactación presupone un único escritor del almacén;
+no añade coordinación entre procesos ni una transacción ante una terminación
+abrupta del proceso. Los temporales `.tmp` no se incluyen en replay ni inventory.
+
+Solo se ejecutó sobre datos sintéticos temporales: **no se compactaron ni
+eliminaron los históricos originales**. Comando de verificación:
+
+```sh
+node --test tests/jsonl-compaction.test.js
+```
+
+```text
+synthetic bytes: 266665984
+{"compressed":1,"events":32768,"maxRssMiB":61.734375}
+JSONL streaming compaction tests: ok
+```
+
+El proceso hijo usa `--max-old-space-size=48`. Con instrumentación de cobertura,
+el RSS máximo fue 77.28125 MiB. Se probaron fallos de publicación y de retiro del
+original, contenido comprimido distinto, modificaciones de la fuente, colisión
+de destino, permisos, fechas y equivalencia del replay. Batería completa:
+
+```sh
+npm ci && npm test && npm run lint && npm run format:check && npm run coverage
+```
+
+```text
+61 tests, 61 pass, 0 fail
+lint y formato: OK
+líneas: 89.98% (base: 60 tests, 89.96%)
+```
 
 ## Evidencia
 
