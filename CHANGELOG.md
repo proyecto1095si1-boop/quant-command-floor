@@ -7,6 +7,13 @@ proyecto usa [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido
+
+- Precio promedio paper: conserva escala decimal al dividir coste entre cantidad,
+  evitando valoraciones diminutas cuando falta una marca. Restore recalcula el
+  promedio desde coste/cantidad exactos de checkpoints sin cambiar efectivo,
+  fills ni asientos. Checkpoints legados sin coste exacto requieren conciliación.
+
 ### Añadido
 
 - E2: redacción y significado propios para los 33 empleados, compartidos entre

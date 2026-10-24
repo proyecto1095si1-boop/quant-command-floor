@@ -155,8 +155,9 @@ propietario del repositorio. No se adoptan valores por omisión.
 
 ## Defecto contable detectado durante E2: precio promedio sin marca
 
-- **Estado:** defecto preexistente reproducido; no corregido en E2 para no mezclar
-  redacción de fichas con lógica de dinero. No usar estos resultados con capital real.
+- **Estado:** corregido en una tarea posterior a E2, separada de las fichas.
+  La división entre coste y cantidad conserva ahora la escala de precio.
+  Continúa prohibido usar el sistema con capital real.
 - **Evidencia:** `PaperLedger.execute` compra 1 BTC a 200,02 USD, pero
   `snapshot()` sin marks usa `avgPrice = 0.000002` como valoración.
   Con una marca explícita de 200 USD, el patrimonio es 99999.77998;
@@ -172,6 +173,25 @@ node -e 'const {PaperLedger}=require("./server/pipeline/paper-ledger.js"); const
 {"avgPrice":0.000002,"marketValue":0.000002,"equity":99799.779982,"balanced":true}
 ```
 
-- **Siguiente acción:** corrección separada, una rama/PR, pruebas de unidades
-  fijas y de valoración sin marcas antes de continuar con métricas económicas.
-  No se agrega un módulo de gobernanza ni se habilita trading real.
+- **Salida después de la corrección**, con el mismo comando:
+
+```text
+{"avgPrice":200.02,"marketValue":200.02,"equity":99999.79998,"balanced":true}
+```
+
+- **Recuperación:** restore recalcula el precio promedio desde coste y cantidad
+  exactos, sin alterar efectivo, fills, comisiones ni asientos. No se reescriben
+  archivos de checkpoint existentes. Un checkpoint legado sin coste exacto que
+  ya tenga el promedio incorrecto no ofrece evidencia suficiente para repararlo:
+  necesita conciliación explícita; no se promete recuperar información perdida.
+- **Verificación:** `node --test tests/paper-valuation.test.js` cubre promedio
+  ponderado, cierres parciales, reversión long/short, cantidades mínimas, marcas
+  explícitas y restauración de checkpoints exactos con promedio antiguo incorrecto.
+- **Pendiente operativo:** revisar checkpoints legados antes de confiar en su
+  valoración; un precio de coste usado como fallback no es una cotización viva.
+- **Batería completa:** `npm ci && npm test && npm run lint && npm run format:check && npm run coverage`.
+  Antes: 67 pass, 0 fail, 90.41 % líneas. Después: 68 pass, 0 fail,
+  lint sin errores, `All matched files use Prettier code style!`, cobertura
+  `All files | 90.41 | 81.4 | 91.82 | 90.41` (mínimo de líneas: 84 %).
+  La regresión falló antes de corregir con `actual: 0.000002, expected: 200.02`
+  y pasó después. Todas estas pruebas usan datos controlados y no red externa.
