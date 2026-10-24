@@ -16,7 +16,7 @@ assert.equal(
 );
 assert.match(
   profiles.describe("desk.btc", { output: { price: 100 } }).meaning,
-  /todavía no significa/,
+  /cotización y propuesta son estados distintos/,
 );
 assert.match(
   profiles.describe("risk.manager", { output: { approved: false } }).activity,
@@ -31,7 +31,7 @@ assert.match(
     input: { observations: 3, asset: "SOL" },
     output: { signal: 0.5 },
   }).activity,
-  /3 noticias.*Solana/,
+  /SOL:.*3 noticias/,
 );
 assert.match(
   profiles.describe("research.miner", null).activity,
