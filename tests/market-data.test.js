@@ -11,6 +11,12 @@ const N = require("../server/data/normalizers.js"),
 const { DataQualityMonitor } = require("../server/data/quality.js");
 const { MarketReconciliation } = require("../server/data/reconciliation.js");
 (async () => {
+  assert.deepEqual(new MarketDataService().products, [
+    "BTC-USD",
+    "ETH-USD",
+    "SOL-USD",
+    "BNB-USD",
+  ]);
   const bookEvent = N.coinbaseBook(
     "BTC-USD",
     {

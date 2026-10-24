@@ -2,6 +2,25 @@
 
 ## Mapa operativo 2D
 
+El arranque consulta BTC-USD, ETH-USD, SOL-USD y BNB-USD por defecto, tanto en
+el proceso principal como en `MarketDataService`. `MARKET_PRODUCTS` permite
+conservar un subconjunto explícito. El par secundario de BNB es `BNBUSD` en
+Kraken. La disponibilidad efectiva depende de la región y del proveedor.
+
+La inteligencia se refresca al arrancar y cada cinco minutos si existe al menos
+un proveedor configurado. Usa `INTELLIGENCE_AUTO_REFRESH=false` para desactivar
+ese proceso y `INTELLIGENCE_REFRESH_MS` para ajustar el intervalo (mínimo 60000).
+No se realizan peticiones periódicas sin claves. `FINNHUB_API_KEY` habilita
+noticias cripto; `FRED_API_KEY` habilita la fuente macro. Las claves se configuran
+en el backend y requieren reinicio; no deben guardarse en el mapa ni en Git.
+
+El endpoint `/v1/floor/snapshot` incluye `intelligenceProviders` con estado y
+errores sanitizados. El empleado de noticias indica credenciales ausentes,
+fallo del proveedor o ausencia de noticias elegibles. Una consulta actual fija
+su corte temporal después de recibir las respuestas; una consulta con `asOf`
+explícito sigue excluyendo datos recibidos después de esa fecha. El análisis
+automático de titulares usa el método matemático del DAG, sin llamadas a LLM.
+
 `GET /v1/floor/snapshot` consulta el estado actual sin ejecutar operaciones:
 precios/libros disponibles, snapshots vigentes de inteligencia, estado del
 pipeline, cartera, auditoría, cola paper y últimos eventos por empleado/activo.

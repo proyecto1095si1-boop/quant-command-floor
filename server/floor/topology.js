@@ -26,7 +26,7 @@ const areas = [
       {
         id: "intake.news",
         label: "Crypto News Reader",
-        engine: "ai",
+        engine: "math",
         event: "agent.result",
         agent: "Macro News Reader",
       },

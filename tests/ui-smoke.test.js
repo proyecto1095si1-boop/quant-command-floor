@@ -191,6 +191,7 @@ for (const file of [
       ],
       events: [],
       intelligence: [],
+      intelligenceProviders: { finnhub: { configured: false } },
       pipeline: {
         halted: true,
         haltReason: "manual",
@@ -202,6 +203,46 @@ for (const file of [
     };
   window.fetch = async () => ({ ok: true, json: async () => snapshot });
   await window.syncFloor();
+  document.querySelector('.agent[data-node-id="intake.news"]').click();
+  assert.match(
+    document.querySelector("#nodeLiveActivity").textContent,
+    /FINNHUB_API_KEY/,
+  );
+  assert.equal(
+    document.querySelector("#nodeLiveStatus").textContent,
+    "BLOCKED",
+  );
+  snapshot.intelligenceProviders.finnhub = {
+    configured: true,
+    lastError: null,
+  };
+  snapshot.intelligence = [
+    {
+      asset: "BTC",
+      asOf: snapshotAt + 1,
+      nodes: [
+        {
+          id: "news",
+          employee: "Noticias / Sentimiento",
+          observations: 3,
+          signal: 0.2,
+          confidence: 0.6,
+          method: "lexicon × time decay",
+        },
+      ],
+      provenance: [{ provider: "finnhub", records: 3 }],
+    },
+  ];
+  await window.syncFloor();
+  assert.match(
+    document.querySelector("#nodeLiveActivity").textContent,
+    /3 observaciones/,
+  );
+  assert.equal(document.querySelector("#confidenceValue").textContent, "60.0%");
+  assert.equal(
+    document.querySelector("#modelFormula").textContent,
+    "lexicon × time decay",
+  );
   document.querySelector('.agent[data-node-id="desk.sol"]').click();
   assert.match(
     document.querySelector("#nodeLiveActivity").textContent,

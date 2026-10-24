@@ -260,8 +260,11 @@ class IntelligenceDag {
         status: 422,
       });
     const now = this.clock(),
-      decisionAt = Number(asOf ?? now);
-    if (!Number.isFinite(decisionAt) || decisionAt > now)
+      requestedAt = asOf === undefined ? null : Number(asOf);
+    if (
+      requestedAt !== null &&
+      (!Number.isFinite(requestedAt) || requestedAt > now)
+    )
       throw Object.assign(new Error("invalid-intelligence-as-of"), {
         status: 422,
       });
@@ -283,7 +286,8 @@ class IntelligenceDag {
           }
         }),
       );
-    const news = settled
+    const decisionAt = requestedAt ?? this.clock(),
+      news = settled
         .filter((row) => row.operation === "news")
         .flatMap((row) => row.data),
       macro = settled.find((row) => row.provider === "fred")?.data || [],

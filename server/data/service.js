@@ -21,7 +21,7 @@ class MarketDataService {
     store = new JsonlStore(
       process.env.DATA_DIR || path.resolve(process.cwd(), "var/data"),
     ),
-    products = ["BTC-USD", "ETH-USD"],
+    products = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD"],
     pollMs = 5000,
     publish = () => {},
     divergenceLimitBps = 25,

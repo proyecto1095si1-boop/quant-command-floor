@@ -247,6 +247,7 @@ function createGateway(options = {}) {
           intelligence: FLOOR_TOPOLOGY.assets
             .map((asset) => options.intelligenceDag?.snapshot(asset))
             .filter(Boolean),
+          intelligenceProviders: options.intelligence?.status().providers || {},
           events: [...floorEvents.values()],
           pipeline: pipeline?.status() || null,
           execution: execution?.status() || null,
