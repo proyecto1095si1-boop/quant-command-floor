@@ -6,6 +6,7 @@ const http = require("node:http"),
   { DeskRegistry } = require("./desks/registry.js"),
   { SecurityManager } = require("./security/manager.js"),
   { FLOOR_TOPOLOGY } = require("./floor/topology.js");
+const { EmployeeCards } = require("./employees/service.js");
 const MAX_BODY = 256 * 1024,
   MAX_CLIENTS = 100;
 function cors(origin, allowed) {
@@ -146,7 +147,21 @@ function createGateway(options = {}) {
     governance = options.governance || null,
     readiness = options.readiness || null;
   const floorEvents = new Map();
+  const employeeCards = new EmployeeCards({
+    sources: () => ({
+      desks,
+      dataService,
+      pipeline,
+      research,
+      portfolio,
+      execution,
+      sre,
+      intelligenceDag: options.intelligenceDag,
+      intelligence: options.intelligence,
+    }),
+  });
   const publish = (event) => {
+    const changedEmployees = employeeCards.ingest(event);
     if (
       ["desk.analysis", "agent.result", "pipeline.stage"].includes(event.type)
     ) {
@@ -162,6 +177,8 @@ function createGateway(options = {}) {
       if (socket.destroyed) clients.delete(socket);
       else socket.write(frame);
     }
+    for (const id of changedEmployees)
+      publish({ type: "employee.updated", id, observedAt: Date.now() });
   };
   const handleRequest = async (req, res) => {
     const requestStarted = Date.now();
@@ -233,6 +250,29 @@ function createGateway(options = {}) {
       return json(res, 200, security.status(), headers);
     if (req.method === "GET" && req.url === "/v1/floor/topology")
       return json(res, 200, FLOOR_TOPOLOGY, headers);
+    if (req.method === "GET" && req.url === "/v1/employees")
+      return json(
+        res,
+        200,
+        { paperOnly: true, employees: employeeCards.list() },
+        headers,
+      );
+    if (
+      req.method === "GET" &&
+      /^\/v1\/employees\/[a-z0-9.-]+\/card(?:\?.*)?$/.test(req.url)
+    ) {
+      const url = new URL(req.url, "http://localhost"),
+        asset = url.searchParams.get("asset");
+      if (asset && !FLOOR_TOPOLOGY.assets.includes(asset))
+        return json(res, 422, { error: "invalid-employee-asset" }, headers);
+      const card = employeeCards.card(url.pathname.split("/")[3], { asset });
+      return json(
+        res,
+        card ? 200 : 404,
+        card || { error: "employee-not-found" },
+        headers,
+      );
+    }
     if (req.method === "GET" && req.url === "/v1/floor/snapshot") {
       const markets = FLOOR_TOPOLOGY.assets
         .map((asset) => dataService?.snapshot?.(`${asset}-USD`))
@@ -251,6 +291,7 @@ function createGateway(options = {}) {
           intelligenceMaxAgeMs:
             options.intelligenceDag?.maxSnapshotAgeMs ?? 6 * 60 * 60 * 1000,
           events: [...floorEvents.values()],
+          employees: employeeCards.list(),
           pipeline: pipeline?.status() || null,
           execution: execution?.status() || null,
         },
@@ -789,13 +830,35 @@ function createGateway(options = {}) {
         return json(res, e.status || 422, { error: e.message }, headers);
       }
     }
-    if (req.method === "GET" && req.url === "/v1/sre/status")
-      return json(
-        res,
-        sre ? 200 : 503,
-        sre ? await sre.snapshot() : { error: "sre-disabled" },
-        headers,
-      );
+    if (req.method === "GET" && req.url === "/v1/sre/status") {
+      if (!sre) return json(res, 503, { error: "sre-disabled" }, headers);
+      const snapshot = await sre.snapshot();
+      if (
+        employeeCards.observe("sre.api", {
+          at: snapshot.at,
+          source: "SreService.snapshot",
+          raw: {
+            status: snapshot.status,
+            slis: snapshot.slis,
+            checks: snapshot.checks,
+          },
+          inputs: [
+            {
+              name: "Indicadores de servicio",
+              source: "SreService.snapshot.slis",
+              value: snapshot.slis,
+              at: snapshot.at,
+            },
+          ],
+        })
+      )
+        publish({
+          type: "employee.updated",
+          id: "sre.api",
+          observedAt: Date.now(),
+        });
+      return json(res, 200, snapshot, headers);
+    }
     if (req.method === "POST" && req.url === "/v1/sre/backup") {
       if (!sre) return json(res, 503, { error: "sre-disabled" }, headers);
       const x = await body(req);

@@ -385,6 +385,9 @@ class IntelligenceDag {
 }
 
 module.exports = {
+  DAY_MS,
+  NEWS_MAX_AGE_MS,
+  NODE_WEIGHTS,
   IntelligenceDag,
   consensus,
   macroNode,

@@ -823,3 +823,13 @@ Formato:
 - Política de retención/licencia revisada.
 - Secretos únicamente en backend/secret manager.
 - Fallback o comportamiento fail-closed definido.
+
+## Fichas de empleados
+
+`GET /v1/employees` devuelve los resúmenes de los 33 empleados.
+`GET /v1/employees/:id/card` devuelve EmployeeCard validada (404 si no existe).
+Admite `?asset=BTC`, ETH, SOL o BNB; otros activos devuelven 422.
+Requieren los permisos de lectura existentes. No ejecutan órdenes ni IA.
+El snapshot del piso incluye `employees`; el WebSocket emite `employee.updated`
+con `id` y `observedAt` para volver a consultar la ficha.
+Contrato, estados, límites y alcance actual: [FICHAS_EMPLEADOS](docs/FICHAS_EMPLEADOS.md).
